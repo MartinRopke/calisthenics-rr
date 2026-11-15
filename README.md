@@ -1,1 +1,26 @@
 # calisthenics-rr
+
+App de treino para o Recommended Routine do r/bodyweightfitness. Guia o treino do dia, aplica a regra de progressão automaticamente e guarda o histórico.
+
+## Estrutura
+
+- `data.js`: exercícios, escadas de progressão, aquecimento e níveis iniciais
+- `logic.js`: regras de progressão e montagem do treino (funções puras)
+- `app.js`: interface e armazenamento
+- `style.css`: visual
+- `build.py`: junta tudo em um único `index.html`
+- `test.js`: testes da lógica (`node test.js`)
+- `e2e.py` e `e2e2.py`: testes de interface com Playwright
+
+## Rodar
+
+```
+python3 build.py
+node test.js
+```
+
+Depois abra o `index.html` no navegador.
+
+## Regra de progressão
+
+Começa em 3x5, soma 1 repetição por série a cada treino até 3x8, e então passa para o próximo nível em 3x5. Isometrias vão de 10 a 30 s.
