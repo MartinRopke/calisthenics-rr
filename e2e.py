@@ -92,7 +92,7 @@ with sync_playwright() as p:
             break
         name=page.locator('.w-name').inner_text()
         # flexão diamante: subir para 8 em todas as séries para testar promoção
-        if name.startswith('Flexão diamante'):
+        if name.startswith('Diamond push-up'):
             for _ in range(3): page.click('[data-act=w-val][data-d="1"]')
         if page.locator('[data-act=w-hold-start]').count():
             page.click('[data-act=w-log]')
