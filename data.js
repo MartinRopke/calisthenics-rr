@@ -14,6 +14,7 @@ function mk(id, name, kind, opts) {
     cues: opts.cues || [],
     equip: opts.equip || '',
     setup: opts.setup || [],
+    std: opts.std || 'Standard',
     note: opts.note || '',
     q: opts.q || name,
     lo: kind === 'hold' ? 10 : (core ? 8 : 5),
@@ -55,7 +56,10 @@ var SLOTS = {
 var EQ_ROW = 'low bar, rings or a sturdy table';
 var EQ_BAR = 'pull-up bar, monkey bars or rings';
 var EQ_DIP = 'parallel bars, two sturdy chairs or a counter corner';
-var ROW_SETUP = ['eq.row.sheet', 'eq.row.table'];
+/* Opções de equipamento: setup lista as alternativas além da padrão (std). Com k, usa um vídeo de videos.js; sem k, o app mostra uma busca no YouTube com q. */
+var ROW_SETUP = [{ k: 'eq.row.table', label: 'Table' }, { k: 'eq.row.sheet', label: 'Bedsheet and door' }];
+var BAR_SETUP = [{ label: 'Rings', q: 'rings' }];
+var DIP_SETUP = [{ label: 'Two chairs', q: 'two chairs' }, { label: 'Counter corner', q: 'counter corner' }];
 var EQ_COP = 'bench, couch, counter or sturdy chair';
 var LADDERS = {
   pushup: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
@@ -67,10 +71,10 @@ var LADDERS = {
   ] } } },
 
   row: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
-    mk('row.vert', 'Vertical row', 'reps', { q: 'vertical row bodyweight', equip: EQ_ROW, setup: ROW_SETUP, cues: ['The same row, with the body upright'] }),
-    mk('row.inc', 'Incline row', 'reps', { q: 'incline inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Body between vertical and horizontal', 'The closer to horizontal, the harder', 'On a table: feet farther away make it harder'] }),
-    mk('row.hor', 'Horizontal row', 'reps', { q: 'inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Straight body, parallel to the floor', 'Bent legs make the row easier'] }),
-    mk('row.wide', 'Wide row', 'reps', { q: 'wide grip inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Grip about 1.5 times shoulder width', 'Here the elbows can flare out'] }),
+    mk('row.vert', 'Vertical row', 'reps', { q: 'vertical row bodyweight', equip: EQ_ROW, setup: ROW_SETUP, std: 'Low bar or rings', cues: ['The same row, with the body upright'] }),
+    mk('row.inc', 'Incline row', 'reps', { q: 'incline inverted row', equip: EQ_ROW, setup: ROW_SETUP, std: 'Low bar or rings', cues: ['Body between vertical and horizontal', 'The closer to horizontal, the harder', 'On a table: feet farther away make it harder'] }),
+    mk('row.hor', 'Horizontal row', 'reps', { q: 'inverted row', equip: EQ_ROW, setup: ROW_SETUP, std: 'Low bar or rings', cues: ['Straight body, parallel to the floor', 'Bent legs make the row easier'] }),
+    mk('row.wide', 'Wide row', 'reps', { q: 'wide grip inverted row', equip: EQ_ROW, setup: ROW_SETUP, std: 'Low bar or rings', cues: ['Grip about 1.5 times shoulder width', 'Here the elbows can flare out'] }),
     mk('row.wt', 'Weighted row', 'reps', { q: 'weighted inverted row', equip: EQ_ROW + ', plus a weight vest or plate', cues: ['Weight on the chest or belly, or a weight vest'] })
   ] } } },
 
@@ -86,17 +90,17 @@ var LADDERS = {
   ] } } },
 
   pullup: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
-    mk('pullup.scap', 'Scapular pulls', 'reps', { q: 'scapular pull ups', equip: EQ_BAR, cues: ['Elbows straight the whole time', 'Hold 3 to 5 s at the top, squeezing the shoulder blades, then lower back to the hang with control', 'If you cannot leave the hang, use a band or your feet to help'] }),
-    mk('pullup.arch', 'Arch hangs', 'hold', { q: 'arch hang pull up progression', equip: EQ_BAR, cues: ['Elbows straight, hold for the target time', 'Work toward 90 degrees at the shoulder'] }),
-    mk('pullup.neg', 'Negative pull-ups', 'reps', { q: 'negative pull ups', equip: EQ_BAR, cues: ['Jump to the top and lower as slowly as you can, until your arms are straight', 'Work up to 10 s descents'] }),
-    mk('pullup.pu', 'Pull-up', 'reps', { q: 'pull up form', equip: EQ_BAR }),
+    mk('pullup.scap', 'Scapular pulls', 'reps', { q: 'scapular pull ups', equip: EQ_BAR, setup: BAR_SETUP, std: 'Pull-up bar', cues: ['Elbows straight the whole time', 'Hold 3 to 5 s at the top, squeezing the shoulder blades, then lower back to the hang with control', 'If you cannot leave the hang, use a band or your feet to help'] }),
+    mk('pullup.arch', 'Arch hangs', 'hold', { q: 'arch hang pull up progression', equip: EQ_BAR, setup: BAR_SETUP, std: 'Pull-up bar', cues: ['Elbows straight, hold for the target time', 'Work toward 90 degrees at the shoulder'] }),
+    mk('pullup.neg', 'Negative pull-ups', 'reps', { q: 'negative pull ups', equip: EQ_BAR, setup: BAR_SETUP, std: 'Pull-up bar', cues: ['Jump to the top and lower as slowly as you can, until your arms are straight', 'Work up to 10 s descents'] }),
+    mk('pullup.pu', 'Pull-up', 'reps', { q: 'pull up form', equip: EQ_BAR, setup: BAR_SETUP, std: 'Pull-up bar' }),
     mk('pullup.wt', 'Weighted pull-up', 'reps', { q: 'weighted pull up', equip: EQ_BAR + ', plus weights', cues: ['The same pull-up, with extra load'] })
   ] } } },
 
   dip: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
-    mk('dip.hold', 'Parallel bar support hold', 'hold', { q: 'parallel bar support hold', equip: EQ_DIP, note: 'The dip page asks you to work up to 1 minute. The guide\'s general rule is 30 s, which is the target used here.', cues: ['Straight arms, tight body and shoulder blades down, holding for the target time', 'No parallel bars: two sturdy chairs (put some weight on the seats), a counter corner at 90 degrees or two tables of the same height', 'If you cannot hold it, help with your feet or a band'] }),
-    mk('dip.neg', 'Negative dips', 'reps', { q: 'negative dips', equip: EQ_DIP, cues: ['Only the way down, with control', 'Get back up by jumping or with a support', 'Work up to 10 s descents'] }),
-    mk('dip.pb', 'Parallel bar dips', 'reps', { q: 'parallel bar dips', equip: EQ_DIP }),
+    mk('dip.hold', 'Parallel bar support hold', 'hold', { q: 'parallel bar support hold', equip: EQ_DIP, setup: DIP_SETUP, std: 'Parallel bars', note: 'The dip page asks you to work up to 1 minute. The guide\'s general rule is 30 s, which is the target used here.', cues: ['Straight arms, tight body and shoulder blades down, holding for the target time', 'No parallel bars: two sturdy chairs (put some weight on the seats), a counter corner at 90 degrees or two tables of the same height', 'If you cannot hold it, help with your feet or a band'] }),
+    mk('dip.neg', 'Negative dips', 'reps', { q: 'negative dips', equip: EQ_DIP, setup: DIP_SETUP, std: 'Parallel bars', cues: ['Only the way down, with control', 'Get back up by jumping or with a support', 'Work up to 10 s descents'] }),
+    mk('dip.pb', 'Parallel bar dips', 'reps', { q: 'parallel bar dips', equip: EQ_DIP, setup: DIP_SETUP, std: 'Parallel bars' }),
     mk('dip.wt', 'Weighted dips', 'reps', { q: 'weighted dips', equip: 'parallel bars and weights', cues: ['The same dip, with extra load'] })
   ] } } },
 
@@ -122,11 +126,11 @@ var LADDERS = {
 
   core_ar: { defaultPath: 'cph', paths: {
     cph: { label: 'Copenhagen plank', levels: [
-      mk('core_ar.cph1', 'Assisted knee Copenhagen plank', 'hold', { core: true, perSide: true, q: 'assisted knee copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['The bottom leg gives the minimum help you need', 'Do not let the hips sag', 'You can rest on your hand instead of your elbow'] }),
-      mk('core_ar.cph2', 'Knee Copenhagen plank', 'hold', { core: true, perSide: true, q: 'knee copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['Do not let the hips sag', 'You can rest on your hand instead of your elbow'] }),
-      mk('core_ar.cph3', 'Assisted Copenhagen plank', 'hold', { core: true, perSide: true, q: 'assisted copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['The bottom leg gives the minimum help you need', 'Do not let the hips sag'] }),
-      mk('core_ar.cph4', 'Copenhagen plank', 'hold', { core: true, perSide: true, q: 'copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['Do not let the hips sag'] }),
-      mk('core_ar.cph5', 'Copenhagen plank with movement', 'reps', { core: true, perSide: true, q: 'copenhagen plank with movement', equip: EQ_COP, setup: ['eq.cop'], cues: ['Bring the free leg to the chest and return with control', 'Do not let the hips sag'] })
+      mk('core_ar.cph1', 'Assisted knee Copenhagen plank', 'hold', { core: true, perSide: true, q: 'assisted knee copenhagen plank', equip: EQ_COP, setup: [{ k: 'eq.cop', label: 'Couch or chair' }], std: 'Bench', cues: ['The bottom leg gives the minimum help you need', 'Do not let the hips sag', 'You can rest on your hand instead of your elbow'] }),
+      mk('core_ar.cph2', 'Knee Copenhagen plank', 'hold', { core: true, perSide: true, q: 'knee copenhagen plank', equip: EQ_COP, setup: [{ k: 'eq.cop', label: 'Couch or chair' }], std: 'Bench', cues: ['Do not let the hips sag', 'You can rest on your hand instead of your elbow'] }),
+      mk('core_ar.cph3', 'Assisted Copenhagen plank', 'hold', { core: true, perSide: true, q: 'assisted copenhagen plank', equip: EQ_COP, setup: [{ k: 'eq.cop', label: 'Couch or chair' }], std: 'Bench', cues: ['The bottom leg gives the minimum help you need', 'Do not let the hips sag'] }),
+      mk('core_ar.cph4', 'Copenhagen plank', 'hold', { core: true, perSide: true, q: 'copenhagen plank', equip: EQ_COP, setup: [{ k: 'eq.cop', label: 'Couch or chair' }], std: 'Bench', cues: ['Do not let the hips sag'] }),
+      mk('core_ar.cph5', 'Copenhagen plank with movement', 'reps', { core: true, perSide: true, q: 'copenhagen plank with movement', equip: EQ_COP, setup: [{ k: 'eq.cop', label: 'Couch or chair' }], std: 'Bench', cues: ['Bring the free leg to the chest and return with control', 'Do not let the hips sag'] })
     ] },
     pallof: { label: 'Pallof press', levels: [
       mk('core_ar.pal', 'Banded Pallof press', 'reps', { core: true, perSide: true, q: 'banded pallof press', equip: 'resistance band', cues: ['Under control, with a short pause with the arms extended'] }),

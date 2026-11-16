@@ -128,7 +128,7 @@ t('todo nível e item de aquecimento tem vídeo válido', () => {
     assert.ok(V[l.id], 'sem vídeo: ' + l.id);
   })));
   D.WARMUP.concat(D.WARMUP_EXTRAS.filter(x => x.q)).forEach(w => assert.ok(V['w.' + w.id], 'sem vídeo: w.' + w.id));
-  Object.keys(D.LADDERS).forEach(s => Object.values(D.LADDERS[s].paths).forEach(p => p.levels.forEach(l => l.setup.forEach(k => assert.ok(V[k], 'sem vídeo de montagem: ' + k)))));
+  Object.keys(D.LADDERS).forEach(s => Object.values(D.LADDERS[s].paths).forEach(p => p.levels.forEach(l => l.setup.forEach(o => assert.ok(o.label && (!o.k || V[o.k]), 'sem vídeo de montagem: ' + o.k)))));
   Object.keys(V).forEach(k => assert.ok(/^[A-Za-z0-9_-]{11}$/.test(V[k].id) && V[k].t && V[k].c, k));
 });
 t('aquecimento: extras aparecem com o nível e o anterior vem do nível certo', () => {
