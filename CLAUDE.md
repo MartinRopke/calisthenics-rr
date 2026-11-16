@@ -4,22 +4,28 @@ Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guid
 
 ## Commands
 
-- `npm test`: logic tests, in Node, with no dependencies. Always run before committing.
+- No build step. `index.html` is hand-written and loads `app.js` as a native ES module.
+- `npm start`: local server (`server.mjs`) at http://localhost:8000. It serves a fixed whitelist of files (add any new module there) and stores the history in `data/treino.json` (override the folder with `DATA_DIR`), which git ignores.
+- `npm run home`: same server, reachable from the iPhone over Wi-Fi, with `caffeinate` (see README).
+- `npm test`: logic tests with `node:test`. Always run before committing.
+- `npm run lint` and `npm run format`: ESLint and Prettier (`npm run format:check` only verifies). Run both before committing.
 - `npm run guide`: regenerates `docs/rr-guide.md` from `data.js`. Run after changing ladders, cues or the warmup.
-- `npm run wiki`: guides Martin through saving the original guide pages into `reference/` (outside git). It opens each page in his browser and saves the copied text. Reddit blocks automatic downloads, so only he can run it.
-- `npm run test:e2e`: screen tests with Playwright in Python (`pip install playwright` and `playwright install chromium`). They start `server.mjs` on a free port with a temporary `DATA_DIR` and save screenshots in `shots/`, which git ignores.
-- `npm start`: local server (`server.mjs`, no dependencies) at http://localhost:8000. It serves the app files (a fixed whitelist in `server.mjs`: add any new module there) and stores the history in `data/treino.json` (override the folder with `DATA_DIR`), which git ignores. Videos play on localhost.
-- Opening `index.html` straight from disk does not work, because browsers block ES modules on `file://`. Use `npm start` (Mac) or `npm run home` (iPhone over Wi-Fi, see README).
+- `npm run wiki`: guides Martin through saving the original guide pages into `reference/` (outside git). Reddit blocks automatic downloads, so only he can run it.
+- `npm run test:e2e`: screen tests with Playwright in Python. They start `server.mjs` on a free port with a temporary `DATA_DIR` and save screenshots in `shots/`, which git ignores.
+- Opening `index.html` from disk does not work (browsers block ES modules on `file://`). Use `npm start`.
 
 ## Structure
 
-- `data.js`: the 9 exercises (`SLOTS`), the progression ladders (`LADDERS`, with alternative paths), the workout order (`PAIRS`, `CORE`), the starting levels (`START_LEVELS`) and the warmup (`WARMUP`, `WARMUP_EXTRAS`).
-- `videos.js`: one YouTube video per level and per warmup item.
-- `logic.js`: pure functions, no DOM, ES module exports, also imported by the tests. Every progression rule lives here.
-- `app.js`: screens, storage and the guided workout. Clicks go through `data-act` and the `H` object of functions.
-- `style.css`: light and dark theme through `prefers-color-scheme`.
-- Native ES modules, no bundler: `index.html` is hand-written and loads `app.js` with `<script type="module">`, which imports `data.js`, `videos.js` and `logic.js`. The style stays ES5-like (`var`, `function`) for now.
-- With `npm start`, the app detects `/api/state` and writes the history to `data/treino.json` (with a copy in `treino.bak.json`), in addition to `localStorage`. Without the server that address does not exist, so only `localStorage` applies (key `treinoRR.v1`, draft in `treinoRR.draft`). The code still has a path for the Claude artifacts `db`, which can be removed.
+Read README.md "Architecture and conventions" and `docs/decisions/` before structural changes. Record structural decisions as a new ADR in `docs/decisions/`.
+
+- `data.js`, `videos.js`: plain data. `data.js` has the 9 exercises (`SLOTS`), ladders (`LADDERS`, with alternative paths), workout order (`PAIRS`, `CORE`), `START_LEVELS` and the warmup (`WARMUP`, `WARMUP_EXTRAS`). `videos.js` has one YouTube video per level and per warmup item.
+- `logic.js`: pure functional core, no DOM, no storage. Every progression rule lives here.
+- `storage.js` (being extracted): storage adapter with `schemaVersion`.
+- `views.js` (being extracted): pure HTML builders.
+- `app.js`: imperative shell with events, timer and the guided workout. Clicks go through `data-act` and the `H` object.
+- `server.mjs`: serves files and `/api/state`. `style.css`: light and dark theme.
+- Dependencies point inward. `logic.js` never touches the DOM or storage.
+- With `npm start`, the app uses `/api/state` (history in `data/treino.json`, with a copy in `treino.bak.json`) plus `localStorage` (key `treinoRR.v1`, draft in `treinoRR.draft`). The code still has a path for the Claude artifacts `db`, which can be removed.
 
 ## Product rules (do not change without asking)
 
@@ -44,12 +50,12 @@ Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guid
 ## Conventions
 
 - The repository is English-only: code, comments, commit messages, docs and every visible text of the app. A private, unversioned file `CLAUDE.local.md` holds Martin's personal notes for the assistant and is not part of the repository.
-- Modern JavaScript is the target (`const`/`let`, arrow functions). Files will be migrated to it one at a time, so older `var`/`function` code may remain in the meantime.
+- Modern JavaScript: `const`/`let`, arrow functions, native ES modules. Migrate older `var`/`function` code when touching a file.
+- New logic and bug fixes start with a failing test (TDD), in `test.js` or a `*.test.js` next to the module.
 - Every visible text of the app (screens, buttons, execution cues, warnings) uses short sentences and imperative verbs on buttons ("Set done", "Skip"). Exercise names follow the guide's name (Pull-up, Hinge, Copenhagen plank).
 - An exercise that needs equipment shows "Needs: ..." with a dumbbell icon (Lucide, ISC license, inlined in `app.js` as `ICON_EQUIP`) and the options (the level's `equip` field, in `data.js`). Without equipment, the field is empty and nothing shows.
 - Mobile first (390 px wide), touch targets of at least 44 px.
 - No external dependencies besides the Archivo font and the YouTube videos.
-- Touched the logic? Add or update the test in `test.js`.
 - The full plan is in the document "Plano de treino RR" in Claude Docs. If you change ladders or starting levels, tell Martin to update the document.
 - Do not use dashes (`--`, em dash, en dash) to separate sentences in prose. Hyphens only in compound words.
 
@@ -57,5 +63,6 @@ Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guid
 
 - Visual redesign (colors), requested by Martin.
 - No offline mode or PWA install (missing manifest and service worker).
+- No backup or export of the history.
 - The rest beeps may not play with the screen locked. Time is computed by clock time, so the timer is not lost.
 - Never tested on a real iPhone.
