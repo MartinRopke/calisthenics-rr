@@ -13,6 +13,7 @@ function mk(id, name, kind, opts) {
     perSide: !!opts.perSide,
     cues: opts.cues || [],
     equip: opts.equip || '',
+    setup: opts.setup || [],
     note: opts.note || '',
     q: opts.q || name,
     lo: kind === 'hold' ? 10 : (core ? 8 : 5),
@@ -23,118 +24,124 @@ function mk(id, name, kind, opts) {
 }
 
 var SLOTS = {
-  pullup: { label: 'Pull-up', group: 'Puxar na vertical', wiki: 'pullup', needsBar: true,
-    muscles: 'Dorsais, bíceps e parte alta das costas',
-    general: ['Corpo levemente em hollow, pernas estendidas e sem cruzar', 'Braços retos embaixo, sem pensar em mais nada', 'Busque o peito na barra em cima, subindo aos poucos nessa amplitude', 'Pescoço neutro, sem esticar o queixo para passar da barra'] },
-  squat: { label: 'Agachamento', group: 'Pernas', wiki: 'squat',
-    muscles: 'Quadríceps e glúteos',
-    general: ['Fique em pé por completo no topo', 'Desça o máximo que conseguir, de preferência com o quadril abaixo dos joelhos', 'Pressione o dedão e o calcanhar no chão', 'Joelhos alinhados com os pés e empurrando para fora'] },
-  dip: { label: 'Dip', group: 'Empurrar na vertical', wiki: 'dip',
-    muscles: 'Peito (parte de baixo), tríceps e ombros',
-    general: ['Corpo reto ou levemente em hollow, sem dobrar no quadril', 'Braços travados e escápulas para baixo no topo', 'Desça o máximo que conseguir', 'Cotovelos junto ao corpo'] },
-  hinge: { label: 'Hinge', group: 'Posterior de coxa', wiki: 'hinge',
-    muscles: 'Posteriores da coxa, glúteos e lombar',
+  pullup: { label: 'Pull-up', group: 'Vertical pull', wiki: 'pullup', needsBar: true,
+    muscles: 'Lats, biceps and upper back',
+    general: ['Slightly hollow body, legs straight and uncrossed', 'Arms fully straight at the bottom, with no extra tricks', 'Aim to bring your chest to the bar at the top, building up to that range over time', 'Neutral neck, without stretching your chin to clear the bar'] },
+  squat: { label: 'Squat', group: 'Legs', wiki: 'squat',
+    muscles: 'Quads and glutes',
+    general: ['Stand up fully at the top', 'Go as deep as you can, ideally with the hips below the knees', 'Press the big toe and the heel into the floor', 'Knees in line with the feet and pushing out'] },
+  dip: { label: 'Dip', group: 'Vertical push', wiki: 'dip',
+    muscles: 'Lower chest, triceps and shoulders',
+    general: ['Straight or slightly hollow body, no bending at the hips', 'Lock the arms and push the shoulder blades down at the top', 'Go as deep as you can', 'Elbows close to the body'] },
+  hinge: { label: 'Hinge', group: 'Hamstrings', wiki: 'hinge',
+    muscles: 'Hamstrings, glutes and lower back',
     general: [] },
-  row: { label: 'Remada', group: 'Puxar na horizontal', wiki: 'row',
-    muscles: 'Meio das costas, dorsais, parte de trás dos ombros e bíceps',
-    general: ['Corpo reto', 'Cotovelos junto ao corpo', 'Braços esticados embaixo', 'Peito até a barra ou a borda, com as escápulas juntas em cima', 'Não encolha os ombros'] },
-  pushup: { label: 'Flexão', group: 'Empurrar na horizontal', wiki: 'pushup',
-    muscles: 'Peito, ombros (frente) e tríceps, com o core firme',
-    general: ['Corpo em linha reta da cabeça aos pés, sem deixar o quadril cair', 'Braços travados e escápulas afastadas no topo', 'Desça até o peito quase tocar o chão', 'Cotovelos junto ao corpo e ombros longe das orelhas'] },
-  core_ae: { label: 'Core: anti-extensão', group: 'Core', wiki: 'core', core: true,
-    muscles: 'Abdômen (reto abdominal e transverso)', general: [] },
-  core_ar: { label: 'Core: anti-rotação', group: 'Core', wiki: 'core', core: true,
-    muscles: 'Oblíquos e estabilizadores do quadril', general: [] },
-  core_ex: { label: 'Core: extensão', group: 'Core', wiki: 'core', core: true,
-    muscles: 'Lombar e glúteos', general: [] }
+  row: { label: 'Row', group: 'Horizontal pull', wiki: 'row',
+    muscles: 'Mid back, lats, rear shoulders and biceps',
+    general: ['Straight body', 'Elbows close to the body', 'Arms fully straight at the bottom', 'Chest to the bar or the edge, with the shoulder blades together at the top', 'Do not shrug the shoulders'] },
+  pushup: { label: 'Push-up', group: 'Horizontal push', wiki: 'pushup',
+    muscles: 'Chest, front shoulders and triceps, with a tight core',
+    general: ['Straight line from head to feet, without letting the hips sag', 'Arms locked and shoulder blades spread apart at the top', 'Lower until the chest almost touches the floor', 'Elbows close to the body and shoulders away from the ears'] },
+  core_ae: { label: 'Core: anti-extension', group: 'Core', wiki: 'core', core: true,
+    muscles: 'Abs (rectus abdominis and transverse abdominis)', general: [] },
+  core_ar: { label: 'Core: anti-rotation', group: 'Core', wiki: 'core', core: true,
+    muscles: 'Obliques and hip stabilizers', general: [] },
+  core_ex: { label: 'Core: extension', group: 'Core', wiki: 'core', core: true,
+    muscles: 'Lower back and glutes', general: [] }
 };
 
-/* Cada slot tem caminhos (paths) com a sua escada de níveis. O primeiro é o caminho padrão. */
+/* Cada slot tem caminhos (paths) com a sua escada de níveis. O primeiro é o caminho padrão.
+   equip: o que o exercício pede, com as opções. Fica vazio quando não precisa de nada. */
+var EQ_ROW = 'low bar, rings or a sturdy table';
+var EQ_BAR = 'pull-up bar, monkey bars or rings';
+var EQ_DIP = 'parallel bars, two sturdy chairs or a counter corner';
+var ROW_SETUP = ['eq.row.sheet', 'eq.row.table'];
+var EQ_COP = 'bench, couch, counter or sturdy chair';
 var LADDERS = {
-  pushup: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('pushup.vert', 'Flexão vertical', 'reps', { q: 'wall push up', cues: ['Em pé, de frente para a parede, mãos apoiadas nela', 'Faça a flexão mantendo o corpo reto'] }),
-    mk('pushup.inc', 'Flexão inclinada', 'reps', { q: 'incline push up', cues: ['Mãos num apoio firme, como mesa ou banco', 'Quanto mais baixo o apoio, mais difícil'] }),
-    mk('pushup.full', 'Flexão completa', 'reps', { q: 'push up form' }),
-    mk('pushup.dia', 'Flexão diamante', 'reps', { q: 'diamond push up', cues: ['Mãos juntas, polegares e indicadores se tocando', 'Se incomodar, comece com as mãos um pouco mais juntas que o normal e feche aos poucos'] }),
-    mk('pushup.ppu', 'Pseudo planche push-up', 'reps', { q: 'pseudo planche push up', cues: ['Mãos viradas para os lados, ombros à frente das mãos', 'Mantenha a inclinação durante toda a repetição e afaste as escápulas no topo', 'Mais inclinação deixa mais difícil, menos deixa mais fácil'] })
+  pushup: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('pushup.vert', 'Wall push-up', 'reps', { q: 'wall push up', cues: ['Stand facing a wall with your hands on it', 'Do the push-up keeping the body straight'] }),
+    mk('pushup.inc', 'Incline push-up', 'reps', { q: 'incline push up', equip: 'table, bench or another sturdy surface', cues: ['Hands on a sturdy surface, like a table or bench', 'The lower the surface, the harder it gets'] }),
+    mk('pushup.full', 'Full push-up', 'reps', { q: 'push up form' }),
+    mk('pushup.dia', 'Diamond push-up', 'reps', { q: 'diamond push up', cues: ['Hands together, thumbs and index fingers touching', 'If it hurts, start with the hands slightly closer than normal and bring them together gradually'] }),
+    mk('pushup.ppu', 'Pseudo planche push-up', 'reps', { q: 'pseudo planche push up', cues: ['Hands turned out to the sides, shoulders ahead of the hands', 'Keep the lean through the whole rep and spread the shoulder blades at the top', 'More lean is harder, less lean is easier'] })
   ] } } },
 
-  row: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('row.vert', 'Remada vertical', 'reps', { q: 'vertical row bodyweight', cues: ['A mesma remada, com o corpo na vertical'] }),
-    mk('row.inc', 'Remada inclinada', 'reps', { q: 'incline inverted row', cues: ['Corpo entre vertical e horizontal', 'Mais perto da horizontal, mais difícil', 'Na mesa: pés mais afastados deixam mais difícil'] }),
-    mk('row.hor', 'Remada horizontal', 'reps', { q: 'inverted row', cues: ['Corpo reto e paralelo ao chão', 'Pernas dobradas deixam a remada mais fácil'] }),
-    mk('row.wide', 'Remada aberta', 'reps', { q: 'wide grip inverted row', cues: ['Pegada com cerca de 1,5 vez a largura dos ombros', 'Aqui os cotovelos podem abrir'] }),
-    mk('row.wt', 'Remada invertida com peso', 'reps', { q: 'weighted inverted row', equip: 'colete de peso ou anilha', cues: ['Peso no peito ou na barriga, ou colete de peso'] })
+  row: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('row.vert', 'Vertical row', 'reps', { q: 'vertical row bodyweight', equip: EQ_ROW, setup: ROW_SETUP, cues: ['The same row, with the body upright'] }),
+    mk('row.inc', 'Incline row', 'reps', { q: 'incline inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Body between vertical and horizontal', 'The closer to horizontal, the harder', 'On a table: feet farther away make it harder'] }),
+    mk('row.hor', 'Horizontal row', 'reps', { q: 'inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Straight body, parallel to the floor', 'Bent legs make the row easier'] }),
+    mk('row.wide', 'Wide row', 'reps', { q: 'wide grip inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Grip about 1.5 times shoulder width', 'Here the elbows can flare out'] }),
+    mk('row.wt', 'Weighted row', 'reps', { q: 'weighted inverted row', equip: EQ_ROW + ', plus a weight vest or plate', cues: ['Weight on the chest or belly, or a weight vest'] })
   ] } } },
 
-  squat: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('squat.assist', 'Agachamento assistido', 'reps', { q: 'assisted squat', cues: ['Segure em algo à frente e use as mãos para ajudar', 'Reduza a ajuda com o tempo'] }),
-    mk('squat.sq', 'Agachamento', 'reps', { q: 'bodyweight squat form' }),
-    mk('squat.split', 'Agachamento dividido', 'reps', { perSide: true, q: 'split squat', cues: ['Fique na posição de afundo durante toda a série', 'Diferente do avanço, os pés não voltam a se juntar'] }),
-    mk('squat.bulg', 'Agachamento búlgaro', 'reps', { perSide: true, q: 'bulgarian split squat', equip: 'banco ou cadeira', cues: ['Pé de trás apoiado num banco', 'Para evoluir, eleve também o pé da frente'] }),
-    mk('squat.shr1', 'Shrimp squat iniciante', 'reps', { perSide: true, q: 'beginner shrimp squat', cues: ['O joelho e a ponta do pé de trás saem do chão juntos'] }),
-    mk('squat.shr2', 'Shrimp squat intermediário', 'reps', { perSide: true, q: 'intermediate shrimp squat', cues: ['O joelho toca o chão, a ponta do pé não'] }),
-    mk('squat.shr3', 'Shrimp squat avançado', 'reps', { perSide: true, q: 'advanced shrimp squat', cues: ['Segure o calcanhar ao descer', 'Só o joelho toca o chão'] }),
-    mk('squat.shrw', 'Shrimp squat com peso', 'reps', { perSide: true, q: 'weighted shrimp squat', equip: 'peso', cues: ['O mesmo shrimp avançado, com carga extra'] })
+  squat: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('squat.assist', 'Assisted squat', 'reps', { q: 'assisted squat', cues: ['Hold something in front of you and use your hands to help', 'Reduce the help over time'] }),
+    mk('squat.sq', 'Squat', 'reps', { q: 'bodyweight squat form' }),
+    mk('squat.split', 'Split squat', 'reps', { perSide: true, q: 'split squat', cues: ['Stay in the lunge position for the whole set', 'Unlike a lunge, the feet never come back together'] }),
+    mk('squat.bulg', 'Bulgarian split squat', 'reps', { perSide: true, q: 'bulgarian split squat', equip: 'bench or chair', cues: ['Back foot resting on a bench', 'To progress, also raise the front foot'] }),
+    mk('squat.shr1', 'Beginner shrimp squat', 'reps', { perSide: true, q: 'beginner shrimp squat', cues: ['The back knee and the back toes leave the floor together'] }),
+    mk('squat.shr2', 'Intermediate shrimp squat', 'reps', { perSide: true, q: 'intermediate shrimp squat', cues: ['The knee touches the floor, the toes do not'] }),
+    mk('squat.shr3', 'Advanced shrimp squat', 'reps', { perSide: true, q: 'advanced shrimp squat', cues: ['Hold the heel as you go down', 'Only the knee touches the floor'] }),
+    mk('squat.shrw', 'Weighted shrimp squat', 'reps', { perSide: true, q: 'weighted shrimp squat', equip: 'weights', cues: ['The same advanced shrimp, with extra load'] })
   ] } } },
 
-  pullup: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('pullup.scap', 'Scapular pulls', 'reps', { q: 'scapular pull ups', equip: 'barra', cues: ['Cotovelos retos o tempo todo', 'Segure de 3 a 5 s em cima, apertando as escápulas, e solte até a pendurada com controle', 'Se não sair da pendurada, use faixa ou os pés para ajudar'] }),
-    mk('pullup.arch', 'Arch hangs', 'hold', { q: 'arch hang pull up progression', equip: 'barra', cues: ['Cotovelos retos, segure pelo tempo da meta', 'Evolua em direção a 90 graus no ombro'] }),
-    mk('pullup.neg', 'Pull-ups negativas', 'reps', { q: 'negative pull ups', equip: 'barra', cues: ['Pule até o topo e desça o mais devagar que conseguir, até esticar os braços', 'Vá subindo até descidas de 10 s'] }),
-    mk('pullup.pu', 'Pull-up', 'reps', { q: 'pull up form', equip: 'barra' }),
-    mk('pullup.wt', 'Pull-up com peso', 'reps', { q: 'weighted pull up', equip: 'barra e peso', cues: ['A mesma pull-up, com carga extra'] })
+  pullup: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('pullup.scap', 'Scapular pulls', 'reps', { q: 'scapular pull ups', equip: EQ_BAR, cues: ['Elbows straight the whole time', 'Hold 3 to 5 s at the top, squeezing the shoulder blades, then lower back to the hang with control', 'If you cannot leave the hang, use a band or your feet to help'] }),
+    mk('pullup.arch', 'Arch hangs', 'hold', { q: 'arch hang pull up progression', equip: EQ_BAR, cues: ['Elbows straight, hold for the target time', 'Work toward 90 degrees at the shoulder'] }),
+    mk('pullup.neg', 'Negative pull-ups', 'reps', { q: 'negative pull ups', equip: EQ_BAR, cues: ['Jump to the top and lower as slowly as you can, until your arms are straight', 'Work up to 10 s descents'] }),
+    mk('pullup.pu', 'Pull-up', 'reps', { q: 'pull up form', equip: EQ_BAR }),
+    mk('pullup.wt', 'Weighted pull-up', 'reps', { q: 'weighted pull up', equip: EQ_BAR + ', plus weights', cues: ['The same pull-up, with extra load'] })
   ] } } },
 
-  dip: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('dip.hold', 'Sustentação nas paralelas', 'hold', { q: 'parallel bar support hold', equip: 'duas cadeiras firmes ou quina de balcão', note: 'A página do dip pede chegar a 1 minuto. A regra geral do guia é 30 s, que é a meta usada aqui.', cues: ['Braços retos, corpo firme e escápulas para baixo, segurando pelo tempo da meta', 'Sem paralelas: duas cadeiras firmes (ponha peso nos assentos), a quina de um balcão em 90 graus ou duas mesas da mesma altura', 'Se não sustentar, ajude com os pés ou uma faixa'] }),
-    mk('dip.neg', 'Dips negativos', 'reps', { q: 'negative dips', equip: 'duas cadeiras firmes ou quina de balcão', cues: ['Só a descida, com controle', 'Suba pulando ou com um apoio', 'Vá subindo até descidas de 10 s'] }),
-    mk('dip.pb', 'Dips nas paralelas', 'reps', { q: 'parallel bar dips', equip: 'paralelas ou apoio firme' }),
-    mk('dip.wt', 'Dips com peso', 'reps', { q: 'weighted dips', equip: 'paralelas e peso', cues: ['O mesmo dip, com carga extra'] })
+  dip: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('dip.hold', 'Parallel bar support hold', 'hold', { q: 'parallel bar support hold', equip: EQ_DIP, note: 'The dip page asks you to work up to 1 minute. The guide\'s general rule is 30 s, which is the target used here.', cues: ['Straight arms, tight body and shoulder blades down, holding for the target time', 'No parallel bars: two sturdy chairs (put some weight on the seats), a counter corner at 90 degrees or two tables of the same height', 'If you cannot hold it, help with your feet or a band'] }),
+    mk('dip.neg', 'Negative dips', 'reps', { q: 'negative dips', equip: EQ_DIP, cues: ['Only the way down, with control', 'Get back up by jumping or with a support', 'Work up to 10 s descents'] }),
+    mk('dip.pb', 'Parallel bar dips', 'reps', { q: 'parallel bar dips', equip: EQ_DIP }),
+    mk('dip.wt', 'Weighted dips', 'reps', { q: 'weighted dips', equip: 'parallel bars and weights', cues: ['The same dip, with extra load'] })
   ] } } },
 
-  hinge: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('hinge.rdl', 'Levantamento terra romeno', 'reps', { q: 'bodyweight romanian deadlift', cues: ['Em pé, contraia o glúteo para deixar a lombar neutra', 'Leve o quadril para trás e incline o tronco para não cair', 'Mãos no peito e na barriga para ter feedback, ou soltas ao lado', 'O movimento é suave'] }),
-    mk('hinge.sldl', 'Terra unilateral', 'reps', { perSide: true, q: 'single leg romanian deadlift', cues: ['Sem equilíbrio, apoie uma mão numa superfície ou afaste as pernas'] }),
-    mk('hinge.nn', 'Nordic curl negativo com faixa', 'reps', { q: 'banded nordic curl negative', equip: 'faixa elástica e apoio para os pés', cues: ['Prenda os pés sob algo firme, a cerca de um punho do tornozelo', 'Contraia o glúteo para manter o quadril estendido', 'Desça devagar, sem dobrar no quadril', 'No fim, faça uma pequena flexão para voltar'] }),
-    mk('hinge.nc', 'Nordic curl com faixa', 'reps', { q: 'banded nordic curl', equip: 'faixa elástica e apoio para os pés', cues: ['Mesma montagem, agora subindo com a força dos posteriores', 'Quando ficar fácil, repita as duas etapas com faixas mais fracas'] }),
-    mk('hinge.nord', 'Nordic curl', 'reps', { q: 'nordic hamstring curl', equip: 'apoio para os pés', cues: ['Contraia o glúteo, desça e suba sem dobrar no quadril'] })
+  hinge: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('hinge.rdl', 'Romanian deadlift', 'reps', { q: 'bodyweight romanian deadlift', cues: ['Standing, squeeze the glutes to keep the lower back neutral', 'Send the hips back and lean the torso forward so you do not fall over', 'Hands on the chest and belly for feedback, or hanging at your sides', 'The movement is smooth'] }),
+    mk('hinge.sldl', 'Single leg deadlift', 'reps', { perSide: true, q: 'single leg romanian deadlift', cues: ['If you lack balance, rest a hand on a surface or widen your stance'] }),
+    mk('hinge.nn', 'Banded nordic curl negative', 'reps', { q: 'banded nordic curl negative', equip: 'resistance band and something sturdy to anchor your feet', cues: ['Anchor your feet under something sturdy, about a fist away from the ankle', 'Squeeze the glutes to keep the hips extended', 'Lower slowly, without piking at the hips', 'At the bottom, do a small push-up to get back up'] }),
+    mk('hinge.nc', 'Banded nordic curl', 'reps', { q: 'banded nordic curl', equip: 'resistance band and something sturdy to anchor your feet', cues: ['Same setup, now coming up with the strength of the hamstrings', 'When it gets easy, repeat both steps with weaker bands'] }),
+    mk('hinge.nord', 'Nordic curl', 'reps', { q: 'nordic hamstring curl', equip: 'something sturdy to anchor your feet', cues: ['Squeeze the glutes, go down and come up without piking at the hips'] })
   ] } } },
 
   core_ae: { defaultPath: 'plank', paths: {
-    plank: { label: 'Prancha e rollouts', levels: [
-      mk('core_ae.plank', 'Prancha', 'hold', { core: true, q: 'plank form', cues: ['Faça só a prancha, sem os outros exercícios do vídeo', 'Quando chegar a 30 s, passe para os rollouts'] }),
-      mk('core_ae.roll', 'Ring ab rollouts', 'reps', { core: true, q: 'ring ab rollout', equip: 'argolas', cues: ['Cotovelos retos', 'Fique em hollow: costelas para baixo e quadril encaixado', 'Mãos tão perto quanto a mobilidade do ombro permitir', 'Argolas mais altas facilitam, pés elevados dificultam'] })
+    plank: { label: 'Plank and rollouts', levels: [
+      mk('core_ae.plank', 'Plank', 'hold', { core: true, q: 'plank form', cues: ['Do only the plank, not the other drills in the video', 'When you reach 30 s, move on to the rollouts'] }),
+      mk('core_ae.roll', 'Ring ab rollouts', 'reps', { core: true, q: 'ring ab rollout', equip: 'gymnastic rings', cues: ['Elbows straight', 'Stay hollow: ribs down and hips tucked', 'Hands as close as your shoulder mobility allows', 'Higher rings make it easier, elevated feet make it harder'] })
     ] },
-    hlr: { label: 'Elevação de pernas na barra', levels: [
-      mk('core_ae.tuck', 'Tucked hanging leg raises', 'reps', { core: true, q: 'tucked hanging leg raise', equip: 'barra', cues: ['Pendurada passiva, em hollow', 'Pés à frente do quadril e pausa de 1 s em cima e embaixo para não balançar'] }),
-      mk('core_ae.pike', 'Pike hanging leg raises negativo', 'reps', { core: true, q: 'hanging leg raise negative', equip: 'barra', cues: ['Suba com as pernas dobradas, estique e desça com as pernas retas'] }),
-      mk('core_ae.hlr', 'Straight hanging leg raises', 'reps', { core: true, q: 'straight leg hanging leg raise', equip: 'barra', cues: ['Pernas retas, sem balançar'] })
+    hlr: { label: 'Hanging leg raises', levels: [
+      mk('core_ae.tuck', 'Tucked hanging leg raises', 'reps', { core: true, q: 'tucked hanging leg raise', equip: 'bar or rings', cues: ['Passive hang, hollow body', 'Feet in front of the hips and a 1 s pause at the top and bottom to avoid swinging'] }),
+      mk('core_ae.pike', 'Pike hanging leg raises negative', 'reps', { core: true, q: 'hanging leg raise negative', equip: 'bar or rings', cues: ['Lift with the legs bent, straighten them and lower with straight legs'] }),
+      mk('core_ae.hlr', 'Straight hanging leg raises', 'reps', { core: true, q: 'straight leg hanging leg raise', equip: 'bar or rings', cues: ['Straight legs, no swinging'] })
     ] }
   } },
 
   core_ar: { defaultPath: 'cph', paths: {
     cph: { label: 'Copenhagen plank', levels: [
-      mk('core_ar.cph1', 'Copenhagen com joelho, assistido', 'hold', { core: true, perSide: true, q: 'assisted knee copenhagen plank', equip: 'banco, sofá ou cadeira firme', cues: ['A perna de baixo dá o mínimo de ajuda necessário', 'Não deixe o quadril cair', 'Pode apoiar na mão em vez do cotovelo'] }),
-      mk('core_ar.cph2', 'Copenhagen com joelho', 'hold', { core: true, perSide: true, q: 'knee copenhagen plank', equip: 'banco, sofá ou cadeira firme', cues: ['Não deixe o quadril cair', 'Pode apoiar na mão em vez do cotovelo'] }),
-      mk('core_ar.cph3', 'Copenhagen assistido', 'hold', { core: true, perSide: true, q: 'assisted copenhagen plank', equip: 'banco, sofá ou cadeira firme', cues: ['A perna de baixo dá o mínimo de ajuda necessário', 'Não deixe o quadril cair'] }),
-      mk('core_ar.cph4', 'Copenhagen plank', 'hold', { core: true, perSide: true, q: 'copenhagen plank', equip: 'banco, sofá ou cadeira firme', cues: ['Não deixe o quadril cair'] }),
-      mk('core_ar.cph5', 'Copenhagen com movimento', 'reps', { core: true, perSide: true, q: 'copenhagen plank with movement', equip: 'banco, sofá ou cadeira firme', cues: ['Leve a perna livre ao peito e volte com controle', 'Não deixe o quadril cair'] })
+      mk('core_ar.cph1', 'Assisted knee Copenhagen plank', 'hold', { core: true, perSide: true, q: 'assisted knee copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['The bottom leg gives the minimum help you need', 'Do not let the hips sag', 'You can rest on your hand instead of your elbow'] }),
+      mk('core_ar.cph2', 'Knee Copenhagen plank', 'hold', { core: true, perSide: true, q: 'knee copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['Do not let the hips sag', 'You can rest on your hand instead of your elbow'] }),
+      mk('core_ar.cph3', 'Assisted Copenhagen plank', 'hold', { core: true, perSide: true, q: 'assisted copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['The bottom leg gives the minimum help you need', 'Do not let the hips sag'] }),
+      mk('core_ar.cph4', 'Copenhagen plank', 'hold', { core: true, perSide: true, q: 'copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['Do not let the hips sag'] }),
+      mk('core_ar.cph5', 'Copenhagen plank with movement', 'reps', { core: true, perSide: true, q: 'copenhagen plank with movement', equip: EQ_COP, setup: ['eq.cop'], cues: ['Bring the free leg to the chest and return with control', 'Do not let the hips sag'] })
     ] },
     pallof: { label: 'Pallof press', levels: [
-      mk('core_ar.pal', 'Pallof press com faixa', 'reps', { core: true, perSide: true, q: 'banded pallof press', equip: 'faixa elástica', cues: ['Com controle, e uma pausa curta com os braços estendidos'] }),
-      mk('core_ar.ringpal', 'Ring Pallof press', 'reps', { core: true, perSide: true, q: 'ring pallof press', equip: 'argolas', cues: ['Afastar as pernas facilita, juntar dificulta'] })
+      mk('core_ar.pal', 'Banded Pallof press', 'reps', { core: true, perSide: true, q: 'banded pallof press', equip: 'resistance band', cues: ['Under control, with a short pause with the arms extended'] }),
+      mk('core_ar.ringpal', 'Ring Pallof press', 'reps', { core: true, perSide: true, q: 'ring pallof press', equip: 'gymnastic rings', cues: ['A wider stance makes it easier, a narrow one makes it harder'] })
     ] }
   } },
 
   core_ex: { defaultPath: 'arch', paths: {
-    arch: { label: 'Arch no chão', levels: [
-      mk('core_ex.raise', 'Arch raises', 'reps', { core: true, q: 'arch raises', cues: ['Só as elevações da parte de baixo do corpo, como no vídeo do guia'] }),
-      mk('core_ex.hold', 'Arch body hold', 'hold', { core: true, q: 'arch body hold', cues: ['Agora vale o resto do vídeo do guia'] }),
-      mk('core_ex.rock', 'Arch body rocks', 'reps', { core: true, q: 'arch body rocks', cues: ['Balance com controle, mantendo o arco'] })
+    arch: { label: 'Arch on the floor', levels: [
+      mk('core_ex.raise', 'Arch raises', 'reps', { core: true, q: 'arch raises', cues: ['Only the lower-body raises, as in the guide\'s video'] }),
+      mk('core_ex.hold', 'Arch body hold', 'hold', { core: true, q: 'arch body hold', cues: ['Now the rest of the guide\'s video applies'] }),
+      mk('core_ex.rock', 'Arch body rocks', 'reps', { core: true, q: 'arch body rocks', cues: ['Rock with control, keeping the arch'] })
     ] },
     rev: { label: 'Reverse hyperextension', levels: [
-      mk('core_ex.rev', 'Reverse hyperextension', 'reps', { core: true, q: 'reverse hyperextension bodyweight', equip: 'banco ou balcão', cues: ['Mantenha o bumbum contraído'] })
+      mk('core_ex.rev', 'Reverse hyperextension', 'reps', { core: true, q: 'reverse hyperextension bodyweight', equip: 'bench or counter', cues: ['Keep the glutes squeezed'] })
     ] }
   } }
 };
@@ -148,27 +155,26 @@ var SLOT_ORDER = [].concat.apply([], PAIRS).concat(CORE);
 var START_LEVELS = { pushup: 3, row: 1, squat: 1, pullup: 0, dip: 0, hinge: 0, core_ae: 0, core_ar: 0, core_ex: 0 };
 
 /* Aquecimento do guia, mais os extras que entram conforme você sobe de nível.
-   n e unit formam a meta ("5 a 10" + "repetições"); secs liga um cronômetro; how são os passos. */
+   n e unit formam a meta ("5 to 10" + "reps"); secs liga um cronômetro; how são os passos. */
 var WARMUP = [
-  { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 a 10', unit: 'repetições', q: 'Yuri shoulder band warmup',
-    how: ['Segure a faixa, ou uma camiseta, com os braços retos e as mãos bem afastadas', 'Leve a faixa por cima da cabeça até atrás do corpo e volte pelo mesmo caminho', 'Devagar e com os cotovelos retos. Se travar, abra mais as mãos'] },
-  { id: 'sky', name: 'Squat sky reaches', n: '5 a 10', unit: 'repetições', q: 'squat sky reaches',
-    how: ['Desça num agachamento fundo, com os pés na largura dos ombros', 'Embaixo, estique os braços para cima e abra o peito', 'Volte em pé e repita'] },
-  { id: 'wrist', name: 'GMB wrist prep', n: '10 ou mais', unit: 'de cada movimento', q: 'GMB wrist prep',
-    how: ['Apoie as mãos no chão e faça movimentos suaves de punho', 'Para frente e para trás, para os lados e em círculos', 'Sem forçar. Pare se doer'] },
-  { id: 'deadbug', name: 'Deadbugs', n: '30', unit: 'segundos', secs: 30, q: 'dead bug exercise',
-    how: ['Deitado, braços estendidos para cima e joelhos dobrados no ar', 'Lombar colada no chão o tempo todo', 'Estique um braço e a perna do lado oposto, volte e troque'] }
+  { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 to 10', unit: 'reps', equip: 'resistance band or a t-shirt', q: 'Yuri shoulder band warmup',
+    how: ['Hold the band, or a t-shirt, with straight arms and hands far apart', 'Take the band over your head to behind your body and come back the same way', 'Slowly and with straight elbows. If it gets stuck, widen your hands'] },
+  { id: 'sky', name: 'Squat sky reaches', n: '5 to 10', unit: 'reps', q: 'squat sky reaches',
+    how: ['Drop into a deep squat, feet shoulder width apart', 'At the bottom, reach your arms up and open the chest', 'Stand up and repeat'] },
+  { id: 'wrist', name: 'GMB wrist prep', n: '10 or more', unit: 'of each movement', q: 'GMB wrist prep',
+    how: ['Place your hands on the floor and do smooth wrist movements', 'Forward and back, side to side and in circles', 'Do not force it. Stop if it hurts'] },
+  { id: 'deadbug', name: 'Deadbugs', n: '30', unit: 'seconds', secs: 30, q: 'dead bug exercise',
+    how: ['Lying down, arms straight up and knees bent in the air', 'Keep your lower back on the floor the whole time', 'Extend one arm and the opposite leg, come back and switch'] }
 ];
 /* Extras: aparecem quando o exercício chega ao índice indicado. prevLevel usa o nível abaixo do atual. */
 var WARMUP_EXTRAS = [
-  { id: 'x_arch', slot: 'pullup', minIdx: 2, name: 'Arch hangs', n: '10', unit: 'repetições', q: 'arch hang pull up progression',
-    how: ['Pendurado na barra, com os cotovelos retos', 'Afaste o peito da barra e junte as escápulas, formando um arco', 'Solte e repita sem dobrar os cotovelos'] },
-  { id: 'x_sup', slot: 'dip', minIdx: 1, name: 'Sustentação nas paralelas', n: '30', unit: 'segundos', secs: 30, q: 'parallel bar support hold',
-    how: ['Braços retos e escápulas para baixo', 'Corpo firme, sem encolher os ombros', 'Se precisar, ajude com os pés no chão'] },
-  { id: 'x_squat', slot: 'squat', minIdx: 3, prevLevel: true, name: 'Agachamento do nível anterior', n: '10', unit: 'repetições',
-    how: ['É o exercício de agachamento do nível abaixo do de hoje', 'Faça com técnica limpa, sem pressa'] },
-  { id: 'x_hinge', slot: 'hinge', minIdx: 3, prevLevel: true, name: 'Terra do nível anterior', n: '10', unit: 'repetições',
-    how: ['É o exercício de hinge do nível abaixo do de hoje', 'Faça com técnica limpa, sem pressa'] }
+  { id: 'x_arch', slot: 'pullup', minIdx: 2, name: 'Arch hangs', n: '10', unit: 'reps', equip: EQ_BAR, q: 'arch hang pull up progression',
+    how: ['Hanging from the bar with straight elbows', 'Push your chest away from the bar and bring the shoulder blades together, forming an arch', 'Release and repeat without bending the elbows'] },
+  { id: 'x_sup', slot: 'dip', minIdx: 1, name: 'Support hold', n: '30', unit: 'seconds', secs: 30, equip: EQ_DIP, q: 'parallel bar support hold',
+    how: ['Straight arms and shoulder blades down', 'Tight body, without shrugging the shoulders', 'If you need to, help with your feet on the floor'] },
+  { id: 'x_squat', slot: 'squat', minIdx: 3, prevLevel: true, name: 'Easier squat progression', n: '10', unit: 'reps',
+    how: ['This is the squat exercise one level below today\'s', 'Do it with clean technique, without rushing'] },
+  { id: 'x_hinge', slot: 'hinge', minIdx: 3, prevLevel: true, name: 'Easier hinge progression', n: '10', unit: 'reps',
+    how: ['This is the hinge exercise one level below today\'s', 'Do it with clean technique, without rushing'] }
 ];
-
 if (typeof module !== 'undefined') module.exports = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS, ytUrl: ytUrl, WIKI_BASE: WIKI_BASE };

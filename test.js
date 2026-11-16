@@ -8,12 +8,12 @@ const mkW = (state, sets) => { // sets: {slot:[reps..]}
 
 t('estado inicial bate com o plano', () => {
   const s = L.defaultState(D);
-  assert.equal(L.currentLevel(D, s, 'pushup').name, 'Flexão diamante');
-  assert.equal(L.currentLevel(D, s, 'row').name, 'Remada inclinada');
-  assert.equal(L.currentLevel(D, s, 'squat').name, 'Agachamento');
+  assert.equal(L.currentLevel(D, s, 'pushup').name, 'Diamond push-up');
+  assert.equal(L.currentLevel(D, s, 'row').name, 'Incline row');
+  assert.equal(L.currentLevel(D, s, 'squat').name, 'Squat');
   assert.equal(L.currentLevel(D, s, 'pullup').name, 'Scapular pulls');
-  assert.equal(L.currentLevel(D, s, 'dip').name, 'Sustentação nas paralelas');
-  assert.equal(L.currentLevel(D, s, 'core_ar').name, 'Copenhagen com joelho, assistido');
+  assert.equal(L.currentLevel(D, s, 'dip').name, 'Parallel bar support hold');
+  assert.equal(L.currentLevel(D, s, 'core_ar').name, 'Assisted knee Copenhagen plank');
 });
 t('primeira vez: metas no mínimo', () => {
   const s = L.defaultState(D);
@@ -65,7 +65,7 @@ t('hold: 10 -> 15 -> ... e sobe aos 30 s', () => {
   L.finishWorkout(D, s, mkW(s, { dip: [25, 25, 25] }), '2026-11-23', 0);
   assert.deepEqual(L.prescribe(D, s, 'dip').targets, [30, 30, 30]);
   const r = L.finishWorkout(D, s, mkW(s, { dip: [30, 30, 30] }), '2026-11-25', 0);
-  assert.equal(L.currentLevel(D, s, 'dip').name, 'Dips negativos'); assert.equal(r.promotions.length, 1);
+  assert.equal(L.currentLevel(D, s, 'dip').name, 'Negative dips'); assert.equal(r.promotions.length, 1);
 });
 t('core usa faixa 8 a 12', () => {
   const s = L.defaultState(D); s.levels.core_ex.idx = 0;
@@ -128,6 +128,7 @@ t('todo nível e item de aquecimento tem vídeo válido', () => {
     assert.ok(V[l.id], 'sem vídeo: ' + l.id);
   })));
   D.WARMUP.concat(D.WARMUP_EXTRAS.filter(x => x.q)).forEach(w => assert.ok(V['w.' + w.id], 'sem vídeo: w.' + w.id));
+  Object.keys(D.LADDERS).forEach(s => Object.values(D.LADDERS[s].paths).forEach(p => p.levels.forEach(l => l.setup.forEach(k => assert.ok(V[k], 'sem vídeo de montagem: ' + k)))));
   Object.keys(V).forEach(k => assert.ok(/^[A-Za-z0-9_-]{11}$/.test(V[k].id) && V[k].t && V[k].c, k));
 });
 t('aquecimento: extras aparecem com o nível e o anterior vem do nível certo', () => {
@@ -135,7 +136,7 @@ t('aquecimento: extras aparecem com o nível e o anterior vem do nível certo', 
   s.levels.squat.idx = 3; s.levels.hinge.idx = 3; s.levels.pullup.idx = 2; s.levels.dip.idx = 1;
   const it = L.warmupItems(D, s), names = it.map(x => x.name);
   assert.equal(it.length, 8);
-  assert.ok(names.includes('Agachamento dividido') && names.includes('Nordic curl negativo com faixa'));
+  assert.ok(names.includes('Split squat') && names.includes('Banded nordic curl negative'));
   assert.ok(it.every(x => x.how && x.how.length && x.n && x.unit));
 });
 console.log('\n' + pass + ' testes ok');

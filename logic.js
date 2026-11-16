@@ -101,7 +101,7 @@ function warmupItems(D, state) {
     var p = ladderOf(D, state, x.slot)[state.levels[x.slot].idx - 1];
     if (!p) return;
     var y = {}; Object.keys(x).forEach(function (k) { y[k] = x[k]; });
-    y.name = p.name; y.q = p.q; y.how = ['Esta é a etapa anterior à de hoje', 'Faça com técnica limpa, sem pressa'];
+    y.name = p.name; y.q = p.q; y.how = ['This is the step before today\'s', 'Do it with clean technique, without rushing'];
     items.push(y);
   });
   return items;
@@ -169,10 +169,10 @@ function scheduleHint(sessions, todayStr) {
   sessions.forEach(function (s) { if (!last || s.date > last) last = s.date; });
   var dow = (parseISO(todayStr).getUTCDay() + 6) % 7; /* seg = 0 */
   var gap = last ? dayDiff(todayStr, last) : null;
-  if (gap === 0) return { kind: 'done', text: 'Você já treinou hoje.' };
-  if (gap === 1) return { kind: 'rest', text: 'Você treinou ontem. O guia pede ao menos um dia entre os treinos.' };
-  if (dow === 0 || dow === 2 || dow === 4) return { kind: 'go', text: 'Hoje é dia de rotina completa.' };
-  return { kind: 'off', text: 'Hoje é dia de habilidade, mobilidade ou descanso. Dá para treinar se quiser.' };
+  if (gap === 0) return { kind: 'done', text: 'You already trained today.' };
+  if (gap === 1) return { kind: 'rest', text: 'You trained yesterday. The guide asks for at least one day between workouts.' };
+  if (dow === 0 || dow === 2 || dow === 4) return { kind: 'go', text: 'Today is a full routine day.' };
+  return { kind: 'off', text: 'Today is a skill, mobility or rest day. You can still train if you want.' };
 }
 
 function sessionSummaryText(entry) {
