@@ -1,6 +1,6 @@
 # calisthenics-rr
 
-App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o treino do dia, aplica a progressão automaticamente e guarda o histórico. Um único usuário (Martin), usado no iPhone, em português do Brasil.
+App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o treino do dia, aplica a progressão automaticamente e guarda o histórico. Um único usuário (Martin), usado no iPhone e no Mac. A interface é toda em inglês, por pedido do Martin.
 
 ## Comandos
 
@@ -28,7 +28,7 @@ App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o
 - Isometrias vão de 10 a 30 s, em passos de 5 s, e passam de nível ao chegar a 30 s nas 3 séries. A página do dip pede 1 min, e usamos 30 s.
 - Exercício unilateral: um lado mais o outro contam como uma série.
 - Regra de meta (`targetsFor` e `prescribe`): na primeira vez no nível, todas as séries partem do mínimo. Se todas as séries bateram a meta, cada uma sobe um passo, limitado ao máximo. Senão, repete a última.
-- Pull-up só entra no treino com `settings.hasBar` ligado ("Tenho a barra" em Ajustes). O Martin ainda não tem a barra.
+- Pull-up só entra no treino com `settings.hasBar` ligado ("I have a pull-up bar" em Settings). O Martin ainda não tem a barra.
 - O aquecimento tem uma tela por item, sem escolhas. Os extras entram sozinhos conforme o nível.
 - Os níveis iniciais estão em `START_LEVELS` e vieram do plano de treino do Martin. Mudar isso muda o treino dele, então combine antes.
 
@@ -40,7 +40,8 @@ App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o
 
 ## Convenções
 
-- Todo texto visível em português do Brasil, frases curtas e verbos no imperativo nos botões ("Série feita", "Pular"). Nomes de exercício ficam em inglês quando é o nome do guia (Pull-up, Hinge, Copenhagen plank).
+- Todo texto visível do app (telas, botões, dicas de execução, avisos) fica em inglês, com frases curtas e verbos no imperativo nos botões ("Set done", "Skip"). Os nomes dos exercícios seguem o nome do guia (Pull-up, Hinge, Copenhagen plank). Este CLAUDE.md e os comentários do código continuam em português.
+- Exercício que pede equipamento mostra "🧰 Needs: ..." com as opções (campo `equip` do nível, em `data.js`). Sem equipamento, o campo fica vazio e nada aparece.
 - Mobile primeiro (390 px de largura), alvos de toque de pelo menos 44 px.
 - Sem dependências externas além da fonte Archivo e dos vídeos do YouTube.
 - Mexeu na lógica? Adicione ou atualize o teste em `test.js`.
