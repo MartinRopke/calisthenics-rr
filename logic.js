@@ -194,15 +194,15 @@ function projectWorkouts(D, state, todayStr, count) {
     var isFirst = day === todayStr;
     if (!isFirst || todayPlanned) {
       if (dow(day) % 2 === 0 && dow(day) <= 4) {
-        var items = [], logged = {};
+        var items = [], logged = {}, warm = warmupItems(D, st);
         D.SLOT_ORDER.filter(function (sl) { return isActive(D, st, sl); }).forEach(function (sl) {
           var p = prescribe(D, st, sl);
           logged[sl] = { levelId: p.level.id, sets: p.targets.slice(), targets: p.targets.slice() };
-          items.push({ slot: sl, name: p.level.name, kind: p.level.kind, targets: p.targets.slice() });
+          items.push({ slot: sl, name: p.level.name, kind: p.level.kind, targets: p.targets.slice(), levelId: p.level.id, levelIdx: st.levels[sl].idx });
         });
         var r = finishWorkout(D, st, { startedAt: ++k, logged: logged }, day, 0);
         r.promotions.forEach(function (pr) { items.forEach(function (it) { if (it.slot === pr.slot) it.promotedTo = pr.to; }); });
-        if (!isFirst) out.push({ date: day, items: items });
+        if (!isFirst) out.push({ date: day, items: items, warm: warm });
       }
     }
     day = nextDay(day);

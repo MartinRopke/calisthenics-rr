@@ -293,3 +293,111 @@ button:active { transform: scale(.97); }
 .recent-list { border-top: 2px solid var(--ink); }
 .recent { display: flex; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; }
 .link-more { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 600; }
+
+.daysel { display: flex; gap: 8px; margin: 22px 0 0; }
+.daysel button { flex: 1; min-height: 44px; padding: 0 6px; border-radius: 10px; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); font-weight: 700; font-size: 15px; white-space: nowrap; }
+.daysel button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); }
+.daysel + .sec-title { margin-top: 18px; }
+
+/* Redesenho das telas Today e Progress: cartões, cabeçalho com a semana, abas */
+.head-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.head-row .week { margin: 0; flex-direction: column; align-items: flex-end; gap: 6px; padding-bottom: 4px; }
+.hero { padding: 16px; border: 2px solid var(--line); border-radius: 14px; background: var(--surface); }
+.hero-text { font-size: 17px; font-weight: 600; margin-bottom: 14px; }
+.hero .done-card { border: 0; background: none; padding: 0; margin: 0 0 14px; }
+.hero-last { margin-top: 12px; text-align: center; }
+.daysel { margin: 22px 0 0; }
+.plan-head { margin: 16px 0 2px; }
+.plan-head h2 { font-stretch: 80%; font-weight: 700; font-size: 22px; }
+.plan-head p { margin-top: 2px; }
+.gcard { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 2px 16px; margin-top: 14px; }
+.gcard.pad { padding: 14px 16px 12px; }
+.gcard .grp { margin: 14px 0 4px; }
+.gcard .ex-list { border-top: 2px solid var(--ink); }
+.gcard .ex:last-child { border-bottom: 0; }
+.gcard .pcard-top { padding-top: 0; }
+.card-title { font-weight: 700; font-size: 18px; }
+.segsel { display: flex; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.segsel button { flex: 1; min-height: 44px; border-radius: 9px; text-align: center; font-weight: 700; color: var(--muted); }
+.segsel button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.stats { display: flex; gap: 10px; margin-top: 14px; }
+.stat { flex: 1; padding: 12px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; text-align: center; }
+.stat b { display: block; font-size: 34px; }
+.stat span { font-size: 13px; color: var(--muted); }
+.tab-note { margin-top: 14px; }
+.gcard details.sess:last-child { border-bottom: 0; }
+.gcard details.sess:first-child { padding-top: 14px; }
+
+.big-stepper button[disabled] { opacity: .35; }
+
+/* Grupos de opções (Settings, folha do exercício, trocas): mesmo desenho dos botões de dia da tela Today */
+.pathsel button { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); font-weight: 700; font-size: 15px; text-align: center; }
+.pathsel button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); font-weight: 700; }
+.swap .pathsel button, .vid-keep .pathsel button { padding: 0 10px; font-size: 14px; min-height: 40px; }
+
+/* Profundidade e animação de toque nos grupos de opções, nos botões de dia, nos steppers e nos interruptores */
+.pathsel button:active, .daysel button:active, .stepper button:active, .big-stepper button:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+.pathsel button[aria-pressed="true"]:active, .daysel button[aria-pressed="true"]:active { box-shadow: 0 0 0 var(--accent-deep); }
+@media (hover: hover) {
+  .pathsel button:hover, .daysel button:hover, .stepper button:hover, .big-stepper button:hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--line); }
+  .pathsel button[aria-pressed="true"]:hover, .daysel button[aria-pressed="true"]:hover { box-shadow: 0 5px 0 var(--accent-deep); }
+  .pathsel button:active, .daysel button:active, .stepper button:active, .big-stepper button:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+}
+.stepper button, .big-stepper button { box-shadow: 0 3px 0 var(--line); }
+.switch { box-shadow: inset 0 2px 3px rgba(0, 0, 0, .35); transition: background-color .2s ease; }
+.switch::after { box-shadow: 0 2px 0 rgba(0, 0, 0, .35); transition: transform .18s ease, background-color .2s ease; }
+.switch[aria-checked="true"] { box-shadow: inset 0 2px 3px rgba(0, 0, 0, .35); }
+.switch:active::after { width: 28px; }
+.switch[aria-checked="true"]:active::after { transform: translateX(20px); }
+
+/* Abas do Progress: botões separados, como os botões de dia */
+.segsel { gap: 8px; padding: 0; background: none; border: 0; border-radius: 0; }
+.segsel button { border-radius: 10px; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); color: var(--ink); font-size: 15px; }
+.segsel button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); }
+
+/* Escada de progressão: cada degrau é um botão com profundidade */
+.ladder { border-top: 0; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.ladder button { min-height: 48px; padding: 0 14px; border: 2px solid var(--line); border-bottom-width: 2px; border-radius: 10px; box-shadow: 0 3px 0 var(--line); }
+.ladder .cur { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); }
+.ladder .cur .mark { background: var(--accent-ink); border-color: var(--accent-ink); }
+.ladder .lock { box-shadow: none; }
+.ladder button[disabled] { cursor: default; }
+
+.segsel button:active, .ladder button:not([disabled]):active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+.segsel button[aria-pressed="true"]:active, .ladder .cur:active { box-shadow: 0 0 0 var(--accent-deep); }
+@media (hover: hover) {
+  .segsel button:hover, .ladder button:not([disabled]):hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--line); }
+  .segsel button[aria-pressed="true"]:hover, .ladder .cur:not([disabled]):hover { box-shadow: 0 5px 0 var(--accent-deep); }
+  .segsel button:active, .ladder button:not([disabled]):active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+}
+
+/* Linhas que abrem algo: cada uma é um cartão com profundidade, no mesmo estilo dos botões */
+.plan-grp { margin-top: 22px; }
+.plan-grp .grp { margin: 0 0 10px; }
+.plan-grp .ex-list, .sess-list { border-top: 0; display: flex; flex-direction: column; gap: 10px; }
+.sess-list { margin-top: 14px; }
+.plan-grp .ex, details.sess { position: relative; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; box-shadow: 0 3px 0 var(--line); padding: 12px 36px 13px 14px; }
+.plan-grp .ex::after, details.sess summary::after { content: ''; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -5px; border-right: 2.5px solid var(--accent); border-top: 2.5px solid var(--accent); transform: rotate(45deg); }
+.plan-grp .ex:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+details.sess { padding: 0 14px; }
+details.sess summary { position: relative; align-items: center; min-height: 54px; padding-right: 26px; }
+details.sess summary::after { right: 2px; transition: transform .2s ease; }
+details.sess[open] summary::after { transform: rotate(135deg); margin-top: -8px; }
+details.sess[open] { padding-bottom: 12px; }
+details.sess summary:active { opacity: .7; }
+@media (hover: hover) {
+  .plan-grp .ex:hover, details.sess:hover { filter: none; transform: translateY(-2px); box-shadow: 0 5px 0 var(--line); }
+  .plan-grp .ex:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+}
+
+/* Barra de abas: ícone e nome, e a aba atual em destaque suave (inspirada nas barras de apps como o Duolingo) */
+.tabbar { gap: 6px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+.tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; margin-top: 0; padding: 7px 0 6px; border: 2px solid transparent; border-radius: 12px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.tab-ico { width: 24px; height: 24px; }
+.tab[aria-current="page"] { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.tab:active { transform: scale(.94); }
+.tab-ico { transition: transform .2s ease; }
+.tab[aria-current="page"] .tab-ico { transform: translateY(-1px) scale(1.08); }
+.sheet-bg { touch-action: none; }
+.sheet { overscroll-behavior: contain; }
+html.no-scroll { overflow: hidden; }

@@ -8,6 +8,8 @@ var ICON_EQUIP = '<svg class="ico" xmlns="http://www.w3.org/2000/svg" viewBox="0
 var state = defaultState(D);
 var tab = 'hoje';
 var W = null;            /* treino em andamento */
+var progTab = 'overview';  /* aba da tela Progress: overview, exercises, history */
+var dayIdx = 0, previewWarm = null;  /* dia mostrado na tela Today: 0 = hoje, 1..3 = próximos */
 var sheetCtx = null;     /* {slot, ctx} da folha aberta */
 var sync = { mode: 'local', note: 'Loading…' };
 var dbRefs = null;
@@ -182,7 +184,7 @@ function viewHoje() {
     return '<button class="ex" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(lvl.name) + '</div><div class="ex-meta">' + esc(metaLine(S, lvl, slot)) + '</div>' + equipHtml(lvl) + '</div><div class="ex-target num">' + targetHtml(lvl, p.targets) + '</div></div>' + rungsHtml(slot) + '</button>';
   }
   function group(title, sub, rows) {
-    return '<div class="grp"><h3>' + title + '</h3><span class="muted small">' + sub + '</span></div><div class="ex-list">' + rows + '</div>';
+    return '<section class="plan-grp"><div class="grp"><h3>' + title + '</h3><span class="muted small">' + sub + '</span></div><div class="ex-list">' + rows + '</div></section>';
   }
   var warm = warmupItems(D, state);
   var warmRows = warm.map(function (it) {
@@ -195,7 +197,9 @@ function viewHoje() {
   rows += group('Core', '3 sets, ' + state.settings.restCore + ' s rest', CORE.map(exRow).join(''));
   var cta;
   var doneToday = state.sessions.filter(function (s) { return s.date === today; }).pop();
-  var statusHtml = '<div class="hint ' + hint.kind + '">' + esc(hint.text) + '</div>';
+  var last = state.sessions[state.sessions.length - 1];
+  var lastTxt = last ? '<p class="muted small hero-last">Last workout: ' + esc(new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(last.date + 'T12:00:00'))) + '</p>' : '';
+  var statusHtml = '<p class="hero-text">' + esc(hint.text) + '</p>';
   if (draft) {
     cta = '<div class="btn-row"><button class="btn tape" data-act="resume">Continue workout</button><button class="btn ghost" data-act="discard-draft">Discard</button></div>';
   } else if (doneToday) {
@@ -205,57 +209,82 @@ function viewHoje() {
   } else {
     cta = '<button class="btn tape" data-act="start">Start workout</button>';
   }
-  var recent = state.sessions.slice().reverse().slice(0, 3).map(function (s) {
-    var day = new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(s.date + 'T12:00:00'));
-    return '<button class="recent" data-act="tab" data-tab="progresso"><span>' + esc(day) + '</span><span class="muted">' + Object.keys(s.entries).length + ' exercises' + (s.durationSec ? ' · ' + Math.max(1, Math.round(s.durationSec / 60)) + ' min' : '') + '</span></button>';
+  var proj = projectWorkouts(D, state, today, doneToday ? 4 : 3);
+  if (doneToday) proj = proj.slice(1);
+  if (dayIdx > proj.length) dayIdx = 0;
+  var fmtDay = function (iso, o) { return new Intl.DateTimeFormat('en-US', o).format(new Date(iso + 'T12:00:00')); };
+  var dayBtns = '<button data-act="pick-day" data-i="0" aria-pressed="' + (dayIdx === 0) + '">Today</button>' + proj.map(function (p, n) {
+    return '<button data-act="pick-day" data-i="' + (n + 1) + '" aria-pressed="' + (dayIdx === n + 1) + '">' + esc(fmtDay(p.date, { weekday: 'short', day: 'numeric' })) + '</button>';
   }).join('');
-  var upcoming = projectWorkouts(D, state, today, 3).map(function (p) {
-    var day = new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(p.date + 'T12:00:00'));
-    var list = p.items.map(function (it) {
-      return '<li><span>' + esc(it.name) + (it.promotedTo ? '<span class="up-tag">then: ' + esc(it.promotedTo) + '</span>' : '') + '</span><span>' + esc(sessionSummaryText({ sets: it.targets, kind: it.kind })) + '</span></li>';
-    }).join('');
-    return '<details class="sess"><summary><span>' + esc(day) + '</span><span class="muted">' + p.items.length + ' exercises</span></summary><ul>' + list + '</ul></details>';
-  }).join('');
-  var upcomingHtml = upcoming ? '<h2 class="sec-title">Coming up</h2><p class="muted small">Targets if you hit every target. They change if you miss.</p><div class="recent-list">' + upcoming + '</div>' : '';
-  var recentHtml = recent ? '<h2 class="sec-title">Recent workouts</h2><div class="recent-list">' + recent + '</div><button class="link-more" data-act="tab" data-tab="progresso">See all in Progress</button>' : '';
-  return '<div class="wrap"><div class="page-head"><h1>Today</h1><p class="date">' + esc(dateTxt) + '</p></div>' +
-    statusHtml + cta +
-    '<div class="week"><span class="pips" aria-hidden="true">' + pips + '</span><span class="muted small">' + wk + ' of 3 workouts this week</span></div>' + upcomingHtml + recentHtml +
-    '<h2 class="sec-title">Today\'s workout</h2><p class="muted small">Warm-up and ' + act + ' exercises, in this order. Tap an exercise to see how to do it or change its level.</p>' +
+  var daySel = '<div class="daysel" role="group" aria-label="Choose a day">' + dayBtns + '</div>';
+  var heading = doneToday ? 'Next workout' : 'Today\'s workout', sub = 'Warm-up and ' + act + ' exercises, in this order. Tap one for the video or to change its level.';
+  if (dayIdx > 0) {
+    var pd = proj[dayIdx - 1];
+    previewWarm = pd.warm;
+    var byslot = {}; pd.items.forEach(function (it) { byslot[it.slot] = it; });
+    var exPrev = function (slot) {
+      var it = byslot[slot];
+      if (!it) return exRow(slot);
+      var S = SLOTS[slot], lvl = ladderOf(D, state, slot)[it.levelIdx];
+      return '<button class="ex" data-act="open-ex" data-slot="' + slot + '" data-lvl="' + esc(it.levelId) + '"><div class="ex-top"><div><div class="ex-name">' + esc(it.name) + (it.promotedTo ? '<span class="up-tag">then: ' + esc(it.promotedTo) + '</span>' : '') + '</div><div class="ex-meta">' + esc((S.label.toLowerCase() !== it.name.toLowerCase() ? S.label + ' · ' : '') + 'Level ' + (it.levelIdx + 1) + ' of ' + ladderOf(D, state, slot).length) + '</div>' + equipHtml(lvl) + '</div><div class="ex-target num">' + targetHtml(lvl, it.targets) + '</div></div></button>';
+    };
+    rows = group('Warm-up', pd.warm.length + ' items', pd.warm.map(function (it) {
+      return '<button class="ex" data-act="open-warm" data-id="' + it.id + '"><div class="ex-name">' + esc(it.name) + '</div><div class="ex-meta">' + esc(it.n + ' ' + it.unit) + '</div>' + equipHtml(it) + '</button>';
+    }).join(''));
+    PAIRS.forEach(function (pair, n) { rows += group('Pair ' + (n + 1) + ' of 3', '3 sets, ' + state.settings.restMain + ' s rest', pair.map(exPrev).join('')); });
+    rows += group('Core', '3 sets, ' + state.settings.restCore + ' s rest', CORE.map(exPrev).join(''));
+    heading = fmtDay(pd.date, { weekday: 'long', day: 'numeric', month: 'long' });
+    sub = 'Preview. Targets assume you hit every target in the workouts before. They change if you miss.';
+  }
+  return '<div class="wrap"><div class="page-head head-row"><div><h1>Today</h1><p class="date">' + esc(dateTxt) + '</p></div>' +
+    '<div class="week" aria-label="' + wk + ' of 3 workouts this week"><span class="pips" aria-hidden="true">' + pips + '</span><span class="muted small">' + wk + ' of 3 this week</span></div></div>' +
+    '<div class="hero">' + statusHtml + cta + lastTxt + '</div>' +
+    daySel + '<div class="plan-head"><h2>' + esc(heading) + '</h2><p class="muted small">' + esc(sub) + '</p></div>' +
     rows + '</div>';
 }
 
 function viewProgresso() {
-  var today = isoDate(), weeks = weeklyCounts(state.sessions, 8, today);
-  var wItems = weeks.map(function (w) { return { v: w.n, label: shortDate(w.start), cap: 'Week of ' + shortDate(w.start) + ': ' + w.n + (w.n === 1 ? ' workout' : ' workouts') }; });
-  var out = '<div class="wrap"><div class="page-head"><h1>Progress</h1><p>' + state.sessions.length + (state.sessions.length === 1 ? ' workout logged' : ' workouts logged') + '</p></div>';
-  out += '<h2 class="sec-title" style="margin-top:6px">Workouts per week</h2>' + barChart(wItems, { goal: 3, min: 3, valueLabels: true, aria: 'Workouts per week over the last 8 weeks', defaultCap: 'Tap a bar to see the week.', h: 100 });
-  out += '<h2 class="sec-title">Each exercise</h2><p class="muted small">Each bar is a workout: total reps (or seconds on holds). Orange bars mark the workout where you moved up a level.</p><div style="margin-top:8px">';
-  SLOT_ORDER.forEach(function (slot) {
-    var S = SLOTS[slot], lvl = currentLevel(D, state, slot), ser = seriesFor(state, slot).slice(-12);
-    var inactive = !isActive(D, state, slot);
-    out += '<div class="pcard"><div class="pcard-top"><h3>' + esc(inactive ? S.label : lvl.name) + '</h3><span class="muted small">' + (inactive ? '' : levelText(slot)) + '</span></div>' + rungsHtml(slot);
-    if (!ser.length) out += '<p class="empty small" style="padding:10px 0 0">' + (inactive ? 'Waiting for the bar.' : 'No records yet. Do a workout to see your progress.') + '</p>';
+  var today = isoDate(), weeks = weeklyCounts(state.sessions, 8, today), n = state.sessions.length;
+  var ups = 0; state.sessions.forEach(function (x) { Object.keys(x.entries).forEach(function (k) { if (x.entries[k].promotedTo) ups++; }); });
+  var tabs = [['overview', 'Overview'], ['history', 'History']].map(function (t) {
+    return '<button data-act="prog-tab" data-p="' + t[0] + '" aria-pressed="' + (progTab === t[0]) + '">' + t[1] + '</button>';
+  }).join('');
+  var out = '<div class="wrap"><div class="page-head"><h1>Progress</h1></div><div class="segsel" role="group" aria-label="Progress sections">' + tabs + '</div>';
+
+  if (progTab === 'overview') {
+    var wItems = weeks.map(function (w) { return { v: w.n, label: shortDate(w.start), cap: 'Week of ' + shortDate(w.start) + ': ' + w.n + (w.n === 1 ? ' workout' : ' workouts') }; });
+    out += '<div class="stats">' +
+      '<div class="stat"><b class="num">' + n + '</b><span>' + (n === 1 ? 'workout' : 'workouts') + '</span></div>' +
+      '<div class="stat"><b class="num">' + weeks[weeks.length - 1].n + '/3</b><span>this week</span></div>' +
+      '<div class="stat"><b class="num">' + ups + '</b><span>' + (ups === 1 ? 'level up' : 'level ups') + '</span></div></div>';
+    out += '<div class="gcard pad"><h3 class="card-title">Workouts per week</h3>' + barChart(wItems, { goal: 3, min: 3, valueLabels: true, aria: 'Workouts per week over the last 8 weeks', defaultCap: 'Tap a bar to see the week.', h: 100 }) + '</div>';
+    out += '<h2 class="sec-title">Each exercise</h2><p class="muted small">Each bar is a workout: total reps (seconds on holds). Orange marks the workout where you moved up a level.</p>';
+    SLOT_ORDER.forEach(function (slot) {
+      var S = SLOTS[slot], lvl = currentLevel(D, state, slot), ser = seriesFor(state, slot).slice(-12);
+      var inactive = !isActive(D, state, slot);
+      out += '<div class="gcard pad" id="pc-' + slot + '"><div class="pcard-top"><h3>' + esc(inactive ? S.label : lvl.name) + '</h3><span class="muted small">' + (inactive ? '' : levelText(slot)) + '</span></div>' + rungsHtml(slot);
+      if (!ser.length) out += '<p class="empty small" style="padding:10px 0 0">' + (inactive ? 'Waiting for the equipment.' : 'No records yet. Do a workout to see your progress.') + '</p>';
+      else {
+        var items = ser.map(function (r) {
+          var u = r.kind === 'hold' ? ' s' : ' reps';
+          return { v: r.total, up: r.promoted, label: shortDate(r.date), cap: shortDate(r.date) + ' · ' + r.name + ' · ' + r.sets.join(' + ') + u + (r.promoted ? ' · moved up to ' + r.promotedTo : '') };
+        });
+        out += barChart(items, { aria: 'Total per workout for ' + S.label, defaultCap: items[items.length - 1].cap, h: 96 });
+      }
+      out += '</div>';
+    });
+  } else {
+    if (!n) out += '<p class="empty">Workouts you finish show up here.</p>';
     else {
-      var items = ser.map(function (s) {
-        var u = s.kind === 'hold' ? ' s' : ' reps';
-        return { v: s.total, up: s.promoted, label: shortDate(s.date), cap: shortDate(s.date) + ' · ' + s.name + ' · ' + s.sets.join(' + ') + u + (s.promoted ? ' · moved up to ' + s.promotedTo : '') };
-      });
-      out += barChart(items, { aria: 'Total per workout for ' + S.label, defaultCap: items[items.length - 1].cap, h: 96 });
+      out += '<div class="sess-list">' + state.sessions.slice().reverse().slice(0, 30).map(function (x) {
+        var list = SLOT_ORDER.filter(function (k) { return x.entries[k]; }).map(function (k) {
+          var e = x.entries[k];
+          return '<li><span>' + esc(e.name) + (e.promotedTo ? '<span class="up-tag">level up</span>' : '') + '</span><span>' + esc(sessionSummaryText(e)) + '</span></li>';
+        }).join('');
+        var c = Object.keys(x.entries).length;
+        return '<details class="sess"><summary><span>' + shortDate(x.date) + '</span><span class="muted">' + c + ' exercises' + (x.durationSec ? ' · ' + Math.max(1, Math.round(x.durationSec / 60)) + ' min' : '') + '</span></summary><ul>' + list + '</ul><button class="btn ghost del-sess" data-act="sess-del-ask" data-id="' + esc(x.id) + '">Delete this workout</button></details>';
+      }).join('') + '</div>';
     }
-    out += '</div>';
-  });
-  out += '</div><h2 class="sec-title">History</h2>';
-  if (!state.sessions.length) out += '<p class="empty">Workouts you finish show up here.</p>';
-  else {
-    out += state.sessions.slice().reverse().slice(0, 30).map(function (s) {
-      var list = SLOT_ORDER.filter(function (k) { return s.entries[k]; }).map(function (k) {
-        var e = s.entries[k];
-        return '<li><span>' + esc(e.name) + (e.promotedTo ? '<span class="up-tag">level up</span>' : '') + '</span><span>' + esc(sessionSummaryText(e)) + '</span></li>';
-      }).join('');
-      var n = Object.keys(s.entries).length;
-      return '<details class="sess"><summary><span>' + shortDate(s.date) + '</span><span class="muted">' + n + ' exercises' + (s.durationSec ? ' · ' + Math.max(1, Math.round(s.durationSec / 60)) + ' min' : '') + '</span></summary><ul>' + list + '</ul><button class="btn ghost del-sess" data-act="sess-del-ask" data-id="' + esc(s.id) + '">Delete this workout</button></details>';
-    }).join('');
   }
   return out + '</div>';
 }
@@ -285,8 +314,13 @@ function viewAjustes() {
     '<div class="btn-row"><button class="btn small ghost" data-act="reset-ask">Apagar tudo</button></div></div>';
 }
 
+var TAB_ICONS = {
+  hoje: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
+  progresso: '<path d="M5 21v-6M12 21V3M19 21V9"/>',
+  ajustes: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>'
+};  /* ícones Lucide (licença ISC) */
 function tabbar() {
-  function t(id, label) { return '<button class="tab" data-act="tab" data-tab="' + id + '"' + (tab === id ? ' aria-current="page"' : '') + '>' + label + '</button>'; }
+  function t(id, label) { return '<button class="tab" data-act="tab" data-tab="' + id + '"' + (tab === id ? ' aria-current="page"' : '') + '><svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + TAB_ICONS[id] + '</svg><span>' + label + '</span></button>'; }
   return '<nav class="tabbar" aria-label="Sections">' + t('hoje', 'Today') + t('progresso', 'Progress') + t('ajustes', 'Settings') + '</nav>';
 }
 var lastTab = '';
@@ -319,12 +353,17 @@ function vidTabs(lvl) {
     lvl.setup.map(function (o) { return '<button data-act="vid-tab" data-key="' + (o.k || '') + '" data-q="' + esc(lvl.q + ' ' + (o.q || 'at home')) + '" aria-pressed="false">' + esc(o.label) + '</button>'; }).join('') + '</div>';
 }
 function vidBlock(lvl) { return '<div class="vid-wrap">' + vidTabs(lvl) + '<div class="vid-slot">' + videoHtml(lvl.id, lvl.q + ' tutorial') + '</div></div>'; }
-function openSheet(slot, ctx) { sheetCtx = { slot: slot, ctx: ctx }; renderSheet(); }
-function closeSheet() { sheetCtx = null; $('#sheet').innerHTML = ''; }
+function openSheet(slot, ctx, lvlId) { sheetCtx = { slot: slot, ctx: ctx, lvlId: lvlId || '' }; renderSheet(); }
+/* Com a folha aberta, a página de trás não rola. Na tela do treino ela já fica travada. */
+function lockPage(on) { document.documentElement.classList.toggle('no-scroll', on); document.body.classList.toggle('no-scroll', on); }
+function closeSheet() { sheetCtx = null; $('#sheet').innerHTML = ''; lockPage(!!W); }
 function levelLocked() { return !!(W && sheetCtx && sheetCtx.ctx === 'workout' && W.logged[sheetCtx.slot] && W.logged[sheetCtx.slot].sets.length); }
 function renderSheet() {
   if (!sheetCtx) return;
+  lockPage(true);
   var slot = sheetCtx.slot, S = SLOTS[slot], lad = ladderOf(D, state, slot), cur = state.levels[slot].idx, lvl = lad[cur];
+  var preview = !!sheetCtx.lvlId;
+  if (preview) lad.forEach(function (l, i) { if (l.id === sheetCtx.lvlId) { lvl = l; cur = i; } });
   var locked = levelLocked();
   var cues = lvl.cues.concat(S.general || []);
   var li = function (arr) { return '<ul class="bul">' + arr.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>'; };
@@ -347,14 +386,14 @@ function renderSheet() {
     (lvl.note ? '<div class="note">' + esc(lvl.note) + '</div>' : '') +
     '<h3>Video</h3>' + vidBlock(lvl) +
     '<div class="links"><a href="' + ytUrl(lvl.q + ' tutorial') + '" target="_blank" rel="noopener">More videos on YouTube</a><a href="' + WIKI_BASE + S.wiki + '" target="_blank" rel="noopener">Guide on the r/bodyweightfitness wiki</a></div>' +
-    '<h3>Progression ladder</h3>' + (locked ? '<p class="muted small" style="margin-bottom:6px">You already did sets of this exercise today, so the level can only change in your next workout.</p>' : '<p class="muted small" style="margin-bottom:6px">Tap a step to change level. Use it to adjust your starting point.</p>') + ladHtml + pathHtml +
-    (hist ? '<h3>Recent records</h3><ul class="bul">' + hist + '</ul>' : '') +
-    '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Close</button></div></div>';
+    (preview ? '<p class="muted small" style="margin-top:14px">This is a preview of a future workout. Your level only changes when you finish workouts.</p>' : '<h3>Progression ladder</h3>' + (locked ? '<p class="muted small" style="margin-bottom:6px">You already did sets of this exercise today, so the level can only change in your next workout.</p>' : '<p class="muted small" style="margin-bottom:6px">Tap a step to change level. Use it to adjust your starting point.</p>') + ladHtml + pathHtml) +
+    (hist && !preview ? '<h3>Recent records</h3><ul class="bul">' + hist + '</ul>' : '') +
+    '<div class="btn-row" style="margin-top:22px"><button class="btn ghost" data-act="sheet-close">Close</button></div></div>';
   $('#sheet').innerHTML = html;
 }
 
 function openWarm(id) {
-  var it = warmupItems(D, state).filter(function (x) { return x.id === id; })[0];
+  var it = (dayIdx > 0 && previewWarm ? previewWarm : warmupItems(D, state)).filter(function (x) { return x.id === id; })[0];
   if (!it) return;
   sheetCtx = null;
   $('#sheet').innerHTML = '<div class="sheet-bg" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(it.name) + '"><div class="grab"></div>' +
@@ -362,7 +401,7 @@ function openWarm(id) {
     (it.equip ? '<span class="chip">' + ICON_EQUIP + ' Needs: ' + esc(it.equip) + '</span>' : '') +
     '<h3>How to</h3><ul class="bul">' + it.how.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' +
     (it.q ? '<h3>Video</h3>' + videoHtml('w.' + it.id, it.q) : '') +
-    '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Close</button></div></div>';
+    '<div class="btn-row" style="margin-top:22px"><button class="btn ghost" data-act="sheet-close">Close</button></div></div>';
 }
 
 function confirmBox(title, text, buttons) {
@@ -453,6 +492,11 @@ function timerText(total, elapsed) {
   if (elapsed < 0) return String(Math.ceil(-elapsed));
   return Math.max(0, Math.ceil(total - elapsed)) + ' s';
 }
+/* Durante o 3, 2, 1 os botões de ajuste ficam desligados. O tempo só muda depois que a contagem começa. */
+function lockAdj(act, on) {
+  var bs = document.querySelectorAll('[data-act="' + act + '"]');
+  for (var i = 0; i < bs.length; i++) bs[i].disabled = on;
+}
 function tick() {
   if (!W) return;
   if (W.phase === 'rest') {
@@ -465,11 +509,13 @@ function tick() {
     var wit = warmupItems(D, state)[W.warmI || 0], wg = warmGoal(wit), wel = wg - (W.warmEnd - Date.now()) / 1000, we = $('#warmTime');
     if (wel < 0) { if (wel >= -3) cue('w' + W.warmI + ':' + Math.ceil(-wel), Math.ceil(-wel)); } else if (wel < 1) cue('w' + W.warmI + ':go', 0); else if (wg - wel <= 3 && wg - wel > 0 && wg > 6) cue('w' + W.warmI + ':e' + Math.ceil(wg - wel), 1);
     if (we) we.textContent = timerText(wg, wel);
+    lockAdj('w-warm-adj', wel < 0);
     if (wel >= wg) { beep(); lastCue = null; H['w-warm-next'](); }
   } else if (W.phase === 'set' && W.holdStart) {
     var el2 = $('#holdTime'), hs = (Date.now() - W.holdStart) / 1000, htg = holdGoal();
     if (hs < 0) { if (hs >= -3) cue('h' + W.i + ':' + Math.ceil(-hs), Math.ceil(-hs)); } else if (hs < 1) cue('h' + W.i + ':go', 0); else if (htg - hs <= 3 && htg - hs > 0 && htg > 6) cue('h' + W.i + ':e' + Math.ceil(htg - hs), 1);
     if (el2) el2.textContent = timerText(htg, hs);
+    lockAdj('w-hold-adj', hs < 0);
     if (hs >= htg) { beep(); lastCue = null; H['w-hold-stop'](); H['w-log'](); }
   }
 }
@@ -623,7 +669,9 @@ var H = {
   'start': function () { startWorkout(); },
   'resume': function () { resumeWorkout(); },
   'discard-draft': function () { clearDraft(); render(); },
-  'open-ex': function (el) { openSheet(el.dataset.slot, 'home'); },
+  'open-ex': function (el) { openSheet(el.dataset.slot, 'home', el.dataset.lvl); },
+  'pick-day': function (el) { dayIdx = +el.dataset.i; render(); },
+  'prog-tab': function (el) { progTab = el.dataset.p; render(); window.scrollTo(0, 0); },
   'open-warm': function (el) { openWarm(el.dataset.id); },
   'vid-tab': function (el) {
     el.parentNode.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b === el ? 'true' : 'false'); });
@@ -708,11 +756,13 @@ var H = {
   'w-warm-timer': function () { prepAudio(); var it = warmupItems(D, state)[W.warmI || 0]; W.warmEnd = Date.now() + (it.secs + 3) * 1000; W.warmTotal = it.secs; lastCue = null; saveDraft(); renderWorkout(); },
   'w-warm-adj': function (el) {
     var it = warmupItems(D, state)[W.warmI || 0], g = warmGoal(it), d = +el.dataset.d, el2 = g - (W.warmEnd - Date.now()) / 1000;
+    if (el2 < 0) return;
     var ng = Math.max(5, g + d); if (ng <= el2 + 1) return;
     W.warmEnd += (ng - g) * 1000; W.warmTotal = ng; saveDraft(); renderWorkout();
   },
   'w-hold-adj': function (el) {
     var g = holdGoal(), d = +el.dataset.d, e = (Date.now() - W.holdStart) / 1000;
+    if (e < 0) return;
     var ng = Math.max(5, g + d); if (ng <= e + 1) return;
     W.holdTotal = ng; saveDraft(); renderWorkout();
   },
