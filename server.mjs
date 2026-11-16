@@ -23,6 +23,7 @@ const STATIC = {
   '/data.js': ['data.js', 'text/javascript; charset=utf-8'],
   '/videos.js': ['videos.js', 'text/javascript; charset=utf-8'],
   '/logic.js': ['logic.js', 'text/javascript; charset=utf-8'],
+  '/views.js': ['views.js', 'text/javascript; charset=utf-8'],
 };
 
 const send = (res, code, type, body) => { res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' }); res.end(body); };

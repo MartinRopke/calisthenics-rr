@@ -1,6 +1,7 @@
 /* App: screens, guided workout and storage. Imports data.js, videos.js and logic.js. */
 import { SLOTS, LADDERS, PAIRS, CORE, SLOT_ORDER, START_LEVELS, WARMUP, WARMUP_EXTRAS, WIKI_BASE, ytUrl } from './data.js';
 import { VIDEOS } from './videos.js';
+import { ICON_EQUIP, esc, shortDate, todayProjection, viewToday, viewProgress, viewSettings, tabbar } from './views.js';
 import {
   isoDate, defaultState, ladderOf, currentLevel, isActive,
   prescribe, buildSteps, restSeconds, warmupItems, finishWorkout, weeklyCounts,
@@ -9,9 +10,6 @@ import {
 
 var D = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS };
 var LS_KEY = 'treinoRR.v1', DRAFT_KEY = 'treinoRR.draft';
-
-/* Dumbbell icon: Lucide "dumbbell" (ISC license), inlined to avoid external dependencies. */
-var ICON_EQUIP = '<svg class="ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>';
 
 var state = defaultState(D);
 var tab = 'today';
@@ -25,8 +23,6 @@ var queue = Promise.resolve();
 var audioCtx = null, wakeLock = null, tickTimer = null, toastTimer = null;
 
 function $(s) { return document.querySelector(s); }
-function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-function shortDate(s) { var p = s.split('-'); return p[2] + '/' + p[1]; }
 
 /* ---------- Storage ---------- */
 var fileMode = false, fileQueue = Promise.resolve();
@@ -133,208 +129,23 @@ function loadDraft() {
 /* ---------- Small formatters ---------- */
 function unitOf(level) { return level.kind === 'hold' ? ' s' : ''; }
 function sideOf(level) { return level.perSide ? ' per side' : ''; }
-function targetHtml(level, targets) {
-  var same = targets.every(function (t) { return t === targets[0]; });
-  var u = level.kind === 'hold' ? 's' : (level.perSide ? 'per side' : 'reps');
-  if (level.kind === 'hold' && level.perSide) u = 's per side';
-  return same ? '3 × ' + targets[0] + '<small>' + u + '</small>' : targets.join(' · ') + '<small>' + u + '</small>';
-}
-function levelText(slot) { return 'Level ' + (state.levels[slot].idx + 1) + ' of ' + ladderOf(D, state, slot).length; }
-function metaLine(S, lvl, slot) {
-  var parts = [];
-  if (S.label.toLowerCase() !== lvl.name.toLowerCase()) parts.push(S.label);
-  parts.push(levelText(slot));
-  return parts.join(' · ');
-}
-function equipHtml(lvl) { return lvl.equip ? '<div class="ex-equip">' + ICON_EQUIP + ' Needs: ' + esc(lvl.equip) + '</div>' : ''; }
-function rungsHtml(slot) {
-  var lad = ladderOf(D, state, slot), cur = state.levels[slot].idx;
-  return '<div class="rungs" aria-hidden="true">' + lad.map(function (l, i) { return '<span class="rung ' + (i < cur ? 'done' : i === cur ? 'cur' : '') + '"></span>'; }).join('') + '</div>';
-}
 function toast(msg) {
   var t = $('#toast'); t.innerHTML = '<div class="toast" role="status">' + esc(msg) + '</div>';
   clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.innerHTML = ''; }, 2200);
 }
 
-/* ---------- Charts ---------- */
-function barChart(items, o) {
-  /* items: [{v, label, cap, up}] */
-  var Wd = 320, Ht = o.h || 110, padB = 16, padT = 16, n = items.length;
-  var max = Math.max.apply(null, items.map(function (i) { return i.v; }).concat([o.min || 1]));
-  var gap = 8, bw = Math.min(34, (Wd - gap * (n + 1)) / n), total = n * bw + (n + 1) * gap, x0 = (Wd - total) / 2 + gap;
-  var plotH = Ht - padB - padT, base = Ht - padB, out = '';
-  if (o.goal) { var gy = base - plotH * o.goal / max; out += '<line class="goal" x1="0" x2="' + Wd + '" y1="' + gy + '" y2="' + gy + '"/><text x="' + Wd + '" y="' + (gy - 4) + '" text-anchor="end">goal ' + o.goal + '</text>'; }
-  items.forEach(function (it, i) {
-    var x = x0 + i * (bw + gap), h = Math.max(it.v ? 3 : 0, plotH * it.v / max), y = base - h, r = Math.min(4, h);
-    var d = h ? 'M' + x + ',' + base + 'V' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y + 'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + y + ' ' + (x + bw) + ',' + (y + r) + 'V' + base + 'Z' : '';
-    out += '<g class="bar' + (it.up ? ' up' : '') + '" data-act="bar" data-cap="' + esc(it.cap || '') + '" tabindex="0" role="img" aria-label="' + esc(it.cap || '') + '">' +
-      '<rect x="' + (x - gap / 2) + '" y="0" width="' + (bw + gap) + '" height="' + Ht + '" fill="transparent"/>' + (d ? '<path d="' + d + '"/>' : '') +
-      (o.valueLabels || i === n - 1 ? '<text x="' + (x + bw / 2) + '" y="' + (y - 4) + '" text-anchor="middle">' + it.v + '</text>' : '') +
-      '<text x="' + (x + bw / 2) + '" y="' + (Ht - 2) + '" text-anchor="middle">' + esc(it.label) + '</text></g>';
-  });
-  out += '<line class="base" x1="0" x2="' + Wd + '" y1="' + base + '" y2="' + base + '"/>';
-  return '<div class="chart-box"><svg class="chart" viewBox="0 0 ' + Wd + ' ' + Ht + '" role="group" aria-label="' + esc(o.aria) + '">' + out + '</svg><p class="chart-cap" aria-live="polite">' + esc(o.defaultCap || '') + '</p></div>';
-}
-
 /* ---------- Screens ---------- */
-function viewToday() {
-  var today = isoDate(), hint = scheduleHint(state.sessions, today), draft = W ? null : loadDraft();
-  var wk = weeklyCounts(state.sessions, 1, today)[0].n;
-  var dateTxt = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-  var pips = [0, 1, 2].map(function (i) { return '<span class="pip ' + (i < wk ? 'on' : '') + '"></span>'; }).join('');
-  var act = SLOT_ORDER.filter(function (s) { return isActive(D, state, s); }).length;
-  function exRow(slot) {
-    var S = SLOTS[slot], lvl = currentLevel(D, state, slot);
-    if (!isActive(D, state, slot)) {
-      return '<button class="ex off" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(S.label) + '</div><div class="ex-meta">Unlocks when you have the bar</div></div></div>' + rungsHtml(slot) + '</button>';
-    }
-    var p = prescribe(D, state, slot);
-    return '<button class="ex" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(lvl.name) + '</div><div class="ex-meta">' + esc(metaLine(S, lvl, slot)) + '</div>' + equipHtml(lvl) + '</div><div class="ex-target num">' + targetHtml(lvl, p.targets) + '</div></div>' + rungsHtml(slot) + '</button>';
-  }
-  function group(title, sub, rows) {
-    return '<section class="plan-grp"><div class="grp"><h3>' + title + '</h3><span class="muted small">' + sub + '</span></div><div class="ex-list">' + rows + '</div></section>';
-  }
-  var warm = warmupItems(D, state);
-  var warmRows = warm.map(function (it) {
-    return '<button class="ex" data-act="open-warm" data-id="' + it.id + '"><div class="ex-name">' + esc(it.name) + '</div><div class="ex-meta">' + esc(it.n + ' ' + it.unit) + '</div>' + equipHtml(it) + '</button>';
-  }).join('');
-  var rows = group('Warm-up', warm.length + ' items', warmRows);
-  PAIRS.forEach(function (pair, i) {
-    rows += group('Pair ' + (i + 1) + ' of 3', '3 sets, ' + state.settings.restMain + ' s rest', pair.map(exRow).join(''));
-  });
-  rows += group('Core', '3 sets, ' + state.settings.restCore + ' s rest', CORE.map(exRow).join(''));
-  var cta;
-  var doneToday = state.sessions.filter(function (s) { return s.date === today; }).pop();
-  var last = state.sessions[state.sessions.length - 1];
-  var lastTxt = last ? '<p class="muted small hero-last">Last workout: ' + esc(new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(last.date + 'T12:00:00'))) + '</p>' : '';
-  var statusHtml = '<p class="hero-text">' + esc(hint.text) + '</p>';
-  if (draft) {
-    cta = '<div class="btn-row"><button class="btn tape" data-act="resume">Continue workout</button><button class="btn ghost" data-act="discard-draft">Discard</button></div>';
-  } else if (doneToday) {
-    var dn = Object.keys(doneToday.entries).length;
-    statusHtml = '<div class="done-card"><span class="done-ico" aria-hidden="true">✓</span><div><b>Workout done today</b><p class="muted">' + dn + ' exercises' + (doneToday.durationSec ? ' · ' + Math.max(1, Math.round(doneToday.durationSec / 60)) + ' min' : '') + '</p></div></div>';
-    cta = '<button class="btn ghost" data-act="start">Repeat workout</button>';
-  } else {
-    cta = '<button class="btn tape" data-act="start">Start workout</button>';
-  }
-  var proj = projectWorkouts(D, state, today, doneToday ? 4 : 3);
-  if (doneToday) proj = proj.slice(1);
-  if (dayIdx > proj.length) dayIdx = 0;
-  var fmtDay = function (iso, o) { return new Intl.DateTimeFormat('en-US', o).format(new Date(iso + 'T12:00:00')); };
-  var dayBtns = '<button data-act="pick-day" data-i="0" aria-pressed="' + (dayIdx === 0) + '">Today</button>' + proj.map(function (p, n) {
-    return '<button data-act="pick-day" data-i="' + (n + 1) + '" aria-pressed="' + (dayIdx === n + 1) + '">' + esc(fmtDay(p.date, { weekday: 'short', day: 'numeric' })) + '</button>';
-  }).join('');
-  var daySel = '<div class="daysel" role="group" aria-label="Choose a day">' + dayBtns + '</div>';
-  var heading = doneToday ? 'Next workout' : 'Today\'s workout', sub = 'Warm-up and ' + act + ' exercises, in this order. Tap one for the video or to change its level.';
-  if (dayIdx > 0) {
-    var pd = proj[dayIdx - 1];
-    previewWarm = pd.warm;
-    var byslot = {}; pd.items.forEach(function (it) { byslot[it.slot] = it; });
-    var exPrev = function (slot) {
-      var it = byslot[slot];
-      if (!it) return exRow(slot);
-      var S = SLOTS[slot], lvl = ladderOf(D, state, slot)[it.levelIdx];
-      return '<button class="ex" data-act="open-ex" data-slot="' + slot + '" data-lvl="' + esc(it.levelId) + '"><div class="ex-top"><div><div class="ex-name">' + esc(it.name) + (it.promotedTo ? '<span class="up-tag">then: ' + esc(it.promotedTo) + '</span>' : '') + '</div><div class="ex-meta">' + esc((S.label.toLowerCase() !== it.name.toLowerCase() ? S.label + ' · ' : '') + 'Level ' + (it.levelIdx + 1) + ' of ' + ladderOf(D, state, slot).length) + '</div>' + equipHtml(lvl) + '</div><div class="ex-target num">' + targetHtml(lvl, it.targets) + '</div></div></button>';
-    };
-    rows = group('Warm-up', pd.warm.length + ' items', pd.warm.map(function (it) {
-      return '<button class="ex" data-act="open-warm" data-id="' + it.id + '"><div class="ex-name">' + esc(it.name) + '</div><div class="ex-meta">' + esc(it.n + ' ' + it.unit) + '</div>' + equipHtml(it) + '</button>';
-    }).join(''));
-    PAIRS.forEach(function (pair, n) { rows += group('Pair ' + (n + 1) + ' of 3', '3 sets, ' + state.settings.restMain + ' s rest', pair.map(exPrev).join('')); });
-    rows += group('Core', '3 sets, ' + state.settings.restCore + ' s rest', CORE.map(exPrev).join(''));
-    heading = fmtDay(pd.date, { weekday: 'long', day: 'numeric', month: 'long' });
-    sub = 'Preview. Targets assume you hit every target in the workouts before. They change if you miss.';
-  }
-  return '<div class="wrap"><div class="page-head head-row"><div><h1>Today</h1><p class="date">' + esc(dateTxt) + '</p></div>' +
-    '<div class="week" aria-label="' + wk + ' of 3 workouts this week"><span class="pips" aria-hidden="true">' + pips + '</span><span class="muted small">' + wk + ' of 3 this week</span></div></div>' +
-    '<div class="hero">' + statusHtml + cta + lastTxt + '</div>' +
-    daySel + '<div class="plan-head"><h2>' + esc(heading) + '</h2><p class="muted small">' + esc(sub) + '</p></div>' +
-    rows + '</div>';
-}
-
-function viewProgress() {
-  var today = isoDate(), weeks = weeklyCounts(state.sessions, 8, today), n = state.sessions.length;
-  var ups = 0; state.sessions.forEach(function (x) { Object.keys(x.entries).forEach(function (k) { if (x.entries[k].promotedTo) ups++; }); });
-  var tabs = [['overview', 'Overview'], ['history', 'History']].map(function (t) {
-    return '<button data-act="prog-tab" data-p="' + t[0] + '" aria-pressed="' + (progTab === t[0]) + '">' + t[1] + '</button>';
-  }).join('');
-  var out = '<div class="wrap"><div class="page-head"><h1>Progress</h1></div><div class="segsel" role="group" aria-label="Progress sections">' + tabs + '</div>';
-
-  if (progTab === 'overview') {
-    var wItems = weeks.map(function (w) { return { v: w.n, label: shortDate(w.start), cap: 'Week of ' + shortDate(w.start) + ': ' + w.n + (w.n === 1 ? ' workout' : ' workouts') }; });
-    out += '<div class="stats">' +
-      '<div class="stat"><b class="num">' + n + '</b><span>' + (n === 1 ? 'workout' : 'workouts') + '</span></div>' +
-      '<div class="stat"><b class="num">' + weeks[weeks.length - 1].n + '/3</b><span>this week</span></div>' +
-      '<div class="stat"><b class="num">' + ups + '</b><span>' + (ups === 1 ? 'level up' : 'level ups') + '</span></div></div>';
-    out += '<div class="gcard pad"><h3 class="card-title">Workouts per week</h3>' + barChart(wItems, { goal: 3, min: 3, valueLabels: true, aria: 'Workouts per week over the last 8 weeks', defaultCap: 'Tap a bar to see the week.', h: 100 }) + '</div>';
-    out += '<h2 class="sec-title">Each exercise</h2><p class="muted small">Each bar is a workout: total reps (seconds on holds). Orange marks the workout where you moved up a level.</p>';
-    SLOT_ORDER.forEach(function (slot) {
-      var S = SLOTS[slot], lvl = currentLevel(D, state, slot), ser = seriesFor(state, slot).slice(-12);
-      var inactive = !isActive(D, state, slot);
-      out += '<div class="gcard pad" id="pc-' + slot + '"><div class="pcard-top"><h3>' + esc(inactive ? S.label : lvl.name) + '</h3><span class="muted small">' + (inactive ? '' : levelText(slot)) + '</span></div>' + rungsHtml(slot);
-      if (!ser.length) out += '<p class="empty small" style="padding:10px 0 0">' + (inactive ? 'Waiting for the equipment.' : 'No records yet. Do a workout to see your progress.') + '</p>';
-      else {
-        var items = ser.map(function (r) {
-          var u = r.kind === 'hold' ? ' s' : ' reps';
-          return { v: r.total, up: r.promoted, label: shortDate(r.date), cap: shortDate(r.date) + ' · ' + r.name + ' · ' + r.sets.join(' + ') + u + (r.promoted ? ' · moved up to ' + r.promotedTo : '') };
-        });
-        out += barChart(items, { aria: 'Total per workout for ' + S.label, defaultCap: items[items.length - 1].cap, h: 96 });
-      }
-      out += '</div>';
-    });
-  } else {
-    if (!n) out += '<p class="empty">Workouts you finish show up here.</p>';
-    else {
-      out += '<div class="sess-list">' + state.sessions.slice().reverse().slice(0, 30).map(function (x) {
-        var list = SLOT_ORDER.filter(function (k) { return x.entries[k]; }).map(function (k) {
-          var e = x.entries[k];
-          return '<li><span>' + esc(e.name) + (e.promotedTo ? '<span class="up-tag">level up</span>' : '') + '</span><span>' + esc(sessionSummaryText(e)) + '</span></li>';
-        }).join('');
-        var c = Object.keys(x.entries).length;
-        return '<details class="sess"><summary><span>' + shortDate(x.date) + '</span><span class="muted">' + c + ' exercises' + (x.durationSec ? ' · ' + Math.max(1, Math.round(x.durationSec / 60)) + ' min' : '') + '</span></summary><ul>' + list + '</ul><button class="btn ghost del-sess" data-act="sess-del-ask" data-id="' + esc(x.id) + '">Delete this workout</button></details>';
-      }).join('') + '</div>';
-    }
-  }
-  return out + '</div>';
-}
-
-function stepper(act, id, val, unit) {
-  return '<div class="stepper"><button data-act="' + act + '" data-d="-1" aria-label="Decrease">−</button><span class="val num" id="' + id + '">' + val + unit + '</span><button data-act="' + act + '" data-d="1" aria-label="Increase">+</button></div>';
-}
-function viewSettings() {
-  var st = state.settings;
-  var pathRows = ['core_ae', 'core_ar', 'core_ex'].map(function (slot) {
-    var cur = state.levels[slot].path, ps = LADDERS[slot].paths;
-    return '<div class="set-row" style="display:block"><b>' + esc(SLOTS[slot].label) + '</b><div class="pathsel" style="margin-top:8px">' + Object.keys(ps).map(function (k) {
-      return '<button data-act="set-path" data-slot="' + slot + '" data-path="' + k + '" aria-pressed="' + (k === cur) + '">' + esc(ps[k].label) + '</button>';
-    }).join('') + '</div></div>';
-  }).join('');
-  var exp = JSON.stringify({ v: 1, settings: state.settings, levels: state.levels, sessions: state.sessions });
-  return '<div class="wrap"><div class="page-head"><h1>Settings</h1><p>' + esc(sync.note) + '</p></div>' +
-    '<div class="set-row"><div><b>I have a pull-up bar</b><p>Adds the pull-up and the full Pair 1 to your workout.</p></div><button class="switch" role="switch" aria-checked="' + !!st.hasBar + '" aria-label="I have a pull-up bar" data-act="toggle-bar"></button></div>' +
-    '<div class="set-row"><div><b>I have a safe dip setup</b><p>Parallel bars, sturdy chairs or a counter corner. Adds the dip to your workout.</p></div><button class="switch" role="switch" aria-checked="' + !!st.hasDip + '" aria-label="I have a safe dip setup" data-act="toggle-dip"></button></div>' +
-    '<div class="set-row"><div><b>Rest for strength</b><p>Between sets of the pairs</p></div>' + stepper('rest-main', 'rm', st.restMain, ' s') + '</div>' +
-    '<div class="set-row"><div><b>Rest for core</b><p>Between sets of the triplet</p></div>' + stepper('rest-core', 'rc', st.restCore, ' s') + '</div>' +
-    '<h2 class="sec-title">Core exercises</h2><p class="muted small">The default paths use only your body and a sturdy support. Switch if you have a band, rings or a bar.</p>' + pathRows +
-    '<h2 class="sec-title">Backup</h2><p class="muted small">Copy the text below and keep it wherever you like. To restore, paste a backup into the box and tap Import.</p>' +
-    '<textarea id="bk" aria-label="Backup data" spellcheck="false">' + esc(exp) + '</textarea>' +
-    '<div class="btn-row"><button class="btn small ghost" data-act="copy-bk">Copy</button><button class="btn small ghost" data-act="import-bk">Import</button></div>' +
-    '<h2 class="sec-title">Start over</h2><p class="muted small">Deletes your workouts and sets the levels back to the plan\'s starting point.</p>' +
-    '<div class="btn-row"><button class="btn small ghost" data-act="reset-ask">Apagar tudo</button></div></div>';
-}
-
-var TAB_ICONS = {
-  today: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
-  progress: '<path d="M5 21v-6M12 21V3M19 21V9"/>',
-  settings: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>'
-};  /* Lucide icons (ISC license) */
-function tabbar() {
-  function t(id, label) { return '<button class="tab" data-act="tab" data-tab="' + id + '"' + (tab === id ? ' aria-current="page"' : '') + '><svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + TAB_ICONS[id] + '</svg><span>' + label + '</span></button>'; }
-  return '<nav class="tabbar" aria-label="Sections">' + t('today', 'Today') + t('progress', 'Progress') + t('settings', 'Settings') + '</nav>';
-}
 var lastTab = '';
 function render() {
-  var v = tab === 'today' ? viewToday() : tab === 'progress' ? viewProgress() : viewSettings();
-  $('#app').innerHTML = '<div class="' + (tab !== lastTab ? 'view-enter' : '') + '">' + v + '</div>' + tabbar();
+  var v;
+  if (tab === 'today') {
+    var today = isoDate(), plan = todayProjection(state, today);
+    if (dayIdx > plan.proj.length) dayIdx = 0;
+    previewWarm = dayIdx > 0 ? plan.proj[dayIdx - 1].warm : null;
+    v = viewToday(state, { today: today, now: new Date(), draft: W ? null : loadDraft(), dayIdx: dayIdx });
+  } else if (tab === 'progress') v = viewProgress(state, { today: isoDate(), progTab: progTab });
+  else v = viewSettings(state, { syncNote: sync.note });
+  $('#app').innerHTML = '<div class="' + (tab !== lastTab ? 'view-enter' : '') + '">' + v + '</div>' + tabbar(tab);
   lastTab = tab;
 }
 
