@@ -55,5 +55,8 @@ var VIDEOS = {
   "w.wrist": { id: "mSZWSQSSEjE", t: "Wrist Strength & Mobility Exercises", c: "GMB Fitness" },
   "w.deadbug": { id: "GbSC02oU3To", t: "How to Do a Dead Bug: A Guide from Physical Therapists", c: "Hinge Health" },
   "w.x_arch": { id: "ptlUYYmc86U", t: "The Secret to Stronger Pull-Ups: Arch Hang Activation", c: "Carl Paoli" },
-  "w.x_sup": { id: "eLI7t-5wHno", t: "Parallel Bar Support Hold Position Exercise", c: "Strength Project" }
+  "w.x_sup": { id: "eLI7t-5wHno", t: "Parallel Bar Support Hold Position Exercise", c: "Strength Project" },
+  "eq.row.sheet": { id: "rloXYB8M3vU", t: "How To Do Incline Rows With Minimal Equipment (Just a bed-sheet and a door) with Antranik", c: "Antranik Kizirian" },
+  "eq.row.table": { id: "-N_dnZMMmQY", t: "Inverted row at home, no gym, no equipment, just a table.", c: "The Functional Body Lab" },
+  "eq.cop": { id: "df8hjsKX16o", t: "Copenhagen Plank Exercise: At Home Adductor Exercise with NO Equipment for Strong Inner Thighs!", c: "FITBODY with Julie Lohre" }
 };
