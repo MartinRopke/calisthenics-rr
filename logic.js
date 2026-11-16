@@ -182,6 +182,34 @@ function scheduleHint(sessions, todayStr) {
   return { kind: 'off', text: 'Today is a skill, mobility or rest day. You can still train if you want.' };
 }
 
+/* Próximos treinos (segunda, quarta e sexta) se você bater todas as metas. Simula numa cópia do estado, sem tocar no real.
+   Se hoje é dia de treino e ainda não foi feito, ele é simulado antes e não aparece na lista (já está em "Today's workout"). */
+function projectWorkouts(D, state, todayStr, count) {
+  var st = JSON.parse(JSON.stringify(state)), out = [], day = todayStr, guard = 0, k = 0;
+  var doneToday = st.sessions.some(function (x) { return x.date === todayStr; });
+  function dow(d) { return (parseISO(d).getUTCDay() + 6) % 7; }
+  function nextDay(d) { var p = parseISO(d); p.setUTCDate(p.getUTCDate() + 1); return p.getUTCFullYear() + '-' + pad2(p.getUTCMonth() + 1) + '-' + pad2(p.getUTCDate()); }
+  var todayPlanned = !doneToday && dow(todayStr) % 2 === 0 && dow(todayStr) <= 4;
+  while (out.length < count && guard++ < 60) {
+    var isFirst = day === todayStr;
+    if (!isFirst || todayPlanned) {
+      if (dow(day) % 2 === 0 && dow(day) <= 4) {
+        var items = [], logged = {};
+        D.SLOT_ORDER.filter(function (sl) { return isActive(D, st, sl); }).forEach(function (sl) {
+          var p = prescribe(D, st, sl);
+          logged[sl] = { levelId: p.level.id, sets: p.targets.slice(), targets: p.targets.slice() };
+          items.push({ slot: sl, name: p.level.name, kind: p.level.kind, targets: p.targets.slice() });
+        });
+        var r = finishWorkout(D, st, { startedAt: ++k, logged: logged }, day, 0);
+        r.promotions.forEach(function (pr) { items.forEach(function (it) { if (it.slot === pr.slot) it.promotedTo = pr.to; }); });
+        if (!isFirst) out.push({ date: day, items: items });
+      }
+    }
+    day = nextDay(day);
+  }
+  return out;
+}
+
 function sessionSummaryText(entry) {
   var unit = entry.kind === 'hold' ? ' s' : '';
   return entry.sets.join(' · ') + unit;
@@ -193,5 +221,5 @@ if (typeof module !== 'undefined') module.exports = {
   lastEntry: lastEntry, targetsFor: targetsFor, prescribe: prescribe, mastered: mastered,
   buildSteps: buildSteps, restSeconds: restSeconds, warmupItems: warmupItems,
   finishWorkout: finishWorkout, weeklyCounts: weeklyCounts, seriesFor: seriesFor,
-  scheduleHint: scheduleHint, sessionSummaryText: sessionSummaryText
+  scheduleHint: scheduleHint, projectWorkouts: projectWorkouts, sessionSummaryText: sessionSummaryText
 };

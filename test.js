@@ -6,6 +6,24 @@ const mkW = (state, sets) => { // sets: {slot:[reps..]}
   return { startedAt: 1, logged, warmDone: 4 };
 };
 
+t('projeção: próximos treinos seg, qua e sex com metas subindo', () => {
+  const s = L.defaultState(D);
+  const p = L.projectWorkouts(D, s, '2026-11-16', 3); /* segunda sem treino feito: hoje é simulado e some da lista */
+  assert.deepEqual(p.map(x => x.date), ['2026-11-18', '2026-11-20', '2026-11-23']);
+  const row = x => x.items.find(i => i.slot === 'row').targets;
+  assert.deepEqual(row(p[0]), [6, 6, 6]); assert.deepEqual(row(p[1]), [7, 7, 7]);
+  assert.equal(s.sessions.length, 0); /* não mexe no estado real */
+  const q = L.projectWorkouts(D, s, '2026-11-17', 1); /* terça: começa na quarta, sem simular hoje */
+  assert.equal(q[0].date, '2026-11-18'); assert.deepEqual(row(q[0]), [5, 5, 5]);
+});
+t('projeção: avisa a subida de nível e recomeça em 3x5', () => {
+  const s = L.defaultState(D); L.finishWorkout(D, s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-14', 0);
+  const p = L.projectWorkouts(D, s, '2026-11-16', 2);
+  assert.equal(p[0].items.find(i => i.slot === 'pushup').promotedTo, undefined);
+  const pp = L.projectWorkouts(D, s, '2026-11-17', 3);
+  const lv = pp.map(x => x.items.find(i => i.slot === 'pushup'));
+  assert.ok(lv.some(i => i.promotedTo));
+});
 t('estado inicial bate com o plano', () => {
   const s = L.defaultState(D);
   assert.equal(L.currentLevel(D, s, 'pushup').name, 'Diamond push-up');
