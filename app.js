@@ -235,7 +235,7 @@ function viewProgresso() {
         return '<li><span>' + esc(e.name) + (e.promotedTo ? '<span class="up-tag">level up</span>' : '') + '</span><span>' + esc(sessionSummaryText(e)) + '</span></li>';
       }).join('');
       var n = Object.keys(s.entries).length;
-      return '<details class="sess"><summary><span>' + shortDate(s.date) + '</span><span class="muted">' + n + ' exercises' + (s.durationSec ? ' · ' + Math.max(1, Math.round(s.durationSec / 60)) + ' min' : '') + '</span></summary><ul>' + list + '</ul></details>';
+      return '<details class="sess"><summary><span>' + shortDate(s.date) + '</span><span class="muted">' + n + ' exercises' + (s.durationSec ? ' · ' + Math.max(1, Math.round(s.durationSec / 60)) + ' min' : '') + '</span></summary><ul>' + list + '</ul><button class="btn ghost del-sess" data-act="sess-del-ask" data-id="' + esc(s.id) + '">Delete this workout</button></details>';
     }).join('');
   }
   return out + '</div>';
@@ -269,9 +269,11 @@ function tabbar() {
   function t(id, label) { return '<button class="tab" data-act="tab" data-tab="' + id + '"' + (tab === id ? ' aria-current="page"' : '') + '>' + label + '</button>'; }
   return '<nav class="tabbar" aria-label="Sections">' + t('hoje', 'Today') + t('progresso', 'Progress') + t('ajustes', 'Settings') + '</nav>';
 }
+var lastTab = '';
 function render() {
   var v = tab === 'hoje' ? viewHoje() : tab === 'progresso' ? viewProgresso() : viewAjustes();
-  $('#app').innerHTML = v + tabbar();
+  $('#app').innerHTML = '<div class="' + (tab !== lastTab ? 'view-enter' : '') + '">' + v + '</div>' + tabbar();
+  lastTab = tab;
 }
 
 /* ---------- Folha de exercício ---------- */
@@ -279,7 +281,7 @@ function render() {
 function videoHtml(key, q) {
   var v = (typeof VIDEOS !== 'undefined') && VIDEOS[key];
   if (!v) return '<a class="vid-link" href="' + ytUrl(q) + '" target="_blank" rel="noopener">Search for a video on YouTube</a>';
-  return '<div class="vid-box"><div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/' + v.id + '?rel=0&playsinline=1&modestbranding=1" title="' + esc(v.t) + '" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>' +
+  return '<div class="vid-box"><div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/' + v.id + '?rel=0&playsinline=1&modestbranding=1" title="' + esc(v.t) + '" loading="lazy" onload="this.classList.add(&quot;ok&quot;)" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>' +
     '<p class="vid-cap">' + esc(v.t) + ' · ' + esc(v.c) + '</p></div>';
 }
 function vidTabs(lvl) {
@@ -337,7 +339,7 @@ function openWarm(id) {
 
 function confirmBox(title, text, buttons) {
   $('#sheet').innerHTML = '<div class="sheet-bg" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><div class="grab"></div><h2>' + esc(title) + '</h2><p class="muted" style="margin-top:8px">' + esc(text) + '</p><div style="margin-top:18px;display:grid;gap:10px">' +
-    buttons.map(function (b) { return '<button class="btn ' + (b.cls || '') + '" data-act="' + b.act + '">' + esc(b.label) + '</button>'; }).join('') + '</div></div>';
+    buttons.map(function (b) { return '<button class="btn ' + (b.cls || '') + '" data-act="' + b.act + '"' + (b.id ? ' data-id="' + esc(b.id) + '"' : '') + '>' + esc(b.label) + '</button>'; }).join('') + '</div></div>';
   sheetCtx = null;
 }
 
@@ -429,10 +431,12 @@ function exList() {
   W.steps.forEach(function (s) { if (seen.indexOf(s.slot) < 0) seen.push(s.slot); });
   return seen;
 }
+/* Uma unidade por item do aquecimento e uma por série do treino. */
 function progressInfo() {
-  var wn = warmupItems(D, state).length, ex = exList(), done = 0;
-  ex.forEach(function (s) { var L = W.logged[s]; if (W.skipped.indexOf(s) >= 0 || (L && L.sets.length >= 3)) done++; });
-  var total = wn + ex.length, d = W.phase === 'warmup' ? Math.min(W.warmI || 0, wn) : wn + done;
+  var wn = warmupItems(D, state).length, total = wn + W.steps.length, d;
+  if (W.phase === 'summary') d = total;
+  else if (W.phase === 'warmup') d = Math.min(W.warmI || 0, wn);
+  else d = wn + W.i + (W.phase === 'rest' ? 1 : 0);
   return { done: d, total: total };
 }
 function groupLabel(step) {
@@ -443,8 +447,13 @@ var lastKey = '';
 function renderWorkout() {
   var ov = $('#overlay');
   if (!W) { ov.innerHTML = ''; document.body.classList.remove('no-scroll'); return; }
+  var segs = function () {
+    var p = progressInfo(), h = '';
+    for (var q = 0; q < p.total; q++) h += '<i class="' + (q < p.done ? 'done' : q === p.done ? 'cur' : '') + '"></i>';
+    return '<div class="w-segs" role="progressbar" aria-valuenow="' + p.done + '" aria-valuemin="0" aria-valuemax="' + p.total + '" aria-label="Workout progress">' + h + '</div>';
+  };
   var top = function (label, pct, sub) {
-    return '<div class="w-head"><div class="w-top"><button class="w-x" data-act="w-exit" aria-label="Leave workout">×</button><div class="w-prog" role="progressbar" aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100" aria-label="Workout progress"><i style="width:' + pct + '%"></i></div><span class="w-count">' + label + '</span></div>' + (sub || '') + '</div>';
+    return '<div class="w-head"><div class="w-top"><button class="w-x" data-act="w-exit" aria-label="Leave workout">×</button>' + segs() + '<span class="w-count">' + label + '</span></div>' + (sub || '') + '</div>';
   };
   var topFor = function (sub) { var p = progressInfo(); return top(Math.min(p.done + 1, p.total) + '/' + p.total, 100 * p.done / p.total, sub); };
   var subTime = function (label, pct) { return '<div class="w-sub-row"><div class="w-prog sub"><i id="subBar" style="width:' + pct + '%"></i></div><span class="w-count" id="subLabel">' + label + '</span></div>'; };
@@ -523,6 +532,7 @@ function renderWorkout() {
     while (nb.firstChild !== newK) ob.insertBefore(nb.firstChild, oldK);
     while (newK.nextSibling) ob.appendChild(newK.nextSibling);
   } else {
+    if (key !== lastKey) tmp.firstChild.classList.add('enter');
     ov.innerHTML = ''; ov.appendChild(tmp.firstChild);
     var nbody = ov.querySelector('.w-body');
     if (nbody && scr && key === lastKey) nbody.scrollTop = scr;
@@ -597,6 +607,16 @@ var H = {
       persistProfile(); state.sessions.forEach(function (s) { persistSession(s); });
       render(); toast((state.sessions.length - before) + ' workouts imported');
     } catch (e) { toast('Invalid backup. Paste the full text.'); }
+  },
+  'sess-del-ask': function (el) {
+    var s = state.sessions.filter(function (x) { return x.id === el.dataset.id; })[0];
+    var promoted = s && Object.keys(s.entries).some(function (k) { return s.entries[k].promotedTo; });
+    confirmBox('Delete this workout?', 'It is removed from your history and the next targets are recalculated.' + (promoted ? ' Level-ups it caused stay.' : '') + ' This cannot be undone.', [{ label: 'Delete workout', act: 'sess-del-do', id: el.dataset.id }, { label: 'Cancel', act: 'sheet-close', cls: 'ghost' }]);
+  },
+  'sess-del-do': function (el) {
+    state.sessions = state.sessions.filter(function (x) { return x.id !== el.dataset.id; });
+    persistProfile(); if (dbRefs) enqueue(function () { return dbRefs.sessions.doc(el.dataset.id).delete(); });
+    closeSheet(); render(); toast('Workout deleted');
   },
   'reset-ask': function () { confirmBox('Delete everything?', 'Your logged workouts are deleted and the levels go back to the start. This cannot be undone.', [{ label: 'Delete everything', act: 'reset-do' }, { label: 'Cancel', act: 'sheet-close', cls: 'ghost' }]); },
   'reset-do': function () {
