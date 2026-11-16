@@ -20,8 +20,8 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 
 - `data.js`, `videos.js`: plain data. `data.js` has the 9 exercises (`SLOTS`), ladders (`LADDERS`, with alternative paths), workout order (`PAIRS`, `CORE`), `START_LEVELS` and the warmup (`WARMUP`, `WARMUP_EXTRAS`). `videos.js` has one YouTube video per level and per warmup item.
 - `logic.js`: pure functional core, no DOM, no storage. Every progression rule lives here.
-- `storage.js` (being extracted): storage adapter with `schemaVersion`.
-- `views.js` (being extracted): pure HTML builders.
+- `storage.js`: storage adapter with `schemaVersion`.
+- `views.js`: pure HTML builders.
 - `app.js`: imperative shell with events, timer and the guided workout. Clicks go through `data-act` and the `H` object.
 - `server.mjs`: serves files and `/api/state`. `style.css`: light and dark theme.
 - Dependencies point inward. `logic.js` never touches the DOM or storage.

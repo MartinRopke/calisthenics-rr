@@ -30,7 +30,6 @@ export function parseState(raw) {
   try { return migrate(JSON.parse(raw)); } catch { return null; }
 }
 
-/* global setTimeout, clearTimeout */
 export function withTimeout(promise, ms) {
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('timeout')), ms);

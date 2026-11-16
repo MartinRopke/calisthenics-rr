@@ -46,8 +46,8 @@ Notes:
 | ------------------------------ | ---------------------------------------------------------------------------- |
 | `data.js`, `videos.js`         | Plain data: exercises, ladders, warmup, videos.                              |
 | `logic.js`                     | Functional core. Pure functions, every progression rule. No DOM, no storage. |
-| `storage.js` (being extracted) | Storage adapter: `localStorage` and `/api/state`, with a `schemaVersion`.    |
-| `views.js` (being extracted)   | Builds HTML strings as pure functions.                                       |
+| `storage.js` | Storage adapter: `localStorage` and `/api/state`, with a `schemaVersion`.    |
+| `views.js`   | Builds HTML strings as pure functions.                                       |
 | `app.js`                       | Imperative shell: events, timer, guided workout. Wires the layers together.  |
 | `server.mjs`                   | Serves the app files and `/api/state`. Zero dependencies.                    |
 

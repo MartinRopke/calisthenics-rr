@@ -12,8 +12,8 @@ Use Gary Bernhardt's "Functional Core, Imperative Shell" together with ports and
 
 - `data.js` and `videos.js` are plain data.
 - `logic.js` is the pure functional core. No DOM, no storage, no clock reads.
-- `storage.js` is the storage adapter (being extracted). It owns the persisted shape and `schemaVersion`.
-- `views.js` builds HTML as pure functions (being extracted).
+- `storage.js` is the storage adapter. It owns the persisted shape and `schemaVersion`.
+- `views.js` builds HTML as pure functions.
 - `app.js` is the imperative shell: events, timer, guided workout.
 
 Dependencies point inward. `logic.js` imports nothing from the shell.
