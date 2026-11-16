@@ -81,6 +81,7 @@ ul { padding: 0; list-style: none; }
 .ex-name { font-weight: 700; font-size: 18px; }
 .ex-meta { color: var(--muted); font-size: 14px; margin-top: 2px; }
 .ex-equip { color: var(--ink2); font-size: 14px; margin-top: 4px; }
+.ico { width: 1.15em; height: 1.15em; vertical-align: -0.2em; margin-right: 4px; }
 .ex-target { font-size: 24px; white-space: nowrap; }
 .ex-target small { font-stretch: 100%; font-weight: 600; font-size: 13px; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
 .ex.off .ex-name, .ex.off .ex-target { color: var(--muted); }
