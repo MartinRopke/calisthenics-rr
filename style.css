@@ -168,9 +168,7 @@ textarea { width: 100%; min-height: 110px; background: var(--surface); color: va
 .w-body { scrollbar-width: none; }
 .w-body::-webkit-scrollbar { display: none; }
 .overlay { overscroll-behavior: contain; }
-.w-sub-row { display: flex; align-items: center; gap: 12px; padding: 0 14px 6px 66px; margin-top: -18px; }
 
-.w-sub-row .w-count { white-space: nowrap; }
 .w-segs { flex: 1; display: flex; gap: 2px; }
 .w-segs i { flex: 1; height: 4px; border-radius: 1px; background: var(--line); }
 .w-segs i.done { background: var(--accent); }
@@ -178,7 +176,7 @@ textarea { width: 100%; min-height: 110px; background: var(--surface); color: va
 .w-prog { flex: 1; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .w-prog i { display: block; height: 100%; background: var(--accent); }
 .w-count { font-size: 14px; color: var(--muted); min-width: 44px; text-align: left; }
-.w-top, .w-sub-row { gap: 8px; }
+.w-top { gap: 12px; }
 .w-body { flex: 1; overflow: auto; overscroll-behavior: contain; max-width: 520px; width: 100%; margin: 0 auto; padding: 6px 20px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; }
 .w-group { color: var(--muted); font-weight: 600; }
 .w-name { font-stretch: 72%; font-weight: 800; font-size: 46px; line-height: 1; margin: 6px 0 4px; letter-spacing: -.01em; }
@@ -258,3 +256,40 @@ button:active { transform: scale(.97); }
 .vid-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 600; }
 
 .del-sess { margin: 10px 0 4px; min-height: 48px; color: var(--ink); }
+
+/* Tela do treino: tudo numa página, sem rolagem. O vídeo ocupa o espaço que sobra. */
+.w-bars { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.w-row { display: flex; align-items: center; gap: 8px; }
+.w-row .w-count { white-space: nowrap; }
+.w-body { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+.w-name { font-size: clamp(30px, 9vw, 40px); margin: 4px 0 2px; }
+.w-target { margin: 8px 0 2px; }
+.w-target .num { font-size: clamp(48px, 15vw, 68px); }
+.w-cue { margin: 6px 0 8px; padding: 7px 12px; font-size: 15px; }
+.big-stepper { margin-bottom: 8px; }
+.big-stepper button { width: 60px; height: 60px; font-size: 30px; }
+.big-stepper .val { font-size: 48px; }
+.sides { margin: 8px 0 4px; }
+.swap { margin-top: 8px; }
+.swap .pathsel { margin-top: 6px; }
+.swap .pathsel button, .vid-keep .pathsel button { padding: 7px 10px; font-size: 14px; }
+.w-body .vid-keep { flex: 1 1 0; min-height: 100px; display: flex; flex-direction: column; margin-top: 8px !important; }
+.vid-keep .vid-wrap, .vid-keep .vid-slot, .vid-keep .vid-box { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.vid-keep .vid-box { margin: 6px 0 0; }
+.vid-keep .vid { flex: 1; min-height: 0; aspect-ratio: auto; width: 100%; max-height: min(56.25vw, 292px); }
+.vid-keep .vid-cap { margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-links { margin-top: 8px; gap: 8px; flex-wrap: nowrap; }
+.w-links button { flex: 1 1 0; min-width: 0; padding: 0 8px; font-size: 15px; }
+.rest-time { font-size: clamp(72px, 22vw, 104px); margin: 8px 0 4px; }
+.next-up { margin-top: 12px; padding: 10px 12px; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.next-up .vid-keep { margin-top: 6px !important; }
+.big-stepper button { font-size: 24px; font-weight: 700; }
+
+/* Treino de hoje já feito, e treinos recentes na tela Today */
+.done-card { display: flex; align-items: center; gap: 14px; padding: 14px; margin: 6px 0 14px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); }
+.done-card b { font-size: 18px; }
+.done-card p { margin: 2px 0 0; font-size: 15px; }
+.done-ico { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; }
+.recent-list { border-top: 2px solid var(--ink); }
+.recent { display: flex; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; }
+.link-more { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 600; }

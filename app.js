@@ -194,14 +194,33 @@ function viewHoje() {
   });
   rows += group('Core', '3 sets, ' + state.settings.restCore + ' s rest', CORE.map(exRow).join(''));
   var cta;
+  var doneToday = state.sessions.filter(function (s) { return s.date === today; }).pop();
+  var statusHtml = '<div class="hint ' + hint.kind + '">' + esc(hint.text) + '</div>';
   if (draft) {
     cta = '<div class="btn-row"><button class="btn tape" data-act="resume">Continue workout</button><button class="btn ghost" data-act="discard-draft">Discard</button></div>';
+  } else if (doneToday) {
+    var dn = Object.keys(doneToday.entries).length;
+    statusHtml = '<div class="done-card"><span class="done-ico" aria-hidden="true">✓</span><div><b>Workout done today</b><p class="muted">' + dn + ' exercises' + (doneToday.durationSec ? ' · ' + Math.max(1, Math.round(doneToday.durationSec / 60)) + ' min' : '') + '</p></div></div>';
+    cta = '<button class="btn ghost" data-act="start">Repeat workout</button>';
   } else {
     cta = '<button class="btn tape" data-act="start">Start workout</button>';
   }
+  var recent = state.sessions.slice().reverse().slice(0, 3).map(function (s) {
+    var day = new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(s.date + 'T12:00:00'));
+    return '<button class="recent" data-act="tab" data-tab="progresso"><span>' + esc(day) + '</span><span class="muted">' + Object.keys(s.entries).length + ' exercises' + (s.durationSec ? ' · ' + Math.max(1, Math.round(s.durationSec / 60)) + ' min' : '') + '</span></button>';
+  }).join('');
+  var upcoming = projectWorkouts(D, state, today, 3).map(function (p) {
+    var day = new Intl.DateTimeFormat('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(p.date + 'T12:00:00'));
+    var list = p.items.map(function (it) {
+      return '<li><span>' + esc(it.name) + (it.promotedTo ? '<span class="up-tag">then: ' + esc(it.promotedTo) + '</span>' : '') + '</span><span>' + esc(sessionSummaryText({ sets: it.targets, kind: it.kind })) + '</span></li>';
+    }).join('');
+    return '<details class="sess"><summary><span>' + esc(day) + '</span><span class="muted">' + p.items.length + ' exercises</span></summary><ul>' + list + '</ul></details>';
+  }).join('');
+  var upcomingHtml = upcoming ? '<h2 class="sec-title">Coming up</h2><p class="muted small">Targets if you hit every target. They change if you miss.</p><div class="recent-list">' + upcoming + '</div>' : '';
+  var recentHtml = recent ? '<h2 class="sec-title">Recent workouts</h2><div class="recent-list">' + recent + '</div><button class="link-more" data-act="tab" data-tab="progresso">See all in Progress</button>' : '';
   return '<div class="wrap"><div class="page-head"><h1>Today</h1><p class="date">' + esc(dateTxt) + '</p></div>' +
-    '<div class="hint ' + hint.kind + '">' + esc(hint.text) + '</div>' + cta +
-    '<div class="week"><span class="pips" aria-hidden="true">' + pips + '</span><span class="muted small">' + wk + ' of 3 workouts this week</span></div>' +
+    statusHtml + cta +
+    '<div class="week"><span class="pips" aria-hidden="true">' + pips + '</span><span class="muted small">' + wk + ' of 3 workouts this week</span></div>' + upcomingHtml + recentHtml +
     '<h2 class="sec-title">Today\'s workout</h2><p class="muted small">Warm-up and ' + act + ' exercises, in this order. Tap an exercise to see how to do it or change its level.</p>' +
     rows + '</div>';
 }
@@ -289,7 +308,7 @@ function warmSwap(it) {
   var base = D.WARMUP.filter(function (w) { return w.id === (it.base || it.id); })[0];
   if (!base || !base.alts) return '';
   var cur = it.base ? it.id : '';
-  return '<div class="swap"><p class="muted small">No equipment? Swap this exercise. The swaps are not from the guide and stay until you switch back.</p><div class="pathsel" role="group" aria-label="Swap exercise">' +
+  return '<div class="swap"><p class="muted small">No equipment? Swap it. Swaps are not from the guide.</p><div class="pathsel" role="group" aria-label="Swap exercise">' +
     '<button data-act="warm-swap" data-base="' + base.id + '" data-alt="" aria-pressed="' + !cur + '">' + 'Band or t-shirt' + '</button>' +
     base.alts.map(function (a) { return '<button data-act="warm-swap" data-base="' + base.id + '" data-alt="' + a.id + '" aria-pressed="' + (cur === a.id) + '">' + esc(a.label) + '</button>'; }).join('') + '</div></div>';
 }
@@ -398,8 +417,15 @@ function setDefault() {
   var st = curStep(), t = W.logged[st.slot].targets[st.set - 1];
   W.value = t; W.holdStart = null; W.side = 0; W.right = null;
 }
-function goSet(idx) {
-  W.i = idx; W.phase = 'set'; setDefault(); saveDraft(); renderWorkout();
+/* Isometria começa sozinha: lead = segundos de contagem antes (0 quando o descanso acabou de contar 3, 2, 1). */
+function autoStartHold(lead) {
+  W.holdTotal = Math.max(1, W.value || 0); W.holdStart = Date.now() + lead * 1000;
+  lastCue = lead ? null : 'h' + W.i + ':go';
+}
+function goSet(idx, lead) {
+  W.i = idx; W.phase = 'set'; setDefault();
+  if (levelOfStep(curStep()).kind === 'hold') autoStartHold(lead == null ? 3 : lead);
+  saveDraft(); renderWorkout();
 }
 function startWorkout() {
   W = newWorkout(); prepAudio(); startTick(); saveDraft(); renderWorkout();
@@ -418,6 +444,11 @@ function subUpdate(label, pct) {
   if (b) b.style.width = Math.max(0, Math.min(100, pct)) + '%';
   if (l) l.textContent = label;
 }
+function warmGoal(it) { return W.warmTotal || it.secs; }
+function holdGoal() {
+  var st = curStep();
+  return W.holdTotal || W.logged[st.slot].targets[st.set - 1];
+}
 function timerText(total, elapsed) {
   if (elapsed < 0) return String(Math.ceil(-elapsed));
   return Math.max(0, Math.ceil(total - elapsed)) + ' s';
@@ -429,24 +460,27 @@ function tick() {
     if (el) el.textContent = fmtClock(rem);
     subUpdate(fmtClock(rem), 100 * (1 - rem / W.restTotal));
     if (rem > 0 && rem <= 3) cue('r' + W.i + ':' + Math.ceil(rem), Math.ceil(rem));
-    if (rem <= 0) { lastCue = null; goBeep(); var n = nextIndex(W.i + 1); if (n >= 0) goSet(n); else finishNow(); }
+    if (rem <= 0) { lastCue = null; goBeep(); var n = nextIndex(W.i + 1); if (n >= 0) goSet(n, 0); else finishNow(); }
   } else if (W.phase === 'warmup' && W.warmEnd > 0) {
-    var wit = warmupItems(D, state)[W.warmI || 0], wel = wit.secs - (W.warmEnd - Date.now()) / 1000, we = $('#warmTime');
-    if (wel < 0) cue('w' + W.warmI + ':' + Math.ceil(-wel), Math.ceil(-wel)); else if (wel < 1) cue('w' + W.warmI + ':go', 0); else if (wit.secs - wel <= 3 && wit.secs - wel > 0 && wit.secs > 6) cue('w' + W.warmI + ':e' + Math.ceil(wit.secs - wel), 1);
-    if (we) we.textContent = timerText(wit.secs, wel);
-    if (wel >= wit.secs) { beep(); W.warmEnd = -1; saveDraft(); renderWorkout(); }
+    var wit = warmupItems(D, state)[W.warmI || 0], wg = warmGoal(wit), wel = wg - (W.warmEnd - Date.now()) / 1000, we = $('#warmTime');
+    if (wel < 0) { if (wel >= -3) cue('w' + W.warmI + ':' + Math.ceil(-wel), Math.ceil(-wel)); } else if (wel < 1) cue('w' + W.warmI + ':go', 0); else if (wg - wel <= 3 && wg - wel > 0 && wg > 6) cue('w' + W.warmI + ':e' + Math.ceil(wg - wel), 1);
+    if (we) we.textContent = timerText(wg, wel);
+    if (wel >= wg) { beep(); lastCue = null; H['w-warm-next'](); }
   } else if (W.phase === 'set' && W.holdStart) {
-    var el2 = $('#holdTime'), hs = (Date.now() - W.holdStart) / 1000, hst = curStep(), htg = W.logged[hst.slot].targets[hst.set - 1];
-    if (hs < 0) cue('h' + W.i + ':' + Math.ceil(-hs), Math.ceil(-hs)); else if (hs < 1) cue('h' + W.i + ':go', 0); else if (htg - hs <= 3 && htg - hs > 0 && htg > 6) cue('h' + W.i + ':e' + Math.ceil(htg - hs), 1);
+    var el2 = $('#holdTime'), hs = (Date.now() - W.holdStart) / 1000, htg = holdGoal();
+    if (hs < 0) { if (hs >= -3) cue('h' + W.i + ':' + Math.ceil(-hs), Math.ceil(-hs)); } else if (hs < 1) cue('h' + W.i + ':go', 0); else if (htg - hs <= 3 && htg - hs > 0 && htg > 6) cue('h' + W.i + ':e' + Math.ceil(htg - hs), 1);
     if (el2) el2.textContent = timerText(htg, hs);
-    if (hs >= htg) { beep(); H['w-hold-stop'](); }
+    if (hs >= htg) { beep(); lastCue = null; H['w-hold-stop'](); H['w-log'](); }
   }
 }
 function warmGo(d) {
   var n = warmupItems(D, state).length, i = (W.warmI || 0) + d;
   W.warmEnd = 0;
   if (i >= n) { H['w-begin'](); return; }
-  W.warmI = Math.max(0, i); saveDraft(); renderWorkout();
+  W.warmI = Math.max(0, i);
+  var nx = warmupItems(D, state)[W.warmI];
+  if (d > 0 && nx && nx.secs) { W.warmEnd = Date.now() + (nx.secs + 3) * 1000; W.warmTotal = nx.secs; lastCue = null; }
+  saveDraft(); renderWorkout();
 }
 function exList() {
   var seen = [];
@@ -475,17 +509,17 @@ function renderWorkout() {
     return '<div class="w-segs" role="progressbar" aria-valuenow="' + p.done + '" aria-valuemin="0" aria-valuemax="' + p.total + '" aria-label="Workout progress">' + h + '</div>';
   };
   var top = function (label, pct, sub) {
-    return '<div class="w-head"><div class="w-top"><button class="w-x" data-act="w-exit" aria-label="Leave workout">×</button>' + segs() + '<span class="w-count">' + label + '</span></div>' + (sub || '') + '</div>';
+    return '<div class="w-head"><div class="w-top"><button class="w-x" data-act="w-exit" aria-label="Leave workout">×</button><div class="w-bars"><div class="w-row">' + segs() + '<span class="w-count">' + label + '</span></div>' + (sub || '') + '</div></div></div>';
   };
   var topFor = function (sub) { var p = progressInfo(); return top(Math.min(p.done + 1, p.total) + '/' + p.total, 100 * p.done / p.total, sub); };
-  var subTime = function (label, pct) { return '<div class="w-sub-row"><div class="w-prog sub"><i id="subBar" style="width:' + pct + '%"></i></div><span class="w-count" id="subLabel">' + label + '</span></div>'; };
+  var subTime = function (label, pct) { return '<div class="w-row"><div class="w-prog sub"><i id="subBar" style="width:' + pct + '%"></i></div><span class="w-count" id="subLabel">' + label + '</span></div>'; };
   var body = '';
   if (W.phase === 'warmup') {
     var items = warmupItems(D, state), wi = Math.min(W.warmI || 0, items.length - 1), it = items[wi];
     var timerBox = '', main;
     if (it.secs && W.warmEnd) {
-      var shown = W.warmEnd < 0 ? '0 s' : timerText(it.secs, it.secs - (W.warmEnd - Date.now()) / 1000);
-      timerBox = '<div class="big-stepper"><span class="val num" id="warmTime">' + shown + '</span></div>';
+      var shown = W.warmEnd < 0 ? '0 s' : timerText(warmGoal(it), warmGoal(it) - (W.warmEnd - Date.now()) / 1000);
+      timerBox = '<div class="big-stepper"><button data-act="w-warm-adj" data-d="-20" aria-label="Minus 20 seconds">−20</button><span class="val num" id="warmTime">' + shown + '</span><button data-act="w-warm-adj" data-d="20" aria-label="Plus 20 seconds">+20</button></div>';
       main = '<button class="btn tape" data-act="w-warm-next">Done</button>';
     } else if (it.secs) {
       timerBox = '<div class="big-stepper"><span class="val num">' + it.secs + ' s</span></div>';
@@ -497,7 +531,7 @@ function renderWorkout() {
       '<p class="w-sub">Item ' + (wi + 1) + ' of ' + items.length + '</p><div class="w-target"><span class="num">' + esc(it.n) + '</span><span>' + esc(it.unit) + '</span></div>' +
       it.how.map(function (t) { return '<p class="w-cue">' + esc(t) + '</p>'; }).join('') + timerBox + main + warmSwap(it) +
       (it.q ? '<div class="vid-keep" style="margin-top:16px">' + videoHtml('w.' + it.id, it.q) + '</div>' : '') +
-      '<div class="w-links">' + (wi > 0 ? '<button data-act="w-warm-back">Back</button>' : '') + '<button data-act="w-warm-skip">Skip this</button><button data-act="w-begin">Skip warm-up</button></div></div>';
+      '<div class="w-links">' + (wi > 0 ? '<button data-act="w-warm-back">Back</button>' : '') + '<button data-act="w-warm-skip" aria-label="Skip this item">Skip</button><button data-act="w-begin" aria-label="Skip warm-up">Skip all</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'set') {
     var st = curStep(), lvl = levelOfStep(st), S = SLOTS[st.slot], L = W.logged[st.slot], tg = L.targets[st.set - 1];
     var pct = 100 * W.i / W.steps.length;
@@ -508,16 +542,16 @@ function renderWorkout() {
     var sidesHtml = lvl.perSide ? '<div class="sides" aria-label="Sides"><span class="' + (W.side ? 'done' : 'cur') + '">Right side</span><span class="' + (W.side ? 'cur' : '') + '">Left side</span></div><p class="muted small">Do one side, then the other. Both sides count as one set.</p>' : '';
     var input;
     if (lvl.kind === 'hold') {
-      input = (W.holdStart ? '<div class="big-stepper"><span class="val num" id="holdTime">' + timerText(W.logged[curStep().slot].targets[curStep().set - 1], (Date.now() - W.holdStart) / 1000) + '</span></div><button class="btn tape" data-act="w-hold-stop">Stop</button>' :
-        '<div class="big-stepper"><button data-act="w-val" data-d="-5" aria-label="Minus 5 seconds">−</button><span class="val num" id="val">' + W.value + ' s</span><button data-act="w-val" data-d="5" aria-label="Plus 5 seconds">+</button></div>' +
+      input = (W.holdStart ? '<div class="big-stepper"><button data-act="w-hold-adj" data-d="-20" aria-label="Minus 20 seconds">−20</button><span class="val num" id="holdTime">' + timerText(holdGoal(), (Date.now() - W.holdStart) / 1000) + '</span><button data-act="w-hold-adj" data-d="20" aria-label="Plus 20 seconds">+20</button></div><button class="btn tape" data-act="w-hold-stop">Stop</button>' :
+        '<div class="big-stepper"><button data-act="w-val" data-d="-20" aria-label="Minus 20 seconds">−20</button><span class="val num" id="val">' + W.value + ' s</span><button data-act="w-val" data-d="20" aria-label="Plus 20 seconds">+20</button></div>' +
         '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-hold-start">Start timer</button><button class="btn tape" data-act="w-log">' + doneLabel + '</button></div>');
     } else {
-      input = '<div class="big-stepper"><button data-act="w-val" data-d="-1" aria-label="Minus one rep">−</button><span class="val num" id="val">' + W.value + '</span><button data-act="w-val" data-d="1" aria-label="Plus one rep">+</button></div><button class="btn tape" data-act="w-log">' + doneLabel + '</button>';
+      input = '<div class="big-stepper"><button data-act="w-val" data-d="-1" aria-label="Minus one rep">−1</button><span class="val num" id="val">' + W.value + '</span><button data-act="w-val" data-d="1" aria-label="Plus one rep">+1</button></div><button class="btn tape" data-act="w-log">' + doneLabel + '</button>';
     }
     var ssub = '';
     body = topFor(ssub) + '<div class="w-body"><p class="w-group">' + groupLabel(st) + ' · ' + esc(S.label) + '</p><h1 class="w-name">' + esc(lvl.name) + '</h1><p class="w-sub">Set ' + st.set + ' of 3</p>' +
       sidesHtml + '<div class="w-target"><span class="num">' + tg + '</span><span>' + unit + ' target</span></div><p class="w-cue">' + esc(lvl.cues[0] || (S.general && S.general[0]) || '') + '</p>' + input + '<div class="vid-keep" style="margin-top:16px">' + vidBlock(lvl) + '</div>' +
-      '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-info">How to</button><button data-act="w-skip">Skip exercise</button><button data-act="w-finish-ask">Finish workout</button></div></div>';
+      '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-info">How to</button><button data-act="w-skip" aria-label="Skip exercise">Skip</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'rest') {
     var st2 = curStep(), n = nextIndex(W.i + 1), pct2 = 100 * (W.i + 1) / W.steps.length;
     var nextHtml = '';
@@ -527,7 +561,7 @@ function renderWorkout() {
     }
     var rrem = (W.restEnd - Date.now()) / 1000;
     body = topFor(subTime(fmtClock(rrem), 100 * (1 - rrem / W.restTotal))) + '<div class="w-body"><p class="w-group">Rest</p><div class="rest-time num" id="restTime">' + fmtClock((W.restEnd - Date.now()) / 1000) + '</div>' +
-      '<div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Skip</button></div>' + nextHtml + '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-finish-ask">Finish workout</button></div></div>';
+      '<div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Skip</button></div>' + nextHtml + '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'summary') {
     var r = W.result, mins = Math.max(1, Math.round(r.session.durationSec / 60));
     var rows = SLOT_ORDER.filter(function (k) { return r.session.entries[k]; }).map(function (k) {
@@ -671,7 +705,17 @@ var H = {
   'w-warm-next': function () { var it = warmupItems(D, state)[W.warmI || 0]; if (it) W.warm[it.id] = true; doneChime(); warmGo(1); },
   'w-warm-skip': function () { warmGo(1); },
   'w-warm-back': function () { warmGo(-1); },
-  'w-warm-timer': function () { prepAudio(); var it = warmupItems(D, state)[W.warmI || 0]; W.warmEnd = Date.now() + (it.secs + 3) * 1000; lastCue = null; saveDraft(); renderWorkout(); },
+  'w-warm-timer': function () { prepAudio(); var it = warmupItems(D, state)[W.warmI || 0]; W.warmEnd = Date.now() + (it.secs + 3) * 1000; W.warmTotal = it.secs; lastCue = null; saveDraft(); renderWorkout(); },
+  'w-warm-adj': function (el) {
+    var it = warmupItems(D, state)[W.warmI || 0], g = warmGoal(it), d = +el.dataset.d, el2 = g - (W.warmEnd - Date.now()) / 1000;
+    var ng = Math.max(5, g + d); if (ng <= el2 + 1) return;
+    W.warmEnd += (ng - g) * 1000; W.warmTotal = ng; saveDraft(); renderWorkout();
+  },
+  'w-hold-adj': function (el) {
+    var g = holdGoal(), d = +el.dataset.d, e = (Date.now() - W.holdStart) / 1000;
+    var ng = Math.max(5, g + d); if (ng <= e + 1) return;
+    W.holdTotal = ng; saveDraft(); renderWorkout();
+  },
   'w-begin': function () { var n = nextIndex(0); if (n < 0) { finishNow(); return; } goSet(n); },
   'w-val': function (el) {
     var st = curStep(), lvl = levelOfStep(st), d = +el.dataset.d;
@@ -691,13 +735,13 @@ var H = {
     if (prev != null) W.value = prev;
     saveDraft(); renderWorkout();
   },
-  'w-hold-start': function () { prepAudio(); W.holdStart = Date.now() + 3000; lastCue = null; renderWorkout(); },
-  'w-hold-stop': function () { var hst = curStep(), cap = W.logged[hst.slot].targets[hst.set - 1]; var el = (Date.now() - W.holdStart) / 1000; if (el > 0) W.value = Math.min(cap, Math.max(1, Math.round(el))); W.holdStart = null; saveDraft(); renderWorkout(); },
+  'w-hold-start': function () { prepAudio(); W.holdTotal = Math.max(1, W.value || 0); W.holdStart = Date.now() + 3000; lastCue = null; saveDraft(); renderWorkout(); },
+  'w-hold-stop': function () { var cap = holdGoal(); var el = (Date.now() - W.holdStart) / 1000; if (el > 0) W.value = Math.min(cap, Math.max(1, Math.round(el))); W.holdStart = null; saveDraft(); renderWorkout(); },
   'w-log': function () {
     var st = curStep(), lvl = levelOfStep(st);
     doneChime();
     if (lvl.perSide) {
-      if (!W.side) { W.right = W.value; W.side = 1; W.value = W.logged[st.slot].targets[st.set - 1]; W.holdStart = null; saveDraft(); renderWorkout(); return; }
+      if (!W.side) { W.right = W.value; W.side = 1; W.value = W.logged[st.slot].targets[st.set - 1]; W.holdStart = null; if (lvl.kind === 'hold') autoStartHold(5); saveDraft(); renderWorkout(); return; }
       W.value = Math.min(W.right == null ? W.value : W.right, W.value);
     }
     logSet();
