@@ -255,6 +255,7 @@ function viewAjustes() {
   var exp = JSON.stringify({ v: 1, settings: state.settings, levels: state.levels, sessions: state.sessions });
   return '<div class="wrap"><div class="page-head"><h1>Settings</h1><p>' + esc(sync.note) + '</p></div>' +
     '<div class="set-row"><div><b>I have a pull-up bar</b><p>Adds the pull-up and the full Pair 1 to your workout.</p></div><button class="switch" role="switch" aria-checked="' + !!st.hasBar + '" aria-label="I have a pull-up bar" data-act="toggle-bar"></button></div>' +
+    '<div class="set-row"><div><b>I have a safe dip setup</b><p>Parallel bars, sturdy chairs or a counter corner. Adds the dip to your workout.</p></div><button class="switch" role="switch" aria-checked="' + !!st.hasDip + '" aria-label="I have a safe dip setup" data-act="toggle-dip"></button></div>' +
     '<div class="set-row"><div><b>Rest for strength</b><p>Between sets of the pairs</p></div>' + stepper('rest-main', 'rm', st.restMain, ' s') + '</div>' +
     '<div class="set-row"><div><b>Rest for core</b><p>Between sets of the triplet</p></div>' + stepper('rest-core', 'rc', st.restCore, ' s') + '</div>' +
     '<h2 class="sec-title">Core exercises</h2><p class="muted small">The default paths use only your body and a sturdy support. Switch if you have a band, rings or a bar.</p>' + pathRows +
@@ -615,6 +616,7 @@ var H = {
     if (state.levels[slot].path !== path) { state.levels[slot] = { path: path, idx: 0 }; persistProfile(); }
     render(); renderSheet();
   },
+  'toggle-dip': function () { state.settings.hasDip = !state.settings.hasDip; persistProfile(); render(); toast(state.settings.hasDip ? 'Dip added to your workout' : 'Dip left out of your workout'); },
   'toggle-bar': function () { state.settings.hasBar = !state.settings.hasBar; persistProfile(); render(); toast(state.settings.hasBar ? 'Pull-up added to your workout' : 'Pull-up left out of your workout'); },
   'rest-main': function (el) { state.settings.restMain = Math.max(30, Math.min(300, state.settings.restMain + 15 * +el.dataset.d)); persistProfile(); $('#rm').textContent = state.settings.restMain + ' s'; },
   'rest-core': function (el) { state.settings.restCore = Math.max(30, Math.min(300, state.settings.restCore + 15 * +el.dataset.d)); persistProfile(); $('#rc').textContent = state.settings.restCore + ' s'; },
@@ -646,7 +648,7 @@ var H = {
   },
   'reset-ask': function () { confirmBox('Delete everything?', 'Your logged workouts are deleted and the levels go back to the start. This cannot be undone.', [{ label: 'Delete everything', act: 'reset-do' }, { label: 'Cancel', act: 'sheet-close', cls: 'ghost' }]); },
   'reset-do': function () {
-    var keepBar = state.settings.hasBar; state = defaultState(D); state.settings.hasBar = keepBar;
+    var keepBar = state.settings.hasBar, keepDip = state.settings.hasDip; state = defaultState(D); state.settings.hasBar = keepBar; state.settings.hasDip = keepDip;
     persistProfile(); if (dbRefs) { /* sessões antigas ficam na conta, mas não aparecem mais após limpar: apaga uma a uma */ dbRefs.sessions.get().then(function (sn) { sn.docs.forEach(function (d) { enqueue(function () { return dbRefs.sessions.doc(d.id).delete(); }); }); }, function () { }); }
     closeSheet(); render(); toast('Everything deleted');
   },

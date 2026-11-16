@@ -31,7 +31,7 @@ var SLOTS = {
   squat: { label: 'Squat', group: 'Legs', wiki: 'squat',
     muscles: 'Quads and glutes',
     general: ['Stand up fully at the top', 'Go as deep as you can, ideally with the hips below the knees', 'Press the big toe and the heel into the floor', 'Knees in line with the feet and pushing out'] },
-  dip: { label: 'Dip', group: 'Vertical push', wiki: 'dip',
+  dip: { label: 'Dip', group: 'Vertical push', wiki: 'dip', needsDip: true,
     muscles: 'Lower chest, triceps and shoulders',
     general: ['Straight or slightly hollow body, no bending at the hips', 'Lock the arms and push the shoulder blades down at the top', 'Go as deep as you can', 'Elbows close to the body'] },
   hinge: { label: 'Hinge', group: 'Hamstrings', wiki: 'hinge',

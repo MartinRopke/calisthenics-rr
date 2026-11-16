@@ -17,7 +17,7 @@ function defaultState(D) {
   Object.keys(D.LADDERS).forEach(function (slot) {
     levels[slot] = { path: D.LADDERS[slot].defaultPath, idx: D.START_LEVELS[slot] || 0 };
   });
-  return { v: 1, settings: { hasBar: false, restMain: 90, restCore: 60 }, levels: levels, sessions: [] };
+  return { v: 1, settings: { hasBar: false, hasDip: false, restMain: 90, restCore: 60 }, levels: levels, sessions: [] };
 }
 
 function ladderOf(D, state, slot) {
@@ -32,6 +32,7 @@ function currentLevel(D, state, slot) {
 }
 function isActive(D, state, slot) {
   if (D.SLOTS[slot].needsBar && !state.settings.hasBar) return false;
+  if (D.SLOTS[slot].needsDip && !state.settings.hasDip) return false;
   return true;
 }
 

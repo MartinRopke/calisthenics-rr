@@ -84,13 +84,13 @@ t('exercício sem séries não gera entrada', () => {
   assert.ok(!r.session.entries.pushup); assert.ok(r.session.entries.row);
 });
 t('passos: sem barra pula a pull-up; 3 séries alternadas', () => {
-  const s = L.defaultState(D);
+  const s = L.defaultState(D); s.settings.hasDip = true;
   const st = L.buildSteps(D, s);
   assert.ok(!st.some(x => x.slot === 'pullup'));
   assert.equal(st.length, 3 * 2 + 3 * 2 + 3 * 2 + 3 * 3 - 3); // 8 exercícios... pares: 1+2+2 = 5 ex, core 3
 });
 t('passos com barra: ordem p1 A,B,A,B,A,B', () => {
-  const s = L.defaultState(D); s.settings.hasBar = true;
+  const s = L.defaultState(D); s.settings.hasBar = true; s.settings.hasDip = true;
   const st = L.buildSteps(D, s);
   assert.deepEqual(st.slice(0, 6).map(x => x.slot + x.set), ['pullup1', 'squat1', 'pullup2', 'squat2', 'pullup3', 'squat3']);
   assert.equal(st.length, 6 * 3 + 9);
@@ -109,10 +109,16 @@ t('aquecimento: troca do ombro por wall slides e volta ao guia', () => {
     s.settings.warmAlt = {};
   assert.equal(L.warmupItems(D, s)[0].id, 'shoulder');
 });
+t('dip só entra com hasDip ligado', () => {
+  const s = L.defaultState(D);
+  assert.equal(L.isActive(D, s, 'dip'), false);
+  s.settings.hasDip = true;
+  assert.equal(L.isActive(D, s, 'dip'), true);
+});
 t('aquecimento ganha extras conforme o nível', () => {
   const s = L.defaultState(D);
   assert.equal(L.warmupItems(D, s).length, 4);
-  s.settings.hasBar = true; s.levels.pullup.idx = 2; s.levels.dip.idx = 1;
+  s.settings.hasBar = true; s.settings.hasDip = true; s.levels.pullup.idx = 2; s.levels.dip.idx = 1;
   assert.equal(L.warmupItems(D, s).length, 6);
 });
 t('contagem semanal começa na segunda', () => {
@@ -142,7 +148,7 @@ t('todo nível e item de aquecimento tem vídeo válido', () => {
   Object.keys(V).forEach(k => assert.ok(/^[A-Za-z0-9_-]{11}$/.test(V[k].id) && V[k].t && V[k].c, k));
 });
 t('aquecimento: extras aparecem com o nível e o anterior vem do nível certo', () => {
-  const s = L.defaultState(D); s.settings.hasBar = true;
+  const s = L.defaultState(D); s.settings.hasBar = true; s.settings.hasDip = true;
   s.levels.squat.idx = 3; s.levels.hinge.idx = 3; s.levels.pullup.idx = 2; s.levels.dip.idx = 1;
   const it = L.warmupItems(D, s), names = it.map(x => x.name);
   assert.equal(it.length, 8);

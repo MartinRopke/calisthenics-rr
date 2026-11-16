@@ -311,7 +311,7 @@ var SLOTS = {
   squat: { label: 'Squat', group: 'Legs', wiki: 'squat',
     muscles: 'Quads and glutes',
     general: ['Stand up fully at the top', 'Go as deep as you can, ideally with the hips below the knees', 'Press the big toe and the heel into the floor', 'Knees in line with the feet and pushing out'] },
-  dip: { label: 'Dip', group: 'Vertical push', wiki: 'dip',
+  dip: { label: 'Dip', group: 'Vertical push', wiki: 'dip', needsDip: true,
     muscles: 'Lower chest, triceps and shoulders',
     general: ['Straight or slightly hollow body, no bending at the hips', 'Lock the arms and push the shoulder blades down at the top', 'Go as deep as you can', 'Elbows close to the body'] },
   hinge: { label: 'Hinge', group: 'Hamstrings', wiki: 'hinge',
@@ -554,7 +554,7 @@ function defaultState(D) {
   Object.keys(D.LADDERS).forEach(function (slot) {
     levels[slot] = { path: D.LADDERS[slot].defaultPath, idx: D.START_LEVELS[slot] || 0 };
   });
-  return { v: 1, settings: { hasBar: false, restMain: 90, restCore: 60 }, levels: levels, sessions: [] };
+  return { v: 1, settings: { hasBar: false, hasDip: false, restMain: 90, restCore: 60 }, levels: levels, sessions: [] };
 }
 
 function ladderOf(D, state, slot) {
@@ -569,6 +569,7 @@ function currentLevel(D, state, slot) {
 }
 function isActive(D, state, slot) {
   if (D.SLOTS[slot].needsBar && !state.settings.hasBar) return false;
+  if (D.SLOTS[slot].needsDip && !state.settings.hasDip) return false;
   return true;
 }
 
@@ -989,6 +990,7 @@ function viewAjustes() {
   var exp = JSON.stringify({ v: 1, settings: state.settings, levels: state.levels, sessions: state.sessions });
   return '<div class="wrap"><div class="page-head"><h1>Settings</h1><p>' + esc(sync.note) + '</p></div>' +
     '<div class="set-row"><div><b>I have a pull-up bar</b><p>Adds the pull-up and the full Pair 1 to your workout.</p></div><button class="switch" role="switch" aria-checked="' + !!st.hasBar + '" aria-label="I have a pull-up bar" data-act="toggle-bar"></button></div>' +
+    '<div class="set-row"><div><b>I have a safe dip setup</b><p>Parallel bars, sturdy chairs or a counter corner. Adds the dip to your workout.</p></div><button class="switch" role="switch" aria-checked="' + !!st.hasDip + '" aria-label="I have a safe dip setup" data-act="toggle-dip"></button></div>' +
     '<div class="set-row"><div><b>Rest for strength</b><p>Between sets of the pairs</p></div>' + stepper('rest-main', 'rm', st.restMain, ' s') + '</div>' +
     '<div class="set-row"><div><b>Rest for core</b><p>Between sets of the triplet</p></div>' + stepper('rest-core', 'rc', st.restCore, ' s') + '</div>' +
     '<h2 class="sec-title">Core exercises</h2><p class="muted small">The default paths use only your body and a sturdy support. Switch if you have a band, rings or a bar.</p>' + pathRows +
@@ -1349,6 +1351,7 @@ var H = {
     if (state.levels[slot].path !== path) { state.levels[slot] = { path: path, idx: 0 }; persistProfile(); }
     render(); renderSheet();
   },
+  'toggle-dip': function () { state.settings.hasDip = !state.settings.hasDip; persistProfile(); render(); toast(state.settings.hasDip ? 'Dip added to your workout' : 'Dip left out of your workout'); },
   'toggle-bar': function () { state.settings.hasBar = !state.settings.hasBar; persistProfile(); render(); toast(state.settings.hasBar ? 'Pull-up added to your workout' : 'Pull-up left out of your workout'); },
   'rest-main': function (el) { state.settings.restMain = Math.max(30, Math.min(300, state.settings.restMain + 15 * +el.dataset.d)); persistProfile(); $('#rm').textContent = state.settings.restMain + ' s'; },
   'rest-core': function (el) { state.settings.restCore = Math.max(30, Math.min(300, state.settings.restCore + 15 * +el.dataset.d)); persistProfile(); $('#rc').textContent = state.settings.restCore + ' s'; },
@@ -1380,7 +1383,7 @@ var H = {
   },
   'reset-ask': function () { confirmBox('Delete everything?', 'Your logged workouts are deleted and the levels go back to the start. This cannot be undone.', [{ label: 'Delete everything', act: 'reset-do' }, { label: 'Cancel', act: 'sheet-close', cls: 'ghost' }]); },
   'reset-do': function () {
-    var keepBar = state.settings.hasBar; state = defaultState(D); state.settings.hasBar = keepBar;
+    var keepBar = state.settings.hasBar, keepDip = state.settings.hasDip; state = defaultState(D); state.settings.hasBar = keepBar; state.settings.hasDip = keepDip;
     persistProfile(); if (dbRefs) { /* sessões antigas ficam na conta, mas não aparecem mais após limpar: apaga uma a uma */ dbRefs.sessions.get().then(function (sn) { sn.docs.forEach(function (d) { enqueue(function () { return dbRefs.sessions.doc(d.id).delete(); }); }); }, function () { }); }
     closeSheet(); render(); toast('Everything deleted');
   },
