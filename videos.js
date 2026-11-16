@@ -51,6 +51,8 @@ var VIDEOS = {
   "core_ex.rock": { id: "DPTOiPvIfJ0", t: "Arch Rock and Hollowbody Rock", c: "GymnasticBodies" },
   "core_ex.rev": { id: "Uj8UVm_NkYk", t: "Bodyweight Reverse Hyperextension", c: "Kelly Family Fitness" },
   "w.shoulder": { id: "Pb9X2avgxJ0", t: "Yuri's Shoulder Band Warmup", c: "Gabriel Houssou" },
+  "w.shoulder_wall": { id: "9ZBOvVO9JFs", t: "Wall Slide Tutorial | Shoulder Mobility + Scap Control", c: "Nottingham Physio" },
+  "w.shoulder_scap": { id: "LeMk15TN0No", t: "Exercise With an Athletic Trainer: Scapular Pushups", c: "Children's Hospital Colorado" },
   "w.sky": { id: "E3DoJF16HAg", t: "Squat Sky Reaches", c: "Molly" },
   "w.wrist": { id: "mSZWSQSSEjE", t: "Wrist Strength & Mobility Exercises", c: "GMB Fitness" },
   "w.deadbug": { id: "GbSC02oU3To", t: "How to Do a Dead Bug: A Guide from Physical Therapists", c: "Hinge Health" },

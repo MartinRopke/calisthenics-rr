@@ -194,6 +194,8 @@ textarea { width: 100%; min-height: 110px; background: var(--surface); color: va
 .big-stepper { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .big-stepper button { width: 76px; height: 76px; border-radius: 14px; border: 2px solid var(--line); font-size: 34px; text-align: center; flex: none; }
 .big-stepper .val { flex: 1; text-align: center; font-size: 64px; }
+.swap { margin-top: 18px; }
+.swap .pathsel { margin-top: 8px; }
 .w-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .w-links button { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); color: var(--ink); font-weight: 700; font-size: 16px; }
 .w-links button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }

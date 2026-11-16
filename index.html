@@ -205,6 +205,8 @@ textarea { width: 100%; min-height: 110px; background: var(--surface); color: va
 .big-stepper { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .big-stepper button { width: 76px; height: 76px; border-radius: 14px; border: 2px solid var(--line); font-size: 34px; text-align: center; flex: none; }
 .big-stepper .val { flex: 1; text-align: center; font-size: 64px; }
+.swap { margin-top: 18px; }
+.swap .pathsel { margin-top: 8px; }
 .w-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .w-links button { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); color: var(--ink); font-weight: 700; font-size: 16px; }
 .w-links button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
@@ -440,7 +442,14 @@ var START_LEVELS = { pushup: 3, row: 1, squat: 1, pullup: 0, dip: 0, hinge: 0, c
    n e unit formam a meta ("5 to 10" + "reps"); secs liga um cronômetro; how são os passos. */
 var WARMUP = [
   { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 to 10', unit: 'reps', equip: 'resistance band or a t-shirt', q: 'Yuri shoulder band warmup',
-    how: ['Hold the band, or a t-shirt, with straight arms and hands far apart', 'Take the band over your head to behind your body and come back the same way', 'Slowly and with straight elbows. If it gets stuck, widen your hands'] },
+    how: ['Hold the band, or a t-shirt, with straight arms and hands far apart', 'Take the band over your head to behind your body and come back the same way', 'Slowly and with straight elbows. If it gets stuck, widen your hands'],
+    /* Trocas sem equipamento, fora do guia. O app mostra como "not from the guide". */
+    alts: [
+      { id: 'shoulder_wall', label: 'Wall slides', name: 'Wall slides', n: '5 to 10', unit: 'reps', q: 'wall slide shoulder mobility',
+        how: ['Stand with your back, head and forearms against a wall, elbows bent', 'Slide the arms up the wall as far as you can, keeping the ribs down and the forearms touching', 'Slide back down slowly and repeat'] },
+      { id: 'shoulder_scap', label: 'Scapular push-ups', name: 'Scapular push-ups', n: '5 to 10', unit: 'reps', q: 'scapular push ups',
+        how: ['In a push-up position with locked arms', 'Let the chest sink between the shoulder blades, then push the floor away and spread the shoulder blades apart', 'Elbows stay straight the whole time. Only the shoulder blades move'] }
+    ] },
   { id: 'sky', name: 'Squat sky reaches', n: '5 to 10', unit: 'reps', q: 'squat sky reaches',
     how: ['Drop into a deep squat, feet shoulder width apart', 'At the bottom, reach your arms up and open the chest', 'Stand up and repeat'] },
   { id: 'wrist', name: 'GMB wrist prep', n: '10 or more', unit: 'of each movement', q: 'GMB wrist prep',
@@ -514,6 +523,8 @@ var VIDEOS = {
   "core_ex.rock": { id: "DPTOiPvIfJ0", t: "Arch Rock and Hollowbody Rock", c: "GymnasticBodies" },
   "core_ex.rev": { id: "Uj8UVm_NkYk", t: "Bodyweight Reverse Hyperextension", c: "Kelly Family Fitness" },
   "w.shoulder": { id: "Pb9X2avgxJ0", t: "Yuri's Shoulder Band Warmup", c: "Gabriel Houssou" },
+  "w.shoulder_wall": { id: "9ZBOvVO9JFs", t: "Wall Slide Tutorial | Shoulder Mobility + Scap Control", c: "Nottingham Physio" },
+  "w.shoulder_scap": { id: "LeMk15TN0No", t: "Exercise With an Athletic Trainer: Scapular Pushups", c: "Children's Hospital Colorado" },
   "w.sky": { id: "E3DoJF16HAg", t: "Squat Sky Reaches", c: "Molly" },
   "w.wrist": { id: "mSZWSQSSEjE", t: "Wrist Strength & Mobility Exercises", c: "GMB Fitness" },
   "w.deadbug": { id: "GbSC02oU3To", t: "How to Do a Dead Bug: A Guide from Physical Therapists", c: "Hinge Health" },
@@ -620,7 +631,13 @@ function restSeconds(D, state, slot) {
 }
 
 function warmupItems(D, state) {
-  var items = D.WARMUP.slice();
+  var alt = (state.settings && state.settings.warmAlt) || {};
+  var items = D.WARMUP.map(function (w) {
+    var a = (w.alts || []).filter(function (x) { return x.id === alt[w.id]; })[0];
+    if (!a) return w;
+    var y = {}; Object.keys(a).forEach(function (k) { y[k] = a[k]; }); y.base = w.id; y.fromGuide = false;
+    return y;
+  });
   D.WARMUP_EXTRAS.forEach(function (x) {
     if (!(isActive(D, state, x.slot) && state.levels[x.slot].idx >= x.minIdx)) return;
     if (!x.prevLevel) { items.push(x); return; }
@@ -1001,6 +1018,14 @@ function videoHtml(key, q) {
   return '<div class="vid-box"><div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/' + v.id + '?rel=0&playsinline=1&modestbranding=1" title="' + esc(v.t) + '" loading="lazy" onload="this.classList.add(&quot;ok&quot;)" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>' +
     '<p class="vid-cap">' + esc(v.t) + ' · ' + esc(v.c) + '</p></div>';
 }
+function warmSwap(it) {
+  var base = D.WARMUP.filter(function (w) { return w.id === (it.base || it.id); })[0];
+  if (!base || !base.alts) return '';
+  var cur = it.base ? it.id : '';
+  return '<div class="swap"><p class="muted small">No equipment? Swap this exercise. The swaps are not from the guide and stay until you switch back.</p><div class="pathsel" role="group" aria-label="Swap exercise">' +
+    '<button data-act="warm-swap" data-base="' + base.id + '" data-alt="" aria-pressed="' + !cur + '">' + 'Band or t-shirt' + '</button>' +
+    base.alts.map(function (a) { return '<button data-act="warm-swap" data-base="' + base.id + '" data-alt="' + a.id + '" aria-pressed="' + (cur === a.id) + '">' + esc(a.label) + '</button>'; }).join('') + '</div></div>';
+}
 function vidTabs(lvl) {
   if (!lvl.setup || !lvl.setup.length) return '';
   var q = esc(lvl.q + ' tutorial');
@@ -1061,18 +1086,24 @@ function confirmBox(title, text, buttons) {
 }
 
 /* ---------- Treino guiado ---------- */
-function beep() {
+function tone(freq, t, dur, vol) {
   try {
     if (!audioCtx) return;
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    [0, 0.22].forEach(function (t) {
-      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.frequency.value = 880; o.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.0001, audioCtx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t + 0.18);
-      o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + 0.2);
-    });
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain(), at = audioCtx.currentTime + t;
+    o.frequency.value = freq; o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol || 0.25, at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.start(at); o.stop(at + dur + 0.02);
   } catch (e) { }
-  try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) { }
+}
+function beep() { tone(880, 0, 0.18); tone(880, 0.22, 0.18); try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) { } }
+function tickBeep() { tone(660, 0, 0.12); }
+function goBeep() { tone(1175, 0, 0.45, 0.3); try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) { } }
+function doneChime() { tone(660, 0, 0.14, 0.2); tone(880, 0.12, 0.14, 0.2); tone(1320, 0.24, 0.3, 0.2); }
+var lastCue = null;
+function cue(key, n) {
+  if (lastCue === key) return;
+  lastCue = key; if (n > 0) tickBeep(); else goBeep();
 }
 function prepAudio() {
   try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { }
@@ -1120,20 +1151,27 @@ function subUpdate(label, pct) {
   if (b) b.style.width = Math.max(0, Math.min(100, pct)) + '%';
   if (l) l.textContent = label;
 }
+function timerText(total, elapsed) {
+  if (elapsed < 0) return String(Math.ceil(-elapsed));
+  return Math.max(0, Math.ceil(total - elapsed)) + ' s';
+}
 function tick() {
   if (!W) return;
   if (W.phase === 'rest') {
     var rem = (W.restEnd - Date.now()) / 1000, el = $('#restTime');
     if (el) el.textContent = fmtClock(rem);
     subUpdate(fmtClock(rem), 100 * (1 - rem / W.restTotal));
-    if (rem <= 0) { beep(); var n = nextIndex(W.i + 1); if (n >= 0) goSet(n); else finishNow(); }
+    if (rem > 0 && rem <= 3) cue('r' + W.i + ':' + Math.ceil(rem), Math.ceil(rem));
+    if (rem <= 0) { lastCue = null; goBeep(); var n = nextIndex(W.i + 1); if (n >= 0) goSet(n); else finishNow(); }
   } else if (W.phase === 'warmup' && W.warmEnd > 0) {
     var wit = warmupItems(D, state)[W.warmI || 0], wel = wit.secs - (W.warmEnd - Date.now()) / 1000, we = $('#warmTime');
-    if (we) we.textContent = Math.min(wit.secs, Math.floor(wel)) + ' s';
+    if (wel < 0) cue('w' + W.warmI + ':' + Math.ceil(-wel), Math.ceil(-wel)); else if (wel < 1) cue('w' + W.warmI + ':go', 0); else if (wit.secs - wel <= 3 && wit.secs - wel > 0 && wit.secs > 6) cue('w' + W.warmI + ':e' + Math.ceil(wit.secs - wel), 1);
+    if (we) we.textContent = timerText(wit.secs, wel);
     if (wel >= wit.secs) { beep(); W.warmEnd = -1; saveDraft(); renderWorkout(); }
   } else if (W.phase === 'set' && W.holdStart) {
     var el2 = $('#holdTime'), hs = (Date.now() - W.holdStart) / 1000, hst = curStep(), htg = W.logged[hst.slot].targets[hst.set - 1];
-    if (el2) el2.textContent = Math.min(htg, Math.floor(hs)) + ' s';
+    if (hs < 0) cue('h' + W.i + ':' + Math.ceil(-hs), Math.ceil(-hs)); else if (hs < 1) cue('h' + W.i + ':go', 0); else if (htg - hs <= 3 && htg - hs > 0 && htg > 6) cue('h' + W.i + ':e' + Math.ceil(htg - hs), 1);
+    if (el2) el2.textContent = timerText(htg, hs);
     if (hs >= htg) { beep(); H['w-hold-stop'](); }
   }
 }
@@ -1179,8 +1217,8 @@ function renderWorkout() {
     var items = warmupItems(D, state), wi = Math.min(W.warmI || 0, items.length - 1), it = items[wi];
     var timerBox = '', main;
     if (it.secs && W.warmEnd) {
-      var shown = W.warmEnd < 0 ? it.secs : Math.min(it.secs, Math.floor(it.secs - (W.warmEnd - Date.now()) / 1000));
-      timerBox = '<div class="big-stepper"><span class="val num" id="warmTime">' + shown + ' s</span></div>';
+      var shown = W.warmEnd < 0 ? '0 s' : timerText(it.secs, it.secs - (W.warmEnd - Date.now()) / 1000);
+      timerBox = '<div class="big-stepper"><span class="val num" id="warmTime">' + shown + '</span></div>';
       main = '<button class="btn tape" data-act="w-warm-next">Done</button>';
     } else if (it.secs) {
       timerBox = '<div class="big-stepper"><span class="val num">' + it.secs + ' s</span></div>';
@@ -1190,7 +1228,7 @@ function renderWorkout() {
     }
     body = topFor('') + '<div class="w-body"><p class="w-group">Warm-up</p><h1 class="w-name">' + esc(it.name) + '</h1>' +
       '<p class="w-sub">Item ' + (wi + 1) + ' of ' + items.length + '</p><div class="w-target"><span class="num">' + esc(it.n) + '</span><span>' + esc(it.unit) + '</span></div>' +
-      it.how.map(function (t) { return '<p class="w-cue">' + esc(t) + '</p>'; }).join('') + timerBox + main +
+      it.how.map(function (t) { return '<p class="w-cue">' + esc(t) + '</p>'; }).join('') + timerBox + main + warmSwap(it) +
       (it.q ? '<div class="vid-keep" style="margin-top:16px">' + videoHtml('w.' + it.id, it.q) + '</div>' : '') +
       '<div class="w-links">' + (wi > 0 ? '<button data-act="w-warm-back">Back</button>' : '') + '<button data-act="w-warm-skip">Skip this</button><button data-act="w-begin">Skip warm-up</button></div></div>';
   } else if (W.phase === 'set') {
@@ -1203,7 +1241,7 @@ function renderWorkout() {
     var sidesHtml = lvl.perSide ? '<div class="sides" aria-label="Sides"><span class="' + (W.side ? 'done' : 'cur') + '">Right side</span><span class="' + (W.side ? 'cur' : '') + '">Left side</span></div><p class="muted small">Do one side, then the other. Both sides count as one set.</p>' : '';
     var input;
     if (lvl.kind === 'hold') {
-      input = (W.holdStart ? '<div class="big-stepper"><span class="val num" id="holdTime">0 s</span></div><button class="btn tape" data-act="w-hold-stop">Stop</button>' :
+      input = (W.holdStart ? '<div class="big-stepper"><span class="val num" id="holdTime">' + timerText(W.logged[curStep().slot].targets[curStep().set - 1], (Date.now() - W.holdStart) / 1000) + '</span></div><button class="btn tape" data-act="w-hold-stop">Stop</button>' :
         '<div class="big-stepper"><button data-act="w-val" data-d="-5" aria-label="Minus 5 seconds">−</button><span class="val num" id="val">' + W.value + ' s</span><button data-act="w-val" data-d="5" aria-label="Plus 5 seconds">+</button></div>' +
         '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-hold-start">Start timer</button><button class="btn tape" data-act="w-log">' + doneLabel + '</button></div>');
     } else {
@@ -1290,6 +1328,11 @@ var H = {
     el.parentNode.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b === el ? 'true' : 'false'); });
     el.closest('.vid-wrap').querySelector('.vid-slot').innerHTML = videoHtml(el.dataset.key, el.dataset.q);
   },
+  'warm-swap': function (el) {
+    var m = state.settings.warmAlt || (state.settings.warmAlt = {});
+    if (el.dataset.alt) m[el.dataset.base] = el.dataset.alt; else delete m[el.dataset.base];
+    persistProfile(); renderWorkout();
+  },
   'sheet-close': function () { closeSheet(); },
   'pick-level': function (el) {
     var slot = el.dataset.slot, i = +el.dataset.i;
@@ -1357,10 +1400,10 @@ var H = {
   'w-discard': function () { clearDraft(); W = null; stopTick(); $('#overlay').innerHTML = ''; document.body.classList.remove('no-scroll'); closeSheet(); render(); },
   'w-finish-ask': function () { H['w-exit'](); },
   'w-finish': function () { closeSheet(); finishNow(); },
-  'w-warm-next': function () { var it = warmupItems(D, state)[W.warmI || 0]; if (it) W.warm[it.id] = true; warmGo(1); },
+  'w-warm-next': function () { var it = warmupItems(D, state)[W.warmI || 0]; if (it) W.warm[it.id] = true; doneChime(); warmGo(1); },
   'w-warm-skip': function () { warmGo(1); },
   'w-warm-back': function () { warmGo(-1); },
-  'w-warm-timer': function () { var it = warmupItems(D, state)[W.warmI || 0]; W.warmEnd = Date.now() + it.secs * 1000; saveDraft(); renderWorkout(); },
+  'w-warm-timer': function () { prepAudio(); var it = warmupItems(D, state)[W.warmI || 0]; W.warmEnd = Date.now() + (it.secs + 3) * 1000; lastCue = null; saveDraft(); renderWorkout(); },
   'w-begin': function () { var n = nextIndex(0); if (n < 0) { finishNow(); return; } goSet(n); },
   'w-val': function (el) {
     var st = curStep(), lvl = levelOfStep(st), d = +el.dataset.d;
@@ -1380,10 +1423,11 @@ var H = {
     if (prev != null) W.value = prev;
     saveDraft(); renderWorkout();
   },
-  'w-hold-start': function () { W.holdStart = Date.now(); renderWorkout(); },
-  'w-hold-stop': function () { var hst = curStep(), cap = W.logged[hst.slot].targets[hst.set - 1]; W.value = Math.min(cap, Math.max(1, Math.round((Date.now() - W.holdStart) / 1000))); W.holdStart = null; saveDraft(); renderWorkout(); },
+  'w-hold-start': function () { prepAudio(); W.holdStart = Date.now() + 3000; lastCue = null; renderWorkout(); },
+  'w-hold-stop': function () { var hst = curStep(), cap = W.logged[hst.slot].targets[hst.set - 1]; var el = (Date.now() - W.holdStart) / 1000; if (el > 0) W.value = Math.min(cap, Math.max(1, Math.round(el))); W.holdStart = null; saveDraft(); renderWorkout(); },
   'w-log': function () {
     var st = curStep(), lvl = levelOfStep(st);
+    doneChime();
     if (lvl.perSide) {
       if (!W.side) { W.right = W.value; W.side = 1; W.value = W.logged[st.slot].targets[st.set - 1]; W.holdStart = null; saveDraft(); renderWorkout(); return; }
       W.value = Math.min(W.right == null ? W.value : W.right, W.value);

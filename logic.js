@@ -94,7 +94,13 @@ function restSeconds(D, state, slot) {
 }
 
 function warmupItems(D, state) {
-  var items = D.WARMUP.slice();
+  var alt = (state.settings && state.settings.warmAlt) || {};
+  var items = D.WARMUP.map(function (w) {
+    var a = (w.alts || []).filter(function (x) { return x.id === alt[w.id]; })[0];
+    if (!a) return w;
+    var y = {}; Object.keys(a).forEach(function (k) { y[k] = a[k]; }); y.base = w.id; y.fromGuide = false;
+    return y;
+  });
   D.WARMUP_EXTRAS.forEach(function (x) {
     if (!(isActive(D, state, x.slot) && state.levels[x.slot].idx >= x.minIdx)) return;
     if (!x.prevLevel) { items.push(x); return; }

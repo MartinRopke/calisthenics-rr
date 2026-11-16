@@ -100,6 +100,15 @@ t('descanso: 90 força, 60 core', () => {
   const s = L.defaultState(D);
   assert.equal(L.restSeconds(D, s, 'row'), 90); assert.equal(L.restSeconds(D, s, 'core_ae'), 60);
 });
+t('aquecimento: troca do ombro por wall slides e volta ao guia', () => {
+  const s = L.defaultState(D);
+  assert.equal(L.warmupItems(D, s)[0].id, 'shoulder');
+  s.settings.warmAlt = { shoulder: 'shoulder_wall' };
+  const it = L.warmupItems(D, s);
+  assert.equal(it[0].name, 'Wall slides'); assert.equal(it[0].base, 'shoulder'); assert.equal(it.length, 4);
+    s.settings.warmAlt = {};
+  assert.equal(L.warmupItems(D, s)[0].id, 'shoulder');
+});
 t('aquecimento ganha extras conforme o nível', () => {
   const s = L.defaultState(D);
   assert.equal(L.warmupItems(D, s).length, 4);
@@ -128,6 +137,7 @@ t('todo nível e item de aquecimento tem vídeo válido', () => {
     assert.ok(V[l.id], 'sem vídeo: ' + l.id);
   })));
   D.WARMUP.concat(D.WARMUP_EXTRAS.filter(x => x.q)).forEach(w => assert.ok(V['w.' + w.id], 'sem vídeo: w.' + w.id));
+  D.WARMUP.forEach(w => (w.alts || []).forEach(x => assert.ok(V['w.' + x.id], 'sem vídeo: w.' + x.id)));
   Object.keys(D.LADDERS).forEach(s => Object.values(D.LADDERS[s].paths).forEach(p => p.levels.forEach(l => l.setup.forEach(o => assert.ok(o.label && (!o.k || V[o.k]), 'sem vídeo de montagem: ' + o.k)))));
   Object.keys(V).forEach(k => assert.ok(/^[A-Za-z0-9_-]{11}$/.test(V[k].id) && V[k].t && V[k].c, k));
 });

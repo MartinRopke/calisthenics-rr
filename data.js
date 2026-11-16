@@ -162,7 +162,14 @@ var START_LEVELS = { pushup: 3, row: 1, squat: 1, pullup: 0, dip: 0, hinge: 0, c
    n e unit formam a meta ("5 to 10" + "reps"); secs liga um cronômetro; how são os passos. */
 var WARMUP = [
   { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 to 10', unit: 'reps', equip: 'resistance band or a t-shirt', q: 'Yuri shoulder band warmup',
-    how: ['Hold the band, or a t-shirt, with straight arms and hands far apart', 'Take the band over your head to behind your body and come back the same way', 'Slowly and with straight elbows. If it gets stuck, widen your hands'] },
+    how: ['Hold the band, or a t-shirt, with straight arms and hands far apart', 'Take the band over your head to behind your body and come back the same way', 'Slowly and with straight elbows. If it gets stuck, widen your hands'],
+    /* Trocas sem equipamento, fora do guia. O app mostra como "not from the guide". */
+    alts: [
+      { id: 'shoulder_wall', label: 'Wall slides', name: 'Wall slides', n: '5 to 10', unit: 'reps', q: 'wall slide shoulder mobility',
+        how: ['Stand with your back, head and forearms against a wall, elbows bent', 'Slide the arms up the wall as far as you can, keeping the ribs down and the forearms touching', 'Slide back down slowly and repeat'] },
+      { id: 'shoulder_scap', label: 'Scapular push-ups', name: 'Scapular push-ups', n: '5 to 10', unit: 'reps', q: 'scapular push ups',
+        how: ['In a push-up position with locked arms', 'Let the chest sink between the shoulder blades, then push the floor away and spread the shoulder blades apart', 'Elbows stay straight the whole time. Only the shoulder blades move'] }
+    ] },
   { id: 'sky', name: 'Squat sky reaches', n: '5 to 10', unit: 'reps', q: 'squat sky reaches',
     how: ['Drop into a deep squat, feet shoulder width apart', 'At the bottom, reach your arms up and open the chest', 'Stand up and repeat'] },
   { id: 'wrist', name: 'GMB wrist prep', n: '10 or more', unit: 'of each movement', q: 'GMB wrist prep',
