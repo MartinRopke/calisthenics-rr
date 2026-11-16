@@ -60,5 +60,6 @@ var VIDEOS = {
   "w.x_sup": { id: "eLI7t-5wHno", t: "Parallel Bar Support Hold Position Exercise", c: "Strength Project" },
   "eq.row.sheet": { id: "rloXYB8M3vU", t: "How To Do Incline Rows With Minimal Equipment (Just a bed-sheet and a door) with Antranik", c: "Antranik Kizirian" },
   "eq.row.table": { id: "-N_dnZMMmQY", t: "Inverted row at home, no gym, no equipment, just a table.", c: "The Functional Body Lab" },
+  "eq.cph_knee": { id: "p2MufgCIW_4", t: "Side Plank (modified - 1 knee down)", c: "Restore Physical Therapy, LLC" },
   "eq.cop": { id: "df8hjsKX16o", t: "Copenhagen Plank Exercise: At Home Adductor Exercise with NO Equipment for Strong Inner Thighs!", c: "FITBODY with Julie Lohre" }
 };
