@@ -7,7 +7,8 @@ App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o
 - `npm run build`: gera o `index.html` juntando `style.css`, `data.js`, `videos.js`, `logic.js` e `app.js`. O `index.html` é commitado, porque o GitHub Pages publica o arquivo da raiz. Depois de editar qualquer fonte, rode o build e commite o `index.html` junto.
 - `npm test`: testes da lógica, em Node, sem dependências. Rode sempre antes de commitar.
 - `npm run test:e2e`: testes de tela com Playwright em Python (`pip install playwright` e `playwright install chromium`). Rodam o `index.html` com um db falso e salvam capturas em `shots/`, que o git ignora.
-- Para ver a tela, abra o `index.html` no navegador. Os vídeos só tocam com o app em https (GitHub Pages), não abrindo o arquivo do disco.
+- `npm start`: servidor local (`server.mjs`, sem dependências) em http://localhost:8000. Serve o `index.html` e guarda o histórico em `data/treino.json`, que o git ignora. É o jeito de usar no Mac: os vídeos tocam em localhost e os dados ficam num arquivo.
+- Abrir o `index.html` direto do disco funciona, mas os vídeos não tocam (erro 153 do YouTube). Os vídeos tocam em localhost e no GitHub Pages (https).
 
 ## Estrutura
 
@@ -17,7 +18,7 @@ App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o
 - `app.js`: telas, armazenamento e treino guiado. Os cliques passam por `data-act` e pelo objeto de funções `H`.
 - `style.css`: tema claro e escuro por `prefers-color-scheme`.
 - Os arquivos viram scripts globais, sem módulos, na ordem do build. O estilo é ES5 (`var`, `function`) de propósito.
-- Fora do Claude, o histórico fica no `localStorage` (chave `treinoRR.v1`, rascunho em `treinoRR.draft`). O código ainda tem um caminho para o `db` dos artifacts do Claude, que pode ser removido.
+- Com `npm start`, o app detecta `/api/state` e grava o histórico em `data/treino.json` (com cópia em `treino.bak.json`), além do `localStorage`. No GitHub Pages esse endereço não existe, então só vale o `localStorage` (chave `treinoRR.v1`, rascunho em `treinoRR.draft`). O código ainda tem um caminho para o `db` dos artifacts do Claude, que pode ser removido.
 
 ## Regras do produto (não mudar sem pedir)
 
