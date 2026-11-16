@@ -233,6 +233,19 @@ function render() {
 }
 
 /* ---------- Folha de exercício ---------- */
+/* Vídeo: o quadro mostra a miniatura e só carrega o player quando tocado (economiza dados e não reinicia a cada tela). */
+function videoHtml(key, q) {
+  var v = (typeof VIDEOS !== 'undefined') && VIDEOS[key];
+  if (!v) return '<a class="vid-link" href="' + ytUrl(q) + '" target="_blank" rel="noopener">Buscar vídeo no YouTube</a>';
+  return '<div class="vid-box"><button class="vid" data-act="play-vid" data-id="' + v.id + '" data-title="' + esc(v.t) + '" aria-label="Tocar vídeo: ' + esc(v.t) + '"><img src="https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></button>' +
+    '<p class="vid-cap">' + esc(v.t) + ' · ' + esc(v.c) + '</p></div>';
+}
+function playVideo(btn) {
+  var box = btn.closest('.vid-box'); if (!box) return;
+  var d = document.createElement('div'); d.className = 'vid';
+  d.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + btn.dataset.id + '?autoplay=1&rel=0&playsinline=1&modestbranding=1" title="' + btn.dataset.title + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+  btn.replaceWith(d);
+}
 function openSheet(slot, ctx) { sheetCtx = { slot: slot, ctx: ctx }; renderSheet(); }
 function closeSheet() { sheetCtx = null; $('#sheet').innerHTML = ''; }
 function levelLocked() { return !!(W && sheetCtx && sheetCtx.ctx === 'workout' && W.logged[sheetCtx.slot] && W.logged[sheetCtx.slot].sets.length); }
@@ -259,7 +272,8 @@ function renderSheet() {
     (lvl.equip ? '<span class="chip">Precisa de: ' + esc(lvl.equip) + '</span>' : '') +
     '<h3>Como fazer</h3>' + cuesHtml +
     (lvl.note ? '<div class="note">' + esc(lvl.note) + '</div>' : '') +
-    '<div class="links"><a href="' + ytUrl(lvl.q + ' tutorial') + '" target="_blank" rel="noopener">Ver vídeos no YouTube</a><a href="' + WIKI_BASE + S.wiki + '" target="_blank" rel="noopener">Guia no wiki do r/bodyweightfitness</a></div>' +
+    '<h3>Vídeo</h3>' + videoHtml(lvl.id, lvl.q + ' tutorial') +
+    '<div class="links"><a href="' + ytUrl(lvl.q + ' tutorial') + '" target="_blank" rel="noopener">Mais vídeos no YouTube</a><a href="' + WIKI_BASE + S.wiki + '" target="_blank" rel="noopener">Guia no wiki do r/bodyweightfitness</a></div>' +
     '<h3>Escada de progressão</h3>' + (locked ? '<p class="muted small" style="margin-bottom:6px">Você já fez séries neste exercício hoje, então o nível só muda no próximo treino.</p>' : '<p class="muted small" style="margin-bottom:6px">Toque num degrau para mudar de nível. Serve para ajustar o ponto de partida.</p>') + ladHtml + pathHtml +
     (hist ? '<h3>Últimos registros</h3><ul class="bul">' + hist + '</ul>' : '') +
     '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Fechar</button></div></div>';
@@ -296,7 +310,7 @@ function newWorkout() {
     var p = prescribe(D, state, slot);
     logged[slot] = { levelId: p.level.id, sets: [], targets: p.targets };
   });
-  return { startedAt: Date.now(), phase: 'warmup', warm: {}, steps: buildSteps(D, state), i: 0, logged: logged, skipped: [], value: null, restEnd: 0, restTotal: 0, holdStart: null };
+  return { startedAt: Date.now(), phase: 'warmup', warm: {}, warmI: 0, warmEnd: 0, steps: buildSteps(D, state), i: 0, logged: logged, skipped: [], value: null, restEnd: 0, restTotal: 0, holdStart: null };
 }
 function curStep() { return W.steps[W.i]; }
 function levelOfStep(step) {
@@ -334,9 +348,19 @@ function tick() {
     if (el) el.textContent = fmtClock(rem);
     var bar = $('#restBar'); if (bar) bar.style.width = Math.max(0, Math.min(100, 100 * (1 - rem / W.restTotal))) + '%';
     if (rem <= 0) { beep(); var n = nextIndex(W.i + 1); if (n >= 0) goSet(n); else finishNow(); }
+  } else if (W.phase === 'warmup' && W.warmEnd) {
+    var wr = (W.warmEnd - Date.now()) / 1000, we = $('#warmTime');
+    if (we) we.textContent = fmtClock(wr);
+    if (wr <= 0) { beep(); H['w-warm-next'](); }
   } else if (W.phase === 'set' && W.holdStart) {
     var el2 = $('#holdTime'); if (el2) el2.textContent = Math.floor((Date.now() - W.holdStart) / 1000) + ' s';
   }
+}
+function warmGo(d) {
+  var n = warmupItems(D, state).length, i = (W.warmI || 0) + d;
+  W.warmEnd = 0;
+  if (i >= n) { H['w-begin'](); return; }
+  W.warmI = Math.max(0, i); saveDraft(); renderWorkout();
 }
 function groupLabel(step) {
   if (step.group === 'core') return 'Core';
@@ -350,10 +374,21 @@ function renderWorkout() {
   };
   var body = '';
   if (W.phase === 'warmup') {
-    var items = warmupItems(D, state), done = items.filter(function (x) { return W.warm[x.id]; }).length;
-    body = top('', 0) + '<div class="w-body"><h1 class="w-name">Aquecimento</h1><p class="w-sub">5 a 10 minutos. Marque o que fizer.</p><div style="margin-top:14px;border-top:2px solid var(--ink)">' +
-      items.map(function (x) { return '<button class="check" data-act="w-warm" data-id="' + x.id + '" aria-pressed="' + !!W.warm[x.id] + '"><span class="box">' + (W.warm[x.id] ? '✓' : '') + '</span><span><b>' + esc(x.name) + '</b><span class="muted small">' + esc(x.detail) + '</span></span></button>'; }).join('') +
-      '</div><div style="margin-top:auto;padding-top:22px"><button class="btn tape" data-act="w-begin">Começar a força</button><p class="muted small" style="margin-top:10px;text-align:center">' + done + ' de ' + items.length + ' feitos</p></div></div>';
+    var items = warmupItems(D, state), wi = Math.min(W.warmI || 0, items.length - 1), it = items[wi];
+    var timerBox = '', main;
+    if (it.secs && W.warmEnd) {
+      timerBox = '<div class="big-stepper"><span class="val num" id="warmTime">' + fmtClock((W.warmEnd - Date.now()) / 1000) + '</span></div>';
+      main = '<button class="btn tape" data-act="w-warm-next">Feito</button>';
+    } else if (it.secs) {
+      main = '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-warm-timer">Cronometrar ' + it.secs + ' s</button><button class="btn tape" data-act="w-warm-next">Feito</button></div>';
+    } else {
+      main = '<button class="btn tape" data-act="w-warm-next">Feito</button>';
+    }
+    body = top((wi + 1) + '/' + items.length, 100 * wi / items.length) + '<div class="w-body"><p class="w-group">Aquecimento · ' + (wi + 1) + ' de ' + items.length + '</p><h1 class="w-name">' + esc(it.name) + '</h1>' +
+      '<div class="w-target sm"><span class="num">' + esc(it.n) + '</span><span>' + esc(it.unit) + '</span></div>' +
+      '<ul class="how">' + it.how.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' + timerBox + main +
+      (it.q ? '<div style="margin-top:16px">' + videoHtml('w.' + it.id, it.q) + '</div>' : '') +
+      '<div class="w-links">' + (wi > 0 ? '<button data-act="w-warm-back">Voltar</button>' : '') + '<button data-act="w-warm-skip">Pular este</button><button data-act="w-begin">Pular aquecimento</button></div></div>';
   } else if (W.phase === 'set') {
     var st = curStep(), lvl = levelOfStep(st), S = SLOTS[st.slot], L = W.logged[st.slot], tg = L.targets[st.set - 1];
     var pct = 100 * W.i / W.steps.length;
@@ -376,7 +411,7 @@ function renderWorkout() {
     var nextHtml = '';
     if (n >= 0) {
       var ns = W.steps[n], nl = levelOfStep(ns), nt = W.logged[ns.slot].targets[ns.set - 1];
-      nextHtml = '<div class="next-up"><span class="muted small">Em seguida</span><div class="n">' + esc(nl.name) + '</div><span class="muted">Série ' + ns.set + ' de 3 · meta ' + nt + (nl.kind === 'hold' ? ' s' : ' reps') + (nl.perSide ? ' por lado' : '') + '</span></div>';
+      nextHtml = '<div class="next-up"><span class="muted small">Em seguida</span><div class="n">' + esc(nl.name) + '</div><span class="muted">Série ' + ns.set + ' de 3 · meta ' + nt + (nl.kind === 'hold' ? ' s' : ' reps') + (nl.perSide ? ' por lado' : '') + '</span>' + '<div style="margin-top:12px">' + videoHtml(nl.id, nl.q + ' tutorial') + '</div>' + '</div>';
     }
     body = top((W.i + 1) + '/' + W.steps.length, pct2) + '<div class="w-body"><p class="w-group">Descanso</p><div class="rest-time num" id="restTime">' + fmtClock((W.restEnd - Date.now()) / 1000) + '</div><div class="rest-bar"><i id="restBar" style="width:0%"></i></div>' +
       '<div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Pular</button></div>' + nextHtml + '</div>';
@@ -478,7 +513,10 @@ var H = {
   'w-discard': function () { clearDraft(); W = null; stopTick(); $('#overlay').innerHTML = ''; closeSheet(); render(); },
   'w-finish-ask': function () { H['w-exit'](); },
   'w-finish': function () { closeSheet(); finishNow(); },
-  'w-warm': function (el) { W.warm[el.dataset.id] = !W.warm[el.dataset.id]; saveDraft(); renderWorkout(); },
+  'w-warm-next': function () { var it = warmupItems(D, state)[W.warmI || 0]; if (it) W.warm[it.id] = true; warmGo(1); },
+  'w-warm-skip': function () { warmGo(1); },
+  'w-warm-back': function () { warmGo(-1); },
+  'w-warm-timer': function () { var it = warmupItems(D, state)[W.warmI || 0]; W.warmEnd = Date.now() + it.secs * 1000; saveDraft(); renderWorkout(); },
   'w-begin': function () { var n = nextIndex(0); if (n < 0) { finishNow(); return; } goSet(n); },
   'w-val': function (el) {
     var st = curStep(), lvl = levelOfStep(st), d = +el.dataset.d;
@@ -490,6 +528,7 @@ var H = {
   'w-log': function () { logSet(); },
   'w-rest-add': function () { W.restEnd += 15000; W.restTotal += 15; saveDraft(); },
   'w-rest-skip': function () { var n = nextIndex(W.i + 1); if (n >= 0) goSet(n); else finishNow(); },
+  'play-vid': function (el) { playVideo(el); },
   'w-info': function () { openSheet(curStep().slot, 'workout'); },
   'w-skip': function () {
     var st = curStep(); W.skipped.push(st.slot);

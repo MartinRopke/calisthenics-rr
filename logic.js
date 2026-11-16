@@ -96,7 +96,13 @@ function restSeconds(D, state, slot) {
 function warmupItems(D, state) {
   var items = D.WARMUP.slice();
   D.WARMUP_EXTRAS.forEach(function (x) {
-    if (isActive(D, state, x.slot) && state.levels[x.slot].idx >= x.minIdx) items.push(x);
+    if (!(isActive(D, state, x.slot) && state.levels[x.slot].idx >= x.minIdx)) return;
+    if (!x.prevLevel) { items.push(x); return; }
+    var p = ladderOf(D, state, x.slot)[state.levels[x.slot].idx - 1];
+    if (!p) return;
+    var y = {}; Object.keys(x).forEach(function (k) { y[k] = x[k]; });
+    y.name = p.name; y.q = p.q; y.how = ['Esta é a etapa anterior à de hoje', 'Faça com técnica limpa, sem pressa'];
+    items.push(y);
   });
   return items;
 }

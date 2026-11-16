@@ -5,6 +5,7 @@ App de treino para o Recommended Routine do r/bodyweightfitness. Guia o treino d
 ## Estrutura
 
 - `data.js`: exercícios, escadas de progressão, aquecimento e níveis iniciais
+- `videos.js`: um vídeo do YouTube por exercício (para trocar, mude o `id`, o `t` e o `c` da linha)
 - `logic.js`: regras de progressão e montagem do treino (funções puras)
 - `app.js`: interface e armazenamento
 - `style.css`: visual
@@ -19,7 +20,7 @@ python3 build.py
 node test.js
 ```
 
-Depois abra o `index.html` no navegador.
+Depois abra o `index.html` no navegador. Os vídeos só tocam quando o app está publicado em https (por exemplo no GitHub Pages), não ao abrir o arquivo direto do disco.
 
 ## Regra de progressão
 

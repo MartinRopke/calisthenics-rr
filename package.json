@@ -1,0 +1,12 @@
+{
+  "name": "calisthenics-rr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App de treino para o Recommended Routine do r/bodyweightfitness",
+  "type": "commonjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test.js",
+    "test:e2e": "python3 e2e.py && python3 e2e2.py"
+  }
+}

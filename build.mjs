@@ -1,8 +1,10 @@
-import re, pathlib
-r = pathlib.Path('.')
-css = (r/'style.css').read_text()
-js = '\n'.join((r/f).read_text() for f in ['data.js','logic.js','app.js'])
-html = f'''<!DOCTYPE html>
+// Junta style.css e os scripts em um único index.html (é o arquivo que o GitHub Pages publica).
+import { readFileSync, writeFileSync } from 'node:fs';
+
+const css = readFileSync('style.css', 'utf8');
+const js = ['data.js', 'videos.js', 'logic.js', 'app.js'].map((f) => readFileSync(f, 'utf8')).join('\n');
+
+const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -13,7 +15,7 @@ html = f'''<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
 <style>
-{css}
+${css}
 </style>
 </head>
 <body>
@@ -22,10 +24,11 @@ html = f'''<!DOCTYPE html>
 <div id="sheet"></div>
 <div id="toast" aria-live="polite"></div>
 <script>
-{js}
+${js}
 </script>
 </body>
 </html>
-'''
-(r/'index.html').write_text(html)
-print(len(html), 'bytes')
+`;
+
+writeFileSync('index.html', html);
+console.log(`index.html gerado (${Buffer.byteLength(html)} bytes)`);

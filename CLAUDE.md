@@ -1,0 +1,53 @@
+# calisthenics-rr
+
+App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o treino do dia, aplica a progressão automaticamente e guarda o histórico. Um único usuário (Martin), usado no iPhone, em português do Brasil.
+
+## Comandos
+
+- `npm run build`: gera o `index.html` juntando `style.css`, `data.js`, `videos.js`, `logic.js` e `app.js`. O `index.html` é commitado, porque o GitHub Pages publica o arquivo da raiz. Depois de editar qualquer fonte, rode o build e commite o `index.html` junto.
+- `npm test`: testes da lógica, em Node, sem dependências. Rode sempre antes de commitar.
+- `npm run test:e2e`: testes de tela com Playwright em Python (`pip install playwright` e `playwright install chromium`). Rodam o `index.html` com um db falso e salvam capturas em `shots/`, que o git ignora.
+- Para ver a tela, abra o `index.html` no navegador. Os vídeos só tocam com o app em https (GitHub Pages), não abrindo o arquivo do disco.
+
+## Estrutura
+
+- `data.js`: os 9 exercícios (`SLOTS`), as escadas de progressão (`LADDERS`, com caminhos alternativos), a ordem do treino (`PAIRS`, `CORE`), os níveis iniciais (`START_LEVELS`) e o aquecimento (`WARMUP`, `WARMUP_EXTRAS`).
+- `videos.js`: um vídeo do YouTube por nível e por item do aquecimento.
+- `logic.js`: funções puras, sem DOM, exportadas com `module.exports` para os testes. Toda regra de progressão mora aqui.
+- `app.js`: telas, armazenamento e treino guiado. Os cliques passam por `data-act` e pelo objeto de funções `H`.
+- `style.css`: tema claro e escuro por `prefers-color-scheme`.
+- Os arquivos viram scripts globais, sem módulos, na ordem do build. O estilo é ES5 (`var`, `function`) de propósito.
+- Fora do Claude, o histórico fica no `localStorage` (chave `treinoRR.v1`, rascunho em `treinoRR.draft`). O código ainda tem um caminho para o `db` dos artifacts do Claude, que pode ser removido.
+
+## Regras do produto (não mudar sem pedir)
+
+- Corpo inteiro 3 vezes por semana (segunda, quarta e sexta), com pelo menos um dia entre os treinos.
+- Ordem do treino: aquecimento, três pares de força (pull-up e agachamento, dip e hinge, remada e flexão) com 3 séries e 90 s de descanso, e o trio de core (anti-extensão, anti-rotação, extensão) com 3 séries e 60 s.
+- Progressão de força: começa em 3x5, soma 1 repetição por série a cada treino até 3x8, e então passa ao próximo nível em 3x5. Core vai de 8 a 12 repetições.
+- Isometrias vão de 10 a 30 s, em passos de 5 s, e passam de nível ao chegar a 30 s nas 3 séries. A página do dip pede 1 min, e usamos 30 s.
+- Exercício unilateral: um lado mais o outro contam como uma série.
+- Regra de meta (`targetsFor` e `prescribe`): na primeira vez no nível, todas as séries partem do mínimo. Se todas as séries bateram a meta, cada uma sobe um passo, limitado ao máximo. Senão, repete a última.
+- Pull-up só entra no treino com `settings.hasBar` ligado ("Tenho a barra" em Ajustes). O Martin ainda não tem a barra.
+- O aquecimento tem uma tela por item, sem escolhas. Os extras entram sozinhos conforme o nível.
+- Os níveis iniciais estão em `START_LEVELS` e vieram do plano de treino do Martin. Mudar isso muda o treino dele, então combine antes.
+
+## Vídeos e conteúdo
+
+- A chave em `videos.js` é o id do nível, ou `w.<id>` no aquecimento. O teste exige vídeo para todo nível.
+- Para trocar um vídeo: achar o novo no YouTube, conferir que permite incorporação (a URL `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=ID&format=json` responde 200) e preencher `id`, `t` (título) e `c` (canal).
+- As dicas de execução são paráfrases do wiki do r/bodyweightfitness. Não copie texto, GIFs nem imagens do wiki.
+
+## Convenções
+
+- Todo texto visível em português do Brasil, frases curtas e verbos no imperativo nos botões ("Série feita", "Pular"). Nomes de exercício ficam em inglês quando é o nome do guia (Pull-up, Hinge, Copenhagen plank).
+- Mobile primeiro (390 px de largura), alvos de toque de pelo menos 44 px.
+- Sem dependências externas além da fonte Archivo e dos vídeos do YouTube.
+- Mexeu na lógica? Adicione ou atualize o teste em `test.js`.
+- O plano completo está no documento "Plano de treino RR" no Claude Docs. Se mudar escadas ou níveis iniciais, avise o Martin para atualizar o documento.
+
+## Pendências conhecidas
+
+- Redesenho visual (cores), pedido pelo Martin.
+- Sem modo offline nem instalação como PWA (falta manifest e service worker).
+- Os apitos do descanso podem não tocar com a tela bloqueada. O tempo é calculado por horário, então o cronômetro não se perde.
+- Nunca foi testado em um iPhone real.

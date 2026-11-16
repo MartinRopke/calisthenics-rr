@@ -122,4 +122,20 @@ t('todo nível tem dica e faixa válida', () => {
     assert.ok(l.cues.length > 0 || D.SLOTS[s].general.length > 0, l.id); assert.ok(l.hi > l.lo, l.id);
   })));
 });
+t('todo nível e item de aquecimento tem vídeo válido', () => {
+  const V = new Function(require('fs').readFileSync('./videos.js', 'utf8') + '; return VIDEOS;')();
+  Object.keys(D.LADDERS).forEach(s => Object.values(D.LADDERS[s].paths).forEach(p => p.levels.forEach(l => {
+    assert.ok(V[l.id], 'sem vídeo: ' + l.id);
+  })));
+  D.WARMUP.concat(D.WARMUP_EXTRAS.filter(x => x.q)).forEach(w => assert.ok(V['w.' + w.id], 'sem vídeo: w.' + w.id));
+  Object.keys(V).forEach(k => assert.ok(/^[A-Za-z0-9_-]{11}$/.test(V[k].id) && V[k].t && V[k].c, k));
+});
+t('aquecimento: extras aparecem com o nível e o anterior vem do nível certo', () => {
+  const s = L.defaultState(D); s.settings.hasBar = true;
+  s.levels.squat.idx = 3; s.levels.hinge.idx = 3; s.levels.pullup.idx = 2; s.levels.dip.idx = 1;
+  const it = L.warmupItems(D, s), names = it.map(x => x.name);
+  assert.equal(it.length, 8);
+  assert.ok(names.includes('Agachamento dividido') && names.includes('Nordic curl negativo com faixa'));
+  assert.ok(it.every(x => x.how && x.how.length && x.n && x.unit));
+});
 console.log('\n' + pass + ' testes ok');

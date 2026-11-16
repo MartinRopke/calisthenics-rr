@@ -1,19 +1,27 @@
 import re
 from playwright.sync_api import sync_playwright
+import pathlib, os
+ROOT = pathlib.Path(__file__).resolve().parent
+os.chdir(ROOT)
+os.makedirs('shots', exist_ok=True)
+URL = (ROOT / 'index.html').as_uri()
+CHROME = '/usr/bin/google-chrome'
+LAUNCH = dict(executable_path=CHROME, args=['--no-sandbox']) if os.path.exists(CHROME) else {}
+
 src = open('e2e.py').read()
 STUB = re.search(r'STUB = """(.*?)"""', src, re.S).group(1)
 errors = []; res = []
 def ok(name, cond): res.append(('ok  ' if cond else 'FAIL') + ' ' + name)
 
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
+    b = p.chromium.launch(**LAUNCH)
     def newpage(nodb=False, dark=False):
         ctx = b.new_context(viewport={'width':390,'height':844}, device_scale_factor=2, is_mobile=True, has_touch=True, color_scheme='dark' if dark else 'light')
         ctx.add_init_script(('window.__nodb=true;' if nodb else '') + STUB)
         pg = ctx.new_page()
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
-        pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' else None)
-        pg.goto('file:///home/claude/treino/index.html'); pg.wait_for_timeout(500)
+        pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' and 'ERR_TUNNEL' not in m.text and 'ERR_NAME' not in m.text and 'ERR_INTERNET' not in m.text else None)
+        pg.goto(URL); pg.wait_for_timeout(500)
         return ctx, pg
 
     # 1) com barra: pull-up entra; hold com cronômetro; pular; sair e continuar

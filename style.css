@@ -188,3 +188,16 @@ textarea { width: 100%; min-height: 110px; background: var(--surface); color: va
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; z-index: 40; font-weight: 600; }
 .empty { padding: 18px 0; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.w-target.sm .num { font-size: 60px; }
+.how { margin: 14px 0 18px; padding: 0; list-style: none; border-top: 2px solid var(--ink); }
+.how li { padding: 11px 0; border-bottom: 1px solid var(--line); }
+.w-links a { color: var(--accent); font-weight: 600; padding: 8px 0; min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; }
+
+.vid-box { margin: 10px 0 4px; }
+.vid { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 10px; overflow: hidden; padding: 0; }
+.vid img, .vid iframe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border: 0; }
+.vid .play { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: var(--tape); }
+.vid .play::after { content: ''; position: absolute; left: 25px; top: 19px; border-left: 20px solid var(--tape-ink); border-top: 13px solid transparent; border-bottom: 13px solid transparent; }
+.vid-cap { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.vid-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 600; }

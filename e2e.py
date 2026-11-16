@@ -1,5 +1,13 @@
 import json, sys
 from playwright.sync_api import sync_playwright
+import pathlib, os
+ROOT = pathlib.Path(__file__).resolve().parent
+os.chdir(ROOT)
+os.makedirs('shots', exist_ok=True)
+URL = (ROOT / 'index.html').as_uri()
+CHROME = '/usr/bin/google-chrome'
+LAUNCH = dict(executable_path=CHROME, args=['--no-sandbox']) if os.path.exists(CHROME) else {}
+
 
 STUB = """
 (() => {
@@ -41,13 +49,13 @@ STUB = """
 
 errors=[]
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
+    b = p.chromium.launch(**LAUNCH)
     ctx = b.new_context(viewport={'width':390,'height':844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     ctx.add_init_script(STUB)
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append('pageerror: '+str(e)))
-    page.on('console', lambda m: errors.append('console.'+m.type+': '+m.text) if m.type in ('error',) else None)
-    page.goto('file:///home/claude/treino/index.html')
+    page.on('console', lambda m: errors.append('console.'+m.type+': '+m.text) if m.type in ('error',) and 'ERR_TUNNEL' not in m.text and 'ERR_NAME' not in m.text and 'ERR_INTERNET' not in m.text else None)
+    page.goto(URL)
     page.wait_for_timeout(600)
     page.screenshot(path='shots/01-hoje.png', full_page=True)
 
@@ -66,8 +74,15 @@ with sync_playwright() as p:
     page.click('[data-act=start]')
     page.wait_for_timeout(200)
     page.screenshot(path='shots/04-aquecimento.png')
-    page.click('[data-act=w-warm] >> nth=0'); page.click('[data-act=w-warm] >> nth=1')
-    page.click('[data-act=w-begin]')
+    assert page.locator('.vid-box [data-act=play-vid]').count()==1  # vídeo do aquecimento
+    page.screenshot(path='shots/04-aquecimento.png')
+    for _ in range(3): page.click('[data-act=w-warm-next]')
+    assert 'Deadbugs' in page.locator('.w-name').inner_text()
+    page.click('[data-act=w-warm-timer]'); page.wait_for_timeout(1200)
+    assert page.locator('#warmTime').inner_text() in ('0:29','0:28','0:30')
+    page.screenshot(path='shots/04b-aquecimento-timer.png')
+    page.click('[data-act=w-warm-back]'); assert 'GMB' in page.locator('.w-name').inner_text()
+    page.click('[data-act=w-warm-skip]'); page.click('[data-act=w-warm-next]')
     page.wait_for_timeout(200)
     page.screenshot(path='shots/05-serie.png')
     steps=0; shot_rest=False
@@ -86,7 +101,14 @@ with sync_playwright() as p:
         steps+=1
         if page.locator('#restTime').count():
             if not shot_rest:
+                assert page.locator('.next-up .vid-box [data-act=play-vid]').count()==1  # vídeo do próximo exercício
                 page.screenshot(path='shots/06-descanso.png'); shot_rest=True
+                page.click('.next-up [data-act=play-vid]')
+                src=page.locator('.next-up iframe').get_attribute('src')
+                assert 'youtube-nocookie.com/embed/' in src and 'autoplay=1' in src, src
+                page.wait_for_timeout(1300)  # o timer continua e o player não some
+                assert page.locator('.next-up iframe').count()==1
+                page.screenshot(path='shots/06b-descanso-video.png')
             page.click('[data-act=w-rest-skip]')
         page.wait_for_timeout(30)
         if steps>60: break

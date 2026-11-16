@@ -147,19 +147,28 @@ var SLOT_ORDER = [].concat.apply([], PAIRS).concat(CORE);
 /* Nível inicial de cada exercício (índice na escada padrão), conforme o plano. */
 var START_LEVELS = { pushup: 3, row: 1, squat: 1, pullup: 0, dip: 0, hinge: 0, core_ae: 0, core_ar: 0, core_ex: 0 };
 
-/* Aquecimento do guia, mais os extras que entram conforme você sobe de nível. */
+/* Aquecimento do guia, mais os extras que entram conforme você sobe de nível.
+   n e unit formam a meta ("5 a 10" + "repetições"); secs liga um cronômetro; how são os passos. */
 var WARMUP = [
-  { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', detail: '5 a 10 repetições. Uma camiseta serve no lugar da faixa' },
-  { id: 'sky', name: 'Squat sky reaches', detail: '5 a 10 repetições' },
-  { id: 'wrist', name: 'GMB wrist prep', detail: '10 ou mais' },
-  { id: 'deadbug', name: 'Deadbugs', detail: '30 s' }
+  { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 a 10', unit: 'repetições', q: 'Yuri shoulder band warmup',
+    how: ['Segure a faixa, ou uma camiseta, com os braços retos e as mãos bem afastadas', 'Leve a faixa por cima da cabeça até atrás do corpo e volte pelo mesmo caminho', 'Devagar e com os cotovelos retos. Se travar, abra mais as mãos'] },
+  { id: 'sky', name: 'Squat sky reaches', n: '5 a 10', unit: 'repetições', q: 'squat sky reaches',
+    how: ['Desça num agachamento fundo, com os pés na largura dos ombros', 'Embaixo, estique os braços para cima e abra o peito', 'Volte em pé e repita'] },
+  { id: 'wrist', name: 'GMB wrist prep', n: '10 ou mais', unit: 'de cada movimento', q: 'GMB wrist prep',
+    how: ['Apoie as mãos no chão e faça movimentos suaves de punho', 'Para frente e para trás, para os lados e em círculos', 'Sem forçar. Pare se doer'] },
+  { id: 'deadbug', name: 'Deadbugs', n: '30', unit: 'segundos', secs: 30, q: 'dead bug exercise',
+    how: ['Deitado, braços estendidos para cima e joelhos dobrados no ar', 'Lombar colada no chão o tempo todo', 'Estique um braço e a perna do lado oposto, volte e troque'] }
 ];
-/* Extras: aparecem quando o exercício chega ao índice indicado. */
+/* Extras: aparecem quando o exercício chega ao índice indicado. prevLevel usa o nível abaixo do atual. */
 var WARMUP_EXTRAS = [
-  { id: 'x_arch', slot: 'pullup', minIdx: 2, name: 'Arch hangs', detail: '10 repetições' },
-  { id: 'x_sup', slot: 'dip', minIdx: 1, name: 'Sustentação nas paralelas', detail: '30 s' },
-  { id: 'x_squat', slot: 'squat', minIdx: 3, name: 'Agachamento do nível anterior', detail: '10 repetições' },
-  { id: 'x_hinge', slot: 'hinge', minIdx: 3, name: 'Terra do nível anterior', detail: '10 repetições' }
+  { id: 'x_arch', slot: 'pullup', minIdx: 2, name: 'Arch hangs', n: '10', unit: 'repetições', q: 'arch hang pull up progression',
+    how: ['Pendurado na barra, com os cotovelos retos', 'Afaste o peito da barra e junte as escápulas, formando um arco', 'Solte e repita sem dobrar os cotovelos'] },
+  { id: 'x_sup', slot: 'dip', minIdx: 1, name: 'Sustentação nas paralelas', n: '30', unit: 'segundos', secs: 30, q: 'parallel bar support hold',
+    how: ['Braços retos e escápulas para baixo', 'Corpo firme, sem encolher os ombros', 'Se precisar, ajude com os pés no chão'] },
+  { id: 'x_squat', slot: 'squat', minIdx: 3, prevLevel: true, name: 'Agachamento do nível anterior', n: '10', unit: 'repetições',
+    how: ['É o exercício de agachamento do nível abaixo do de hoje', 'Faça com técnica limpa, sem pressa'] },
+  { id: 'x_hinge', slot: 'hinge', minIdx: 3, prevLevel: true, name: 'Terra do nível anterior', n: '10', unit: 'repetições',
+    how: ['É o exercício de hinge do nível abaixo do de hoje', 'Faça com técnica limpa, sem pressa'] }
 ];
 
 if (typeof module !== 'undefined') module.exports = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS, ytUrl: ytUrl, WIKI_BASE: WIKI_BASE };
