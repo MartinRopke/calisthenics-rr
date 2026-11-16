@@ -5,3 +5,4 @@ shots/
 CLAUDE.local.md
 data/
 reference/
+.claude/worktrees/
