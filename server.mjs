@@ -4,11 +4,15 @@ import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, renameSync, copyFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { networkInterfaces } from 'node:os';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(root, 'data');
 const dataFile = join(dataDir, 'treino.json');
 const port = Number(process.env.PORT) || 8000;
+// Listens on all interfaces by default so the iPhone can reach it over Wi-Fi.
+// Use HOST=127.0.0.1 for local-only access.
+const host = process.env.HOST || '0.0.0.0';
 
 const send = (res, code, type, body) => { res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' }); res.end(body); };
 
@@ -38,4 +42,13 @@ createServer((req, res) => {
     return send(res, 200, 'text/html; charset=utf-8', readFileSync(join(root, 'index.html')));
   }
   send(res, 404, 'text/plain', 'Não encontrado');
-}).listen(port, '127.0.0.1', () => console.log('Treino RR em http://localhost:' + port + ' (dados em data/treino.json)'));
+}).listen(port, host, () => {
+  console.log('Treino RR running (data in data/treino.json)');
+  console.log('  Local:   http://localhost:' + port);
+  if (host === '127.0.0.1' || host === 'localhost') return console.log('  Local-only mode (HOST=' + host + ')');
+  var found = false;
+  Object.values(networkInterfaces()).forEach((list) => (list || []).forEach((a) => {
+    if (a.family === 'IPv4' && !a.internal) { found = true; console.log('  Network: http://' + a.address + ':' + port); }
+  }));
+  if (!found) console.log('  Network: no LAN address found');
+});
