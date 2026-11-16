@@ -1,59 +1,62 @@
 # calisthenics-rr
 
-App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o treino do dia, aplica a progressão automaticamente e guarda o histórico. Um único usuário (Martin), usado no iPhone e no Mac. A interface é toda em inglês, por pedido do Martin.
+Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guides the day's workout, applies progression automatically and keeps the history. A single user (Martin), used on iPhone and Mac. The whole interface is in English, at Martin's request.
 
-## Comandos
+## Commands
 
-- `npm run build`: gera o `index.html` juntando `style.css`, `data.js`, `videos.js`, `logic.js` e `app.js`. O `index.html` é commitado, porque o GitHub Pages publica o arquivo da raiz. Depois de editar qualquer fonte, rode o build e commite o `index.html` junto.
-- `npm test`: testes da lógica, em Node, sem dependências. Rode sempre antes de commitar.
-- `npm run guia`: regenera `docs/rr-guia.md` a partir do `data.js`. Rode depois de mudar escadas, dicas ou aquecimento.
-- `npm run wiki`: guia o Martin a salvar as páginas originais do guia em `reference/` (fora do git). Abre cada página no navegador dele e grava o texto copiado. O Reddit bloqueia download automático, então só ele consegue rodar.
-- `npm run test:e2e`: testes de tela com Playwright em Python (`pip install playwright` e `playwright install chromium`). Rodam o `index.html` com um db falso e salvam capturas em `shots/`, que o git ignora.
-- `npm start`: servidor local (`server.mjs`, sem dependências) em http://localhost:8000. Serve o `index.html` e guarda o histórico em `data/treino.json`, que o git ignora. É o jeito de usar no Mac: os vídeos tocam em localhost e os dados ficam num arquivo.
-- Abrir o `index.html` direto do disco funciona, mas os vídeos não tocam (erro 153 do YouTube). Os vídeos tocam em localhost e no GitHub Pages (https).
+- `npm run build`: generates `index.html` by bundling `style.css`, `data.js`, `videos.js`, `logic.js` and `app.js`. `index.html` is committed. After editing any source file, run the build and commit `index.html` together with it.
+- `npm test`: logic tests, in Node, with no dependencies. Always run before committing.
+- `npm run guide`: regenerates `docs/rr-guide.md` from `data.js`. Run after changing ladders, cues or the warmup.
+- `npm run wiki`: guides Martin through saving the original guide pages into `reference/` (outside git). It opens each page in his browser and saves the copied text. Reddit blocks automatic downloads, so only he can run it.
+- `npm run test:e2e`: screen tests with Playwright in Python (`pip install playwright` and `playwright install chromium`). They run `index.html` with a fake db and save screenshots in `shots/`, which git ignores.
+- `npm start`: local server (`server.mjs`, no dependencies) at http://localhost:8000. It serves `index.html` and stores the history in `data/treino.json`, which git ignores. This is the way to use it on the Mac: videos play on localhost and the data lives in a file.
+- Opening `index.html` straight from disk works, but videos do not play (YouTube error 153). Videos play on localhost and on https.
 
-## Estrutura
+## Structure
 
-- `data.js`: os 9 exercícios (`SLOTS`), as escadas de progressão (`LADDERS`, com caminhos alternativos), a ordem do treino (`PAIRS`, `CORE`), os níveis iniciais (`START_LEVELS`) e o aquecimento (`WARMUP`, `WARMUP_EXTRAS`).
-- `videos.js`: um vídeo do YouTube por nível e por item do aquecimento.
-- `logic.js`: funções puras, sem DOM, exportadas com `module.exports` para os testes. Toda regra de progressão mora aqui.
-- `app.js`: telas, armazenamento e treino guiado. Os cliques passam por `data-act` e pelo objeto de funções `H`.
-- `style.css`: tema claro e escuro por `prefers-color-scheme`.
-- Os arquivos viram scripts globais, sem módulos, na ordem do build. O estilo é ES5 (`var`, `function`) de propósito.
-- Com `npm start`, o app detecta `/api/state` e grava o histórico em `data/treino.json` (com cópia em `treino.bak.json`), além do `localStorage`. No GitHub Pages esse endereço não existe, então só vale o `localStorage` (chave `treinoRR.v1`, rascunho em `treinoRR.draft`). O código ainda tem um caminho para o `db` dos artifacts do Claude, que pode ser removido.
+- `data.js`: the 9 exercises (`SLOTS`), the progression ladders (`LADDERS`, with alternative paths), the workout order (`PAIRS`, `CORE`), the starting levels (`START_LEVELS`) and the warmup (`WARMUP`, `WARMUP_EXTRAS`).
+- `videos.js`: one YouTube video per level and per warmup item.
+- `logic.js`: pure functions, no DOM, exported with `module.exports` for the tests. Every progression rule lives here.
+- `app.js`: screens, storage and the guided workout. Clicks go through `data-act` and the `H` object of functions.
+- `style.css`: light and dark theme through `prefers-color-scheme`.
+- The files become global scripts, without modules, in build order.
+- With `npm start`, the app detects `/api/state` and writes the history to `data/treino.json` (with a copy in `treino.bak.json`), in addition to `localStorage`. Without the server that address does not exist, so only `localStorage` applies (key `treinoRR.v1`, draft in `treinoRR.draft`). The code still has a path for the Claude artifacts `db`, which can be removed.
 
-## Regras do produto (não mudar sem pedir)
+## Product rules (do not change without asking)
 
-- Corpo inteiro 3 vezes por semana (segunda, quarta e sexta), com pelo menos um dia entre os treinos.
-- Ordem do treino: aquecimento, três pares de força (pull-up e agachamento, dip e hinge, remada e flexão) com 3 séries e 90 s de descanso, e o trio de core (anti-extensão, anti-rotação, extensão) com 3 séries e 60 s.
-- Progressão de força: começa em 3x5, soma 1 repetição por série a cada treino até 3x8, e então passa ao próximo nível em 3x5. Core vai de 8 a 12 repetições.
-- Isometrias vão de 10 a 30 s, em passos de 5 s, e passam de nível ao chegar a 30 s nas 3 séries. A página do dip pede 1 min, e usamos 30 s.
-- Exercício unilateral: um lado mais o outro contam como uma série.
-- Regra de meta (`targetsFor` e `prescribe`): na primeira vez no nível, todas as séries partem do mínimo. Se todas as séries bateram a meta, cada uma sobe um passo, limitado ao máximo. Senão, repete a última.
-- Pull-up só entra no treino com `settings.hasBar` ligado ("I have a pull-up bar" em Settings). O Martin ainda não tem a barra.
-- O aquecimento tem uma tela por item, sem escolhas. Os extras entram sozinhos conforme o nível.
-- Os níveis iniciais estão em `START_LEVELS` e vieram do plano de treino do Martin. Mudar isso muda o treino dele, então combine antes.
+- Full body 3 times a week (Monday, Wednesday and Friday), with at least one day between workouts.
+- Workout order: warmup, three strength pairs (pull-up and squat, dip and hinge, row and push-up) with 3 sets and 90 s of rest, and the core trio (anti-extension, anti-rotation, extension) with 3 sets and 60 s.
+- Strength progression: starts at 3x5, adds 1 rep per set each workout up to 3x8, and then moves to the next level at 3x5. Core goes from 8 to 12 reps.
+- Isometrics go from 10 to 30 s, in steps of 5 s, and move up a level on reaching 30 s on all 3 sets. The dip page asks for 1 min, and we use 30 s.
+- Unilateral exercise: one side plus the other count as one set.
+- Target rule (`targetsFor` and `prescribe`): the first time at a level, all sets start at the minimum. If all sets hit the target, each goes up one step, capped at the maximum. Otherwise, repeat the last one.
+- Pull-up only enters the workout with `settings.hasBar` on ("I have a pull-up bar" in Settings). Martin does not have the bar yet.
+- The warmup has one screen per item, with no choices. The extras come in on their own according to level.
+- The starting levels are in `START_LEVELS` and came from Martin's training plan. Changing them changes his workout, so agree first.
 
-## Vídeos e conteúdo
+## Videos and content
 
-- A chave em `videos.js` é o id do nível, ou `w.<id>` no aquecimento. O teste exige vídeo para todo nível.
-- Para trocar um vídeo: achar o novo no YouTube, conferir que permite incorporação (a URL `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=ID&format=json` responde 200) e preencher `id`, `t` (título) e `c` (canal).
-- As dicas de execução são paráfrases do wiki do r/bodyweightfitness. Não copie texto, GIFs nem imagens do wiki para o repositório, que é público.
-- `docs/rr-guia.md` é a referência do guia do RR em palavras próprias, com o link de cada página original. Consulte esse arquivo antes de mudar escadas ou regras. Não edite à mão: ele é gerado pelo `npm run guia`.
-- `reference/` é a pasta onde o Martin guarda as páginas originais que salvou para uso pessoal. O git ignora essa pasta. Se ela existir, pode ler para conferir detalhes, mas nunca copie o conteúdo para arquivos versionados.
+- The key in `videos.js` is the level id, or `w.<id>` for the warmup. The test requires a video for every level.
+- To replace a video: find the new one on YouTube, check that it allows embedding (the URL `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=ID&format=json` answers 200) and fill in `id`, `t` (title) and `c` (channel).
+- The execution cues are paraphrases of the r/bodyweightfitness wiki. Do not copy text, GIFs or images from the wiki into the repository, which is public.
+- `docs/rr-guide.md` is the reference for the RR guide in our own words, with the link to each original page. Check it before changing ladders or rules. Do not edit it by hand: it is generated by `npm run guide`.
+- `reference/` is the folder where Martin keeps the original pages he saved for personal use. Git ignores this folder. If it exists, you may read it to check details, but never copy its contents into versioned files.
 
-## Convenções
+## Conventions
 
-- Todo texto visível do app (telas, botões, dicas de execução, avisos) fica em inglês, com frases curtas e verbos no imperativo nos botões ("Set done", "Skip"). Os nomes dos exercícios seguem o nome do guia (Pull-up, Hinge, Copenhagen plank). Este CLAUDE.md e os comentários do código continuam em português.
-- Exercício que pede equipamento mostra "Needs: ..." com um ícone de halter (Lucide, licença ISC, embutido no `app.js` como `ICON_EQUIP`) com as opções (campo `equip` do nível, em `data.js`). Sem equipamento, o campo fica vazio e nada aparece.
-- Mobile primeiro (390 px de largura), alvos de toque de pelo menos 44 px.
-- Sem dependências externas além da fonte Archivo e dos vídeos do YouTube.
-- Mexeu na lógica? Adicione ou atualize o teste em `test.js`.
-- O plano completo está no documento "Plano de treino RR" no Claude Docs. Se mudar escadas ou níveis iniciais, avise o Martin para atualizar o documento.
+- The repository is English-only: code, comments, commit messages, docs and every visible text of the app. A private, unversioned file `CLAUDE.local.md` holds Martin's personal notes for the assistant and is not part of the repository.
+- Modern JavaScript is the target (`const`/`let`, arrow functions). Files will be migrated to it one at a time, so older `var`/`function` code may remain in the meantime.
+- Every visible text of the app (screens, buttons, execution cues, warnings) uses short sentences and imperative verbs on buttons ("Set done", "Skip"). Exercise names follow the guide's name (Pull-up, Hinge, Copenhagen plank).
+- An exercise that needs equipment shows "Needs: ..." with a dumbbell icon (Lucide, ISC license, inlined in `app.js` as `ICON_EQUIP`) and the options (the level's `equip` field, in `data.js`). Without equipment, the field is empty and nothing shows.
+- Mobile first (390 px wide), touch targets of at least 44 px.
+- No external dependencies besides the Archivo font and the YouTube videos.
+- Touched the logic? Add or update the test in `test.js`.
+- The full plan is in the document "Plano de treino RR" in Claude Docs. If you change ladders or starting levels, tell Martin to update the document.
+- Do not use dashes (`--`, em dash, en dash) to separate sentences in prose. Hyphens only in compound words.
 
-## Pendências conhecidas
+## Known pending items
 
-- Redesenho visual (cores), pedido pelo Martin.
-- Sem modo offline nem instalação como PWA (falta manifest e service worker).
-- Os apitos do descanso podem não tocar com a tela bloqueada. O tempo é calculado por horário, então o cronômetro não se perde.
-- Nunca foi testado em um iPhone real.
+- Visual redesign (colors), requested by Martin.
+- No offline mode or PWA install (missing manifest and service worker).
+- The rest beeps may not play with the screen locked. Time is computed by clock time, so the timer is not lost.
+- Never tested on a real iPhone.

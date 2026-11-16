@@ -1,5 +1,5 @@
-/* Lógica pura do app: níveis, metas, progressão, ordem do treino e contagens.
-   Nada aqui toca o DOM, então dá para testar em Node. */
+/* Pure app logic: levels, targets, progression, workout order and counts.
+   Nothing here touches the DOM, so it can be tested in Node. */
 
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 function isoDate(d) { d = d || new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -36,7 +36,7 @@ function isActive(D, state, slot) {
   return true;
 }
 
-/* Última sessão em que este exercício foi feito neste nível, com pelo menos uma série. */
+/* Last session in which this exercise was done at this level, with at least one set. */
 function lastEntry(state, slot, levelId) {
   var best = null;
   for (var i = 0; i < state.sessions.length; i++) {
@@ -49,9 +49,9 @@ function lastEntry(state, slot, levelId) {
 
 function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
-/* Meta de cada uma das 3 séries.
-   Primeira vez no nível: tudo no mínimo. Depois: se bateu todas as metas, sobe um degrau por série
-   (1 repetição, ou 5 s nos holds); senão repete o que fez. Nunca passa do máximo da faixa. */
+/* Target for each of the 3 sets.
+   First time at the level: everything at the minimum. After that: if all targets were hit, each set goes up one step
+   (1 rep, or 5 s for holds); otherwise repeat what was done. Never goes past the top of the range. */
 function targetsFor(level, last) {
   var n = 3, out = [], i;
   if (!last) { for (i = 0; i < n; i++) out.push(level.lo); return out; }
@@ -78,7 +78,7 @@ function mastered(level, sets) {
   return true;
 }
 
-/* Passos do treino: aquecimento fica fora. Cada grupo alterna os exercícios, série por série. */
+/* Workout steps: the warmup is left out. Each group alternates its exercises, set by set. */
 function buildSteps(D, state) {
   var steps = [];
   function group(slots, kind) {
@@ -114,7 +114,7 @@ function warmupItems(D, state) {
   return items;
 }
 
-/* Fecha o treino: monta a sessão, aplica as promoções de nível e devolve as duas coisas.
+/* Finishes the workout: builds the session, applies level promotions and returns both.
    W.logged[slot] = { levelId, path, sets, targets }. */
 function finishWorkout(D, state, W, date, durationSec) {
   var entries = {}, promotions = [];
@@ -158,7 +158,7 @@ function weeklyCounts(sessions, nWeeks, todayStr) {
   return weeks;
 }
 
-/* Série de métrica por sessão para um exercício: total de repetições ou segundos. */
+/* Metric series per session for an exercise: total reps or seconds. */
 function seriesFor(state, slot) {
   var out = [];
   state.sessions.forEach(function (s) {
@@ -170,7 +170,7 @@ function seriesFor(state, slot) {
   return out;
 }
 
-/* Dica do dia: segue seg, qua e sex, com pelo menos um dia entre treinos. */
+/* Day hint: follows Mon, Wed and Fri, with at least one day between workouts. */
 function scheduleHint(sessions, todayStr) {
   var last = null;
   sessions.forEach(function (s) { if (!last || s.date > last) last = s.date; });
@@ -182,8 +182,8 @@ function scheduleHint(sessions, todayStr) {
   return { kind: 'off', text: 'Today is a skill, mobility or rest day. You can still train if you want.' };
 }
 
-/* Próximos treinos (segunda, quarta e sexta) se você bater todas as metas. Simula numa cópia do estado, sem tocar no real.
-   Se hoje é dia de treino e ainda não foi feito, ele é simulado antes e não aparece na lista (já está em "Today's workout"). */
+/* Upcoming workouts (Monday, Wednesday and Friday) if you hit all targets. Simulates on a copy of the state, without touching the real one.
+   If today is a workout day and it is not done yet, it is simulated first and does not appear in the list (it is already in "Today's workout"). */
 function projectWorkouts(D, state, todayStr, count) {
   var st = JSON.parse(JSON.stringify(state)), out = [], day = todayStr, guard = 0, k = 0;
   var doneToday = st.sessions.some(function (x) { return x.date === todayStr; });

@@ -10,7 +10,7 @@
     "home": "caffeinate -i node server.mjs",
     "test": "node test.js",
     "test:e2e": "python3 e2e.py && python3 e2e2.py",
-    "guia": "node scripts/gerar-guia.mjs",
-    "wiki": "node scripts/baixar-wiki.mjs"
+    "guide": "node scripts/generate-guide.mjs",
+    "wiki": "node scripts/fetch-wiki.mjs"
   }
 }

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>Treino RR</title>
+<title>RR Workout</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
@@ -103,12 +103,12 @@ ul { padding: 0; list-style: none; }
 .rung.done { background: var(--accent); border-color: var(--accent); }
 .rung.cur { height: 14px; background: var(--accent); border-color: var(--accent); }
 
-/* Barra de abas */
+/* Tab bar */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
 .tab { flex: 1; text-align: center; padding: 15px 0 13px; font-weight: 600; color: var(--muted); border-top: 4px solid transparent; margin-top: -1px; }
 .tab[aria-current="page"] { color: var(--ink); border-top-color: var(--accent); }
 
-/* Folha inferior */
+/* Bottom sheet */
 .sheet-bg { position: fixed; inset: 0; background: rgba(10, 14, 16, .55); z-index: 30; }
 .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 88vh; overflow: auto; background: var(--surface); border-radius: 18px 18px 0 0; box-shadow: var(--shadow); z-index: 31; padding: 8px 20px calc(24px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto; }
 .grab { width: 44px; height: 5px; border-radius: 3px; background: var(--line); margin: 6px auto 14px; }
@@ -132,7 +132,7 @@ ul { padding: 0; list-style: none; }
 .pathsel button { padding: 9px 12px; border-radius: 8px; border: 2px solid var(--line); font-size: 15px; }
 .pathsel button[aria-pressed="true"] { border-color: var(--ink); font-weight: 700; }
 
-/* Gráficos */
+/* Charts */
 .chart-box { margin-top: 8px; }
 .chart-cap { min-height: 22px; font-size: 14px; color: var(--ink2); margin-top: 4px; }
 svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
@@ -157,7 +157,7 @@ details.sess li { display: flex; justify-content: space-between; gap: 12px; padd
 details.sess li span:last-child { color: var(--ink2); text-align: right; }
 .up-tag { background: var(--lvl); color: var(--lvl-ink); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 700; margin-left: 6px; }
 
-/* Ajustes */
+/* Settings */
 .set-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .set-row p { font-size: 14px; color: var(--muted); }
 .switch { width: 56px; height: 32px; border-radius: 16px; background: var(--line); position: relative; flex: none; }
@@ -169,7 +169,7 @@ details.sess li span:last-child { color: var(--ink2); text-align: right; }
 .stepper .val { min-width: 54px; text-align: center; font-size: 22px; }
 textarea { width: 100%; min-height: 110px; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 8px; padding: 10px; font: 13px/1.4 ui-monospace, Menlo, monospace; }
 
-/* Treino em andamento */
+/* Workout in progress */
 .overlay { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); }
 .w-top { display: flex; align-items: center; gap: 12px; padding: 10px 14px; max-width: 520px; width: 100%; margin: 0 auto; }
 .w-x { width: 44px; height: 44px; border-radius: 10px; border: 2px solid var(--line); text-align: center; font-size: 22px; line-height: 40px; flex: none; }
@@ -227,7 +227,7 @@ textarea { width: 100%; min-height: 110px; background: var(--surface); color: va
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; z-index: 40; font-weight: 600; }
 .empty { padding: 18px 0; color: var(--muted); }
-/* Animações suaves */
+/* Smooth animations */
 @media (hover: hover) {
   .btn.tape:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 0 var(--accent-deep); }
   .btn.ghost:hover, .w-links button:hover, .sides span:hover { background: var(--surface); transform: translateY(-2px); box-shadow: 0 5px 0 var(--line); }
@@ -268,7 +268,7 @@ button:active { transform: scale(.97); }
 
 .del-sess { margin: 10px 0 4px; min-height: 48px; color: var(--ink); }
 
-/* Tela do treino: tudo numa página, sem rolagem. O vídeo ocupa o espaço que sobra. */
+/* Workout screen: everything on one page, no scrolling. The video takes the remaining space. */
 .w-bars { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .w-row { display: flex; align-items: center; gap: 8px; }
 .w-row .w-count { white-space: nowrap; }
@@ -296,7 +296,7 @@ button:active { transform: scale(.97); }
 .next-up .vid-keep { margin-top: 6px !important; }
 .big-stepper button { font-size: 24px; font-weight: 700; }
 
-/* Treino de hoje já feito, e treinos recentes na tela Today */
+/* Today's workout already done, and recent workouts on the Today screen */
 .done-card { display: flex; align-items: center; gap: 14px; padding: 14px; margin: 6px 0 14px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); }
 .done-card b { font-size: 18px; }
 .done-card p { margin: 2px 0 0; font-size: 15px; }
@@ -310,7 +310,7 @@ button:active { transform: scale(.97); }
 .daysel button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); }
 .daysel + .sec-title { margin-top: 18px; }
 
-/* Redesenho das telas Today e Progress: cartões, cabeçalho com a semana, abas */
+/* Redesign of the Today and Progress screens: cards, week header, tabs */
 .head-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
 .head-row .week { margin: 0; flex-direction: column; align-items: flex-end; gap: 6px; padding-bottom: 4px; }
 .hero { padding: 16px; border: 2px solid var(--line); border-radius: 14px; background: var(--surface); }
@@ -341,12 +341,12 @@ button:active { transform: scale(.97); }
 
 .big-stepper button[disabled] { opacity: .35; }
 
-/* Grupos de opções (Settings, folha do exercício, trocas): mesmo desenho dos botões de dia da tela Today */
+/* Option groups (Settings, exercise sheet, swaps): same design as the day buttons on the Today screen */
 .pathsel button { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); font-weight: 700; font-size: 15px; text-align: center; }
 .pathsel button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); font-weight: 700; }
 .swap .pathsel button, .vid-keep .pathsel button { padding: 0 10px; font-size: 14px; min-height: 40px; }
 
-/* Profundidade e animação de toque nos grupos de opções, nos botões de dia, nos steppers e nos interruptores */
+/* Depth and tap animation on option groups, day buttons, steppers and switches */
 .pathsel button:active, .daysel button:active, .stepper button:active, .big-stepper button:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
 .pathsel button[aria-pressed="true"]:active, .daysel button[aria-pressed="true"]:active { box-shadow: 0 0 0 var(--accent-deep); }
 @media (hover: hover) {
@@ -361,12 +361,12 @@ button:active { transform: scale(.97); }
 .switch:active::after { width: 28px; }
 .switch[aria-checked="true"]:active::after { transform: translateX(20px); }
 
-/* Abas do Progress: botões separados, como os botões de dia */
+/* Progress tabs: separate buttons, like the day buttons */
 .segsel { gap: 8px; padding: 0; background: none; border: 0; border-radius: 0; }
 .segsel button { border-radius: 10px; border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); color: var(--ink); font-size: 15px; }
 .segsel button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); }
 
-/* Escada de progressão: cada degrau é um botão com profundidade */
+/* Progression ladder: each rung is a button with depth */
 .ladder { border-top: 0; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .ladder button { min-height: 48px; padding: 0 14px; border: 2px solid var(--line); border-bottom-width: 2px; border-radius: 10px; box-shadow: 0 3px 0 var(--line); }
 .ladder .cur { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); }
@@ -382,7 +382,7 @@ button:active { transform: scale(.97); }
   .segsel button:active, .ladder button:not([disabled]):active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
 }
 
-/* Linhas que abrem algo: cada uma é um cartão com profundidade, no mesmo estilo dos botões */
+/* Rows that open something: each is a card with depth, in the same style as the buttons */
 .plan-grp { margin-top: 22px; }
 .plan-grp .grp { margin: 0 0 10px; }
 .plan-grp .ex-list, .sess-list { border-top: 0; display: flex; flex-direction: column; gap: 10px; }
@@ -401,7 +401,7 @@ details.sess summary:active { opacity: .7; }
   .plan-grp .ex:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
 }
 
-/* Barra de abas: ícone e nome, e a aba atual em destaque suave (inspirada nas barras de apps como o Duolingo) */
+/* Tab bar: icon and name, with the current tab softly highlighted (inspired by app bars like Duolingo) */
 .tabbar { gap: 6px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
 .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; margin-top: 0; padding: 7px 0 6px; border: 2px solid transparent; border-radius: 12px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .tab-ico { width: 24px; height: 24px; }
@@ -413,7 +413,7 @@ details.sess summary:active { opacity: .7; }
 .sheet { overscroll-behavior: contain; }
 html.no-scroll { overflow: hidden; }
 
-/* Barra de abas flutuante: botões com profundidade, sem faixa nem linha separando da página */
+/* Floating tab bar: buttons with depth, no strip or line separating it from the page */
 .tabbar { background: linear-gradient(to bottom, transparent, var(--bg) 38%); border-top: 0; pointer-events: none; gap: 8px; padding: 18px 12px calc(8px + env(safe-area-inset-bottom)); }
 .tab { pointer-events: auto; min-height: 58px; padding: 6px 0 5px; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; box-shadow: 0 3px 0 var(--line); color: var(--ink); font-size: 12px; }
 .tab[aria-current="page"] { background: var(--accent); border-color: var(--accent); box-shadow: 0 3px 0 var(--accent-deep); color: var(--accent-ink); }
@@ -428,7 +428,7 @@ html.no-scroll { overflow: hidden; }
 .wrap { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
 .toast { bottom: calc(100px + env(safe-area-inset-bottom)); }
 
-/* Barra de abas ancorada: fundo da cor da página (sem faixa nem linha), botões alinhados com as margens do conteúdo */
+/* Anchored tab bar: page-colored background (no strip or line), buttons aligned with the content margins */
 .tabbar { background: var(--bg); padding: 10px max(20px, calc((100% - 480px) / 2)) calc(10px + env(safe-area-inset-bottom)); pointer-events: auto; }
 .wrap { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
 .toast { bottom: calc(92px + env(safe-area-inset-bottom)); }
@@ -442,13 +442,13 @@ html.no-scroll { overflow: hidden; }
 <div id="sheet"></div>
 <div id="toast" aria-live="polite"></div>
 <script>
-/* Dados dos exercícios: escadas de progressão da Recommended Routine (r/bodyweightfitness).
-   Dicas de execução parafraseadas das páginas do wiki; músculos são informação geral. */
+/* Exercise data: progression ladders of the Recommended Routine (r/bodyweightfitness).
+   Execution cues paraphrased from the wiki pages; muscles are general information. */
 
 var WIKI_BASE = 'https://www.reddit.com/r/bodyweightfitness/wiki/exercises/';
 function ytUrl(q) { return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q); }
 
-/* Faixas de repetições: força 5 a 8, core 8 a 12, holds 10 a 30 s. */
+/* Rep ranges: strength 5 to 8, core 8 to 12, holds 10 to 30 s. */
 function mk(id, name, kind, opts) {
   opts = opts || {};
   var core = !!opts.core;
@@ -495,12 +495,12 @@ var SLOTS = {
     muscles: 'Lower back and glutes', general: [] }
 };
 
-/* Cada slot tem caminhos (paths) com a sua escada de níveis. O primeiro é o caminho padrão.
-   equip: o que o exercício pede, com as opções. Fica vazio quando não precisa de nada. */
+/* Each slot has paths, each with its own ladder of levels. The first is the default path.
+   equip: what the exercise needs, with the options. Empty when nothing is needed. */
 var EQ_ROW = 'low bar, rings or a sturdy table';
 var EQ_BAR = 'pull-up bar, monkey bars or rings';
 var EQ_DIP = 'parallel bars, two sturdy chairs or a counter corner';
-/* Opções de equipamento: setup lista as alternativas além da padrão (std). Com k, usa um vídeo de videos.js; sem k, o app mostra uma busca no YouTube com q. */
+/* Equipment options: setup lists the alternatives besides the default (std). With k, uses a video from videos.js; without k, the app shows a YouTube search with q. */
 var ROW_SETUP = [{ k: 'eq.row.table', label: 'Table' }, { k: 'eq.row.sheet', label: 'Bedsheet and door' }];
 var BAR_SETUP = [{ label: 'Rings', q: 'rings' }];
 var DIP_SETUP = [{ label: 'Two chairs', q: 'two chairs' }, { label: 'Counter corner', q: 'counter corner' }];
@@ -594,20 +594,20 @@ var LADDERS = {
   } }
 };
 
-/* Ordem do treino: três pares de força e o trio de core. */
+/* Workout order: three strength pairs and the core trio. */
 var PAIRS = [['pullup', 'squat'], ['dip', 'hinge'], ['row', 'pushup']];
 var CORE = ['core_ae', 'core_ar', 'core_ex'];
 var SLOT_ORDER = [].concat.apply([], PAIRS).concat(CORE);
 
-/* Nível inicial de cada exercício (índice na escada padrão), conforme o plano. */
+/* Starting level of each exercise (index in the default ladder), per the plan. */
 var START_LEVELS = { pushup: 3, row: 1, squat: 1, pullup: 0, dip: 0, hinge: 0, core_ae: 0, core_ar: 0, core_ex: 0 };
 
-/* Aquecimento do guia, mais os extras que entram conforme você sobe de nível.
-   n e unit formam a meta ("5 to 10" + "reps"); secs liga um cronômetro; how são os passos. */
+/* Warmup from the guide, plus the extras that come in as you level up.
+   n and unit form the target ("5 to 10" + "reps"); secs turns on a timer; how are the steps. */
 var WARMUP = [
   { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 to 10', unit: 'reps', equip: 'resistance band or a t-shirt', q: 'Yuri shoulder band warmup',
     how: ['Hold the band, or a t-shirt, with straight arms and hands far apart', 'Take the band over your head to behind your body and come back the same way', 'Slowly and with straight elbows. If it gets stuck, widen your hands'],
-    /* Trocas sem equipamento, fora do guia. O app mostra como "not from the guide". */
+    /* Swaps without equipment, outside the guide. The app shows them as "not from the guide". */
     alts: [
       { id: 'shoulder_wall', label: 'Wall slides', name: 'Wall slides', n: '5 to 10', unit: 'reps', q: 'wall slide shoulder mobility',
         how: ['Stand with your back, head and forearms against a wall, elbows bent', 'Slide the arms up the wall as far as you can, keeping the ribs down and the forearms touching', 'Slide back down slowly and repeat'] },
@@ -621,7 +621,7 @@ var WARMUP = [
   { id: 'deadbug', name: 'Deadbugs', n: '30', unit: 'seconds', secs: 30, q: 'dead bug exercise',
     how: ['Lying down, arms straight up and knees bent in the air', 'Keep your lower back on the floor the whole time', 'Extend one arm and the opposite leg, come back and switch'] }
 ];
-/* Extras: aparecem quando o exercício chega ao índice indicado. prevLevel usa o nível abaixo do atual. */
+/* Extras: appear when the exercise reaches the given index. prevLevel uses the level below the current one. */
 var WARMUP_EXTRAS = [
   { id: 'x_arch', slot: 'pullup', minIdx: 2, name: 'Arch hangs', n: '10', unit: 'reps', equip: EQ_BAR, q: 'arch hang pull up progression',
     how: ['Hanging from the bar with straight elbows', 'Push your chest away from the bar and bring the shoulder blades together, forming an arch', 'Release and repeat without bending the elbows'] },
@@ -634,9 +634,9 @@ var WARMUP_EXTRAS = [
 ];
 if (typeof module !== 'undefined') module.exports = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS, ytUrl: ytUrl, WIKI_BASE: WIKI_BASE };
 
-/* Vídeos de demonstração por exercício. A chave é o id do nível (ou "w.<id>" no aquecimento).
-   id é o código do YouTube, t o título e c o canal. Sem entrada, o app mostra um link de busca.
-   Todos foram conferidos como incorporáveis em 15/11/2026. Para trocar um vídeo, mude o id, t e c da linha. */
+/* Demo videos per exercise. The key is the level id (or "w.<id>" for the warmup).
+   id is the YouTube code, t the title and c the channel. With no entry, the app shows a search link.
+   All were checked as embeddable on 2026-11-15. To replace a video, change the id, t and c of the line. */
 var VIDEOS = {
   "pushup.vert": { id: "wIPJvBQs7RA", t: "How to Do Wall Push Ups: A Guide from Physical Therapists", c: "Hinge Health" },
   "pushup.inc": { id: "Gvm5Q29UHbk", t: "How to do an Incline Push-Up", c: "NASM" },
@@ -700,8 +700,8 @@ var VIDEOS = {
   "eq.cop": { id: "df8hjsKX16o", t: "Copenhagen Plank Exercise: At Home Adductor Exercise with NO Equipment for Strong Inner Thighs!", c: "FITBODY with Julie Lohre" }
 };
 
-/* Lógica pura do app: níveis, metas, progressão, ordem do treino e contagens.
-   Nada aqui toca o DOM, então dá para testar em Node. */
+/* Pure app logic: levels, targets, progression, workout order and counts.
+   Nothing here touches the DOM, so it can be tested in Node. */
 
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 function isoDate(d) { d = d || new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -738,7 +738,7 @@ function isActive(D, state, slot) {
   return true;
 }
 
-/* Última sessão em que este exercício foi feito neste nível, com pelo menos uma série. */
+/* Last session in which this exercise was done at this level, with at least one set. */
 function lastEntry(state, slot, levelId) {
   var best = null;
   for (var i = 0; i < state.sessions.length; i++) {
@@ -751,9 +751,9 @@ function lastEntry(state, slot, levelId) {
 
 function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
-/* Meta de cada uma das 3 séries.
-   Primeira vez no nível: tudo no mínimo. Depois: se bateu todas as metas, sobe um degrau por série
-   (1 repetição, ou 5 s nos holds); senão repete o que fez. Nunca passa do máximo da faixa. */
+/* Target for each of the 3 sets.
+   First time at the level: everything at the minimum. After that: if all targets were hit, each set goes up one step
+   (1 rep, or 5 s for holds); otherwise repeat what was done. Never goes past the top of the range. */
 function targetsFor(level, last) {
   var n = 3, out = [], i;
   if (!last) { for (i = 0; i < n; i++) out.push(level.lo); return out; }
@@ -780,7 +780,7 @@ function mastered(level, sets) {
   return true;
 }
 
-/* Passos do treino: aquecimento fica fora. Cada grupo alterna os exercícios, série por série. */
+/* Workout steps: the warmup is left out. Each group alternates its exercises, set by set. */
 function buildSteps(D, state) {
   var steps = [];
   function group(slots, kind) {
@@ -816,7 +816,7 @@ function warmupItems(D, state) {
   return items;
 }
 
-/* Fecha o treino: monta a sessão, aplica as promoções de nível e devolve as duas coisas.
+/* Finishes the workout: builds the session, applies level promotions and returns both.
    W.logged[slot] = { levelId, path, sets, targets }. */
 function finishWorkout(D, state, W, date, durationSec) {
   var entries = {}, promotions = [];
@@ -860,7 +860,7 @@ function weeklyCounts(sessions, nWeeks, todayStr) {
   return weeks;
 }
 
-/* Série de métrica por sessão para um exercício: total de repetições ou segundos. */
+/* Metric series per session for an exercise: total reps or seconds. */
 function seriesFor(state, slot) {
   var out = [];
   state.sessions.forEach(function (s) {
@@ -872,7 +872,7 @@ function seriesFor(state, slot) {
   return out;
 }
 
-/* Dica do dia: segue seg, qua e sex, com pelo menos um dia entre treinos. */
+/* Day hint: follows Mon, Wed and Fri, with at least one day between workouts. */
 function scheduleHint(sessions, todayStr) {
   var last = null;
   sessions.forEach(function (s) { if (!last || s.date > last) last = s.date; });
@@ -884,8 +884,8 @@ function scheduleHint(sessions, todayStr) {
   return { kind: 'off', text: 'Today is a skill, mobility or rest day. You can still train if you want.' };
 }
 
-/* Próximos treinos (segunda, quarta e sexta) se você bater todas as metas. Simula numa cópia do estado, sem tocar no real.
-   Se hoje é dia de treino e ainda não foi feito, ele é simulado antes e não aparece na lista (já está em "Today's workout"). */
+/* Upcoming workouts (Monday, Wednesday and Friday) if you hit all targets. Simulates on a copy of the state, without touching the real one.
+   If today is a workout day and it is not done yet, it is simulated first and does not appear in the list (it is already in "Today's workout"). */
 function projectWorkouts(D, state, todayStr, count) {
   var st = JSON.parse(JSON.stringify(state)), out = [], day = todayStr, guard = 0, k = 0;
   var doneToday = st.sessions.some(function (x) { return x.date === todayStr; });
@@ -926,19 +926,19 @@ if (typeof module !== 'undefined') module.exports = {
   scheduleHint: scheduleHint, projectWorkouts: projectWorkouts, sessionSummaryText: sessionSummaryText
 };
 
-/* App: telas, treino guiado e armazenamento. Usa data.js e logic.js (globais). */
+/* App: screens, guided workout and storage. Uses data.js and logic.js (globals). */
 var D = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS };
 var LS_KEY = 'treinoRR.v1', DRAFT_KEY = 'treinoRR.draft';
 
-/* Ícone de halter: Lucide "dumbbell" (licença ISC), embutido para não depender de nada externo. */
+/* Dumbbell icon: Lucide "dumbbell" (ISC license), inlined to avoid external dependencies. */
 var ICON_EQUIP = '<svg class="ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>';
 
 var state = defaultState(D);
-var tab = 'hoje';
-var W = null;            /* treino em andamento */
-var progTab = 'overview';  /* aba da tela Progress: overview, exercises, history */
-var dayIdx = 0, previewWarm = null;  /* dia mostrado na tela Today: 0 = hoje, 1..3 = próximos */
-var sheetCtx = null;     /* {slot, ctx} da folha aberta */
+var tab = 'today';
+var W = null;            /* workout in progress */
+var progTab = 'overview';  /* Progress screen tab: overview, exercises, history */
+var dayIdx = 0, previewWarm = null;  /* day shown on the Today screen: 0 = today, 1..3 = upcoming */
+var sheetCtx = null;     /* {slot, ctx} of the open sheet */
 var sync = { mode: 'local', note: 'Loading…' };
 var dbRefs = null;
 var queue = Promise.resolve();
@@ -948,7 +948,7 @@ function $(s) { return document.querySelector(s); }
 function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function shortDate(s) { var p = s.split('-'); return p[2] + '/' + p[1]; }
 
-/* ---------- Armazenamento ---------- */
+/* ---------- Storage ---------- */
 var fileMode = false, fileQueue = Promise.resolve();
 var FILE_NOTE = 'Saved to the file data/treino.json on this computer.';
 function filePush() {
@@ -961,7 +961,7 @@ function filePush() {
     sync.err = false; sync.note = FILE_NOTE;
   }).catch(function () {
     sync.err = true; sync.note = 'Could not save to the file. Your data stays in this browser.';
-    if (tab === 'ajustes') render();
+    if (tab === 'settings') render();
   });
 }
 async function fileInit() {
@@ -995,7 +995,7 @@ function mergeLoaded(obj, only) {
 function enqueue(fn) {
   queue = queue.then(fn).then(function () { if (sync.mode === 'db') { sync.note = 'Saved to your account.'; sync.err = false; } }).catch(function (e) {
     sync.err = true; sync.note = 'Could not save to your account (' + ((e && e.code) || 'error') + '). Your data stays on this device.';
-    if (tab === 'ajustes') render();
+    if (tab === 'settings') render();
   });
   return queue;
 }
@@ -1039,7 +1039,7 @@ async function initStorage() {
   }
 }
 
-/* ---------- Rascunho do treino ---------- */
+/* ---------- Workout draft ---------- */
 function saveDraft() { try { if (W && W.phase !== 'summary') localStorage.setItem(DRAFT_KEY, JSON.stringify(W)); } catch (e) { } }
 function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { } }
 function loadDraft() {
@@ -1050,7 +1050,7 @@ function loadDraft() {
   return null;
 }
 
-/* ---------- Pequenos formatadores ---------- */
+/* ---------- Small formatters ---------- */
 function unitOf(level) { return level.kind === 'hold' ? ' s' : ''; }
 function sideOf(level) { return level.perSide ? ' per side' : ''; }
 function targetHtml(level, targets) {
@@ -1076,7 +1076,7 @@ function toast(msg) {
   clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.innerHTML = ''; }, 2200);
 }
 
-/* ---------- Gráficos ---------- */
+/* ---------- Charts ---------- */
 function barChart(items, o) {
   /* items: [{v, label, cap, up}] */
   var Wd = 320, Ht = o.h || 110, padB = 16, padT = 16, n = items.length;
@@ -1096,8 +1096,8 @@ function barChart(items, o) {
   return '<div class="chart-box"><svg class="chart" viewBox="0 0 ' + Wd + ' ' + Ht + '" role="group" aria-label="' + esc(o.aria) + '">' + out + '</svg><p class="chart-cap" aria-live="polite">' + esc(o.defaultCap || '') + '</p></div>';
 }
 
-/* ---------- Telas ---------- */
-function viewHoje() {
+/* ---------- Screens ---------- */
+function viewToday() {
   var today = isoDate(), hint = scheduleHint(state.sessions, today), draft = W ? null : loadDraft();
   var wk = weeklyCounts(state.sessions, 1, today)[0].n;
   var dateTxt = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
@@ -1171,7 +1171,7 @@ function viewHoje() {
     rows + '</div>';
 }
 
-function viewProgresso() {
+function viewProgress() {
   var today = isoDate(), weeks = weeklyCounts(state.sessions, 8, today), n = state.sessions.length;
   var ups = 0; state.sessions.forEach(function (x) { Object.keys(x.entries).forEach(function (k) { if (x.entries[k].promotedTo) ups++; }); });
   var tabs = [['overview', 'Overview'], ['history', 'History']].map(function (t) {
@@ -1220,7 +1220,7 @@ function viewProgresso() {
 function stepper(act, id, val, unit) {
   return '<div class="stepper"><button data-act="' + act + '" data-d="-1" aria-label="Decrease">−</button><span class="val num" id="' + id + '">' + val + unit + '</span><button data-act="' + act + '" data-d="1" aria-label="Increase">+</button></div>';
 }
-function viewAjustes() {
+function viewSettings() {
   var st = state.settings;
   var pathRows = ['core_ae', 'core_ar', 'core_ex'].map(function (slot) {
     var cur = state.levels[slot].path, ps = LADDERS[slot].paths;
@@ -1243,23 +1243,23 @@ function viewAjustes() {
 }
 
 var TAB_ICONS = {
-  hoje: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
-  progresso: '<path d="M5 21v-6M12 21V3M19 21V9"/>',
-  ajustes: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>'
-};  /* ícones Lucide (licença ISC) */
+  today: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
+  progress: '<path d="M5 21v-6M12 21V3M19 21V9"/>',
+  settings: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>'
+};  /* Lucide icons (ISC license) */
 function tabbar() {
   function t(id, label) { return '<button class="tab" data-act="tab" data-tab="' + id + '"' + (tab === id ? ' aria-current="page"' : '') + '><svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + TAB_ICONS[id] + '</svg><span>' + label + '</span></button>'; }
-  return '<nav class="tabbar" aria-label="Sections">' + t('hoje', 'Today') + t('progresso', 'Progress') + t('ajustes', 'Settings') + '</nav>';
+  return '<nav class="tabbar" aria-label="Sections">' + t('today', 'Today') + t('progress', 'Progress') + t('settings', 'Settings') + '</nav>';
 }
 var lastTab = '';
 function render() {
-  var v = tab === 'hoje' ? viewHoje() : tab === 'progresso' ? viewProgresso() : viewAjustes();
+  var v = tab === 'today' ? viewToday() : tab === 'progress' ? viewProgress() : viewSettings();
   $('#app').innerHTML = '<div class="' + (tab !== lastTab ? 'view-enter' : '') + '">' + v + '</div>' + tabbar();
   lastTab = tab;
 }
 
-/* ---------- Folha de exercício ---------- */
-/* Vídeo: o quadro mostra a miniatura e só carrega o player quando tocado (economiza dados e não reinicia a cada tela). */
+/* ---------- Exercise sheet ---------- */
+/* Video: the box shows the thumbnail and only loads the player when tapped (saves data and avoids restarting on every screen). */
 function videoHtml(key, q) {
   var v = (typeof VIDEOS !== 'undefined') && VIDEOS[key];
   if (!v) return '<a class="vid-link" href="' + ytUrl(q) + '" target="_blank" rel="noopener">Search for a video on YouTube</a>';
@@ -1282,7 +1282,7 @@ function vidTabs(lvl) {
 }
 function vidBlock(lvl) { return '<div class="vid-wrap">' + vidTabs(lvl) + '<div class="vid-slot">' + videoHtml(lvl.id, lvl.q + ' tutorial') + '</div></div>'; }
 function openSheet(slot, ctx, lvlId) { sheetCtx = { slot: slot, ctx: ctx, lvlId: lvlId || '' }; renderSheet(); }
-/* Com a folha aberta, a página de trás não rola. Na tela do treino ela já fica travada. */
+/* With the sheet open, the page behind does not scroll. On the workout screen it is already locked. */
 function lockPage(on) { document.documentElement.classList.toggle('no-scroll', on); document.body.classList.toggle('no-scroll', on); }
 function closeSheet() { sheetCtx = null; $('#sheet').innerHTML = ''; lockPage(!!W); }
 function levelLocked() { return !!(W && sheetCtx && sheetCtx.ctx === 'workout' && W.logged[sheetCtx.slot] && W.logged[sheetCtx.slot].sets.length); }
@@ -1338,13 +1338,13 @@ function confirmBox(title, text, buttons) {
   sheetCtx = null;
 }
 
-/* ---------- Treino guiado ---------- */
-/* Os sons entram numa fila: um novo som espera o anterior terminar, para não tocarem por cima um do outro. */
+/* ---------- Guided workout ---------- */
+/* Sounds go into a queue: a new sound waits for the previous one to finish, so they do not overlap. */
 var sfxBase = 0, sfxBusy = 0;
 function sfx(len, fn) {
   var now = audioCtx ? audioCtx.currentTime : 0;
   sfxBase = Math.max(0, sfxBusy - now);
-  if (sfxBase > 1.2) { sfxBase = 0; return; }  /* atrasado demais: descarta */
+  if (sfxBase > 1.2) { sfxBase = 0; return; }  /* too late: discard */
   sfxBusy = now + sfxBase + len + 0.04;
   fn();
   sfxBase = 0;
@@ -1394,7 +1394,7 @@ function setDefault() {
   var st = curStep(), t = W.logged[st.slot].targets[st.set - 1];
   W.value = t; W.holdStart = null; W.side = 0; W.right = null;
 }
-/* Isometria começa sozinha: lead = segundos de contagem antes (0 quando o descanso acabou de contar 3, 2, 1). */
+/* Holds start on their own: lead = seconds of countdown before (0 when the rest just counted 3, 2, 1). */
 function autoStartHold(lead) {
   W.holdTotal = Math.max(1, W.value || 0); W.holdStart = Date.now() + lead * 1000;
   lastCue = lead ? null : 'h' + W.i + ':go';
@@ -1430,7 +1430,7 @@ function timerText(total, elapsed) {
   if (elapsed < 0) return String(Math.ceil(-elapsed));
   return Math.max(0, Math.ceil(total - elapsed)) + ' s';
 }
-/* Durante o 3, 2, 1 os botões de ajuste ficam desligados. O tempo só muda depois que a contagem começa. */
+/* During the 3, 2, 1 the adjust buttons are disabled. The time only changes after the count starts. */
 function lockAdj(act, on) {
   var bs = document.querySelectorAll('[data-act="' + act + '"]');
   for (var i = 0; i < bs.length; i++) bs[i].disabled = on;
@@ -1471,7 +1471,7 @@ function exList() {
   W.steps.forEach(function (s) { if (seen.indexOf(s.slot) < 0) seen.push(s.slot); });
   return seen;
 }
-/* Uma unidade por item do aquecimento e uma por série do treino. */
+/* One unit per warmup item and one per workout set. */
 function progressInfo() {
   var wn = warmupItems(D, state).length, total = wn + W.steps.length, d;
   if (W.phase === 'summary') d = total;
@@ -1557,14 +1557,14 @@ function renderWorkout() {
       '<div style="margin-top:14px;border-top:2px solid var(--ink)">' + (rows || '<p class="empty">No sets logged.</p>') + '</div>' +
       '<div style="margin-top:auto;padding-top:22px"><button class="btn tape" data-act="w-close">Close</button></div></div>';
   }
-  /* Mantém o iframe do vídeo entre renders (se o vídeo é o mesmo), para ele não recarregar a cada toque. */
+  /* Keeps the video iframe between renders (if the video is the same), so it does not reload on every tap. */
   var oldK = ov.querySelector('.vid-keep'), oldBody = ov.querySelector('.w-body');
   var key = W.phase + ':' + W.i + ':' + (W.side || 0), scr = oldBody && oldBody.scrollTop;
   var tmp = document.createElement('div');
   tmp.innerHTML = '<div class="overlay" role="region" aria-label="Workout in progress">' + body + '</div>';
   var newK = tmp.querySelector('.vid-keep'), oF = oldK && oldK.querySelector('iframe'), nF = newK && newK.querySelector('iframe');
   if (oF && nF && oF.getAttribute('src') === nF.getAttribute('src') && oldK.parentNode.className === 'w-body' && newK.parentNode.className === 'w-body') {
-    /* Mesmo vídeo: troca tudo em volta dele, sem mexer no iframe (mover um iframe recarrega o vídeo). */
+    /* Same video: replace everything around it without touching the iframe (moving an iframe reloads the video). */
     var ob = oldK.parentNode, nb = newK.parentNode;
     ov.querySelector('.w-head').replaceWith(tmp.querySelector('.w-head'));
     while (ob.firstChild !== oldK) ob.removeChild(ob.firstChild);
@@ -1601,7 +1601,7 @@ function finishNow() {
 }
 function closeWorkout() { W = null; stopTick(); $('#overlay').innerHTML = ''; document.body.classList.remove('no-scroll'); closeSheet(); render(); }
 
-/* ---------- Eventos ---------- */
+/* ---------- Events ---------- */
 var H = {
   'tab': function (el) { tab = el.dataset.tab; render(); window.scrollTo(0, 0); },
   'start': function () { startWorkout(); },
@@ -1669,7 +1669,7 @@ var H = {
   'reset-ask': function () { confirmBox('Delete everything?', 'Your logged workouts are deleted and the levels go back to the start. This cannot be undone.', [{ label: 'Delete everything', act: 'reset-do' }, { label: 'Cancel', act: 'sheet-close', cls: 'ghost' }]); },
   'reset-do': function () {
     var keepBar = state.settings.hasBar, keepDip = state.settings.hasDip; state = defaultState(D); state.settings.hasBar = keepBar; state.settings.hasDip = keepDip;
-    persistProfile(); if (dbRefs) { /* sessões antigas ficam na conta, mas não aparecem mais após limpar: apaga uma a uma */ dbRefs.sessions.get().then(function (sn) { sn.docs.forEach(function (d) { enqueue(function () { return dbRefs.sessions.doc(d.id).delete(); }); }); }, function () { }); }
+    persistProfile(); if (dbRefs) { /* old sessions stay in the account but no longer show after clearing: delete them one by one */ dbRefs.sessions.get().then(function (sn) { sn.docs.forEach(function (d) { enqueue(function () { return dbRefs.sessions.doc(d.id).delete(); }); }); }, function () { }); }
     closeSheet(); render(); toast('Everything deleted');
   },
   'bar': function (el) {
@@ -1677,7 +1677,7 @@ var H = {
     box.querySelectorAll('.bar').forEach(function (b) { b.classList.remove('sel'); });
     el.classList.add('sel'); box.querySelector('.chart-cap').textContent = el.getAttribute('data-cap');
   },
-  /* treino */
+  /* workout */
   'w-exit': function () {
     var any = Object.keys(W.logged).some(function (k) { return W.logged[k].sets.length; });
     confirmBox('Leave workout?', any ? 'You can save what you did or continue later where you stopped.' : 'You have not logged any set yet.', [

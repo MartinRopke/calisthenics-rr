@@ -1,16 +1,16 @@
-/* App: telas, treino guiado e armazenamento. Usa data.js e logic.js (globais). */
+/* App: screens, guided workout and storage. Uses data.js and logic.js (globals). */
 var D = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS };
 var LS_KEY = 'treinoRR.v1', DRAFT_KEY = 'treinoRR.draft';
 
-/* Ícone de halter: Lucide "dumbbell" (licença ISC), embutido para não depender de nada externo. */
+/* Dumbbell icon: Lucide "dumbbell" (ISC license), inlined to avoid external dependencies. */
 var ICON_EQUIP = '<svg class="ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>';
 
 var state = defaultState(D);
-var tab = 'hoje';
-var W = null;            /* treino em andamento */
-var progTab = 'overview';  /* aba da tela Progress: overview, exercises, history */
-var dayIdx = 0, previewWarm = null;  /* dia mostrado na tela Today: 0 = hoje, 1..3 = próximos */
-var sheetCtx = null;     /* {slot, ctx} da folha aberta */
+var tab = 'today';
+var W = null;            /* workout in progress */
+var progTab = 'overview';  /* Progress screen tab: overview, exercises, history */
+var dayIdx = 0, previewWarm = null;  /* day shown on the Today screen: 0 = today, 1..3 = upcoming */
+var sheetCtx = null;     /* {slot, ctx} of the open sheet */
 var sync = { mode: 'local', note: 'Loading…' };
 var dbRefs = null;
 var queue = Promise.resolve();
@@ -20,7 +20,7 @@ function $(s) { return document.querySelector(s); }
 function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function shortDate(s) { var p = s.split('-'); return p[2] + '/' + p[1]; }
 
-/* ---------- Armazenamento ---------- */
+/* ---------- Storage ---------- */
 var fileMode = false, fileQueue = Promise.resolve();
 var FILE_NOTE = 'Saved to the file data/treino.json on this computer.';
 function filePush() {
@@ -33,7 +33,7 @@ function filePush() {
     sync.err = false; sync.note = FILE_NOTE;
   }).catch(function () {
     sync.err = true; sync.note = 'Could not save to the file. Your data stays in this browser.';
-    if (tab === 'ajustes') render();
+    if (tab === 'settings') render();
   });
 }
 async function fileInit() {
@@ -67,7 +67,7 @@ function mergeLoaded(obj, only) {
 function enqueue(fn) {
   queue = queue.then(fn).then(function () { if (sync.mode === 'db') { sync.note = 'Saved to your account.'; sync.err = false; } }).catch(function (e) {
     sync.err = true; sync.note = 'Could not save to your account (' + ((e && e.code) || 'error') + '). Your data stays on this device.';
-    if (tab === 'ajustes') render();
+    if (tab === 'settings') render();
   });
   return queue;
 }
@@ -111,7 +111,7 @@ async function initStorage() {
   }
 }
 
-/* ---------- Rascunho do treino ---------- */
+/* ---------- Workout draft ---------- */
 function saveDraft() { try { if (W && W.phase !== 'summary') localStorage.setItem(DRAFT_KEY, JSON.stringify(W)); } catch (e) { } }
 function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { } }
 function loadDraft() {
@@ -122,7 +122,7 @@ function loadDraft() {
   return null;
 }
 
-/* ---------- Pequenos formatadores ---------- */
+/* ---------- Small formatters ---------- */
 function unitOf(level) { return level.kind === 'hold' ? ' s' : ''; }
 function sideOf(level) { return level.perSide ? ' per side' : ''; }
 function targetHtml(level, targets) {
@@ -148,7 +148,7 @@ function toast(msg) {
   clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.innerHTML = ''; }, 2200);
 }
 
-/* ---------- Gráficos ---------- */
+/* ---------- Charts ---------- */
 function barChart(items, o) {
   /* items: [{v, label, cap, up}] */
   var Wd = 320, Ht = o.h || 110, padB = 16, padT = 16, n = items.length;
@@ -168,8 +168,8 @@ function barChart(items, o) {
   return '<div class="chart-box"><svg class="chart" viewBox="0 0 ' + Wd + ' ' + Ht + '" role="group" aria-label="' + esc(o.aria) + '">' + out + '</svg><p class="chart-cap" aria-live="polite">' + esc(o.defaultCap || '') + '</p></div>';
 }
 
-/* ---------- Telas ---------- */
-function viewHoje() {
+/* ---------- Screens ---------- */
+function viewToday() {
   var today = isoDate(), hint = scheduleHint(state.sessions, today), draft = W ? null : loadDraft();
   var wk = weeklyCounts(state.sessions, 1, today)[0].n;
   var dateTxt = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
@@ -243,7 +243,7 @@ function viewHoje() {
     rows + '</div>';
 }
 
-function viewProgresso() {
+function viewProgress() {
   var today = isoDate(), weeks = weeklyCounts(state.sessions, 8, today), n = state.sessions.length;
   var ups = 0; state.sessions.forEach(function (x) { Object.keys(x.entries).forEach(function (k) { if (x.entries[k].promotedTo) ups++; }); });
   var tabs = [['overview', 'Overview'], ['history', 'History']].map(function (t) {
@@ -292,7 +292,7 @@ function viewProgresso() {
 function stepper(act, id, val, unit) {
   return '<div class="stepper"><button data-act="' + act + '" data-d="-1" aria-label="Decrease">−</button><span class="val num" id="' + id + '">' + val + unit + '</span><button data-act="' + act + '" data-d="1" aria-label="Increase">+</button></div>';
 }
-function viewAjustes() {
+function viewSettings() {
   var st = state.settings;
   var pathRows = ['core_ae', 'core_ar', 'core_ex'].map(function (slot) {
     var cur = state.levels[slot].path, ps = LADDERS[slot].paths;
@@ -315,23 +315,23 @@ function viewAjustes() {
 }
 
 var TAB_ICONS = {
-  hoje: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
-  progresso: '<path d="M5 21v-6M12 21V3M19 21V9"/>',
-  ajustes: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>'
-};  /* ícones Lucide (licença ISC) */
+  today: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
+  progress: '<path d="M5 21v-6M12 21V3M19 21V9"/>',
+  settings: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>'
+};  /* Lucide icons (ISC license) */
 function tabbar() {
   function t(id, label) { return '<button class="tab" data-act="tab" data-tab="' + id + '"' + (tab === id ? ' aria-current="page"' : '') + '><svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + TAB_ICONS[id] + '</svg><span>' + label + '</span></button>'; }
-  return '<nav class="tabbar" aria-label="Sections">' + t('hoje', 'Today') + t('progresso', 'Progress') + t('ajustes', 'Settings') + '</nav>';
+  return '<nav class="tabbar" aria-label="Sections">' + t('today', 'Today') + t('progress', 'Progress') + t('settings', 'Settings') + '</nav>';
 }
 var lastTab = '';
 function render() {
-  var v = tab === 'hoje' ? viewHoje() : tab === 'progresso' ? viewProgresso() : viewAjustes();
+  var v = tab === 'today' ? viewToday() : tab === 'progress' ? viewProgress() : viewSettings();
   $('#app').innerHTML = '<div class="' + (tab !== lastTab ? 'view-enter' : '') + '">' + v + '</div>' + tabbar();
   lastTab = tab;
 }
 
-/* ---------- Folha de exercício ---------- */
-/* Vídeo: o quadro mostra a miniatura e só carrega o player quando tocado (economiza dados e não reinicia a cada tela). */
+/* ---------- Exercise sheet ---------- */
+/* Video: the box shows the thumbnail and only loads the player when tapped (saves data and avoids restarting on every screen). */
 function videoHtml(key, q) {
   var v = (typeof VIDEOS !== 'undefined') && VIDEOS[key];
   if (!v) return '<a class="vid-link" href="' + ytUrl(q) + '" target="_blank" rel="noopener">Search for a video on YouTube</a>';
@@ -354,7 +354,7 @@ function vidTabs(lvl) {
 }
 function vidBlock(lvl) { return '<div class="vid-wrap">' + vidTabs(lvl) + '<div class="vid-slot">' + videoHtml(lvl.id, lvl.q + ' tutorial') + '</div></div>'; }
 function openSheet(slot, ctx, lvlId) { sheetCtx = { slot: slot, ctx: ctx, lvlId: lvlId || '' }; renderSheet(); }
-/* Com a folha aberta, a página de trás não rola. Na tela do treino ela já fica travada. */
+/* With the sheet open, the page behind does not scroll. On the workout screen it is already locked. */
 function lockPage(on) { document.documentElement.classList.toggle('no-scroll', on); document.body.classList.toggle('no-scroll', on); }
 function closeSheet() { sheetCtx = null; $('#sheet').innerHTML = ''; lockPage(!!W); }
 function levelLocked() { return !!(W && sheetCtx && sheetCtx.ctx === 'workout' && W.logged[sheetCtx.slot] && W.logged[sheetCtx.slot].sets.length); }
@@ -410,13 +410,13 @@ function confirmBox(title, text, buttons) {
   sheetCtx = null;
 }
 
-/* ---------- Treino guiado ---------- */
-/* Os sons entram numa fila: um novo som espera o anterior terminar, para não tocarem por cima um do outro. */
+/* ---------- Guided workout ---------- */
+/* Sounds go into a queue: a new sound waits for the previous one to finish, so they do not overlap. */
 var sfxBase = 0, sfxBusy = 0;
 function sfx(len, fn) {
   var now = audioCtx ? audioCtx.currentTime : 0;
   sfxBase = Math.max(0, sfxBusy - now);
-  if (sfxBase > 1.2) { sfxBase = 0; return; }  /* atrasado demais: descarta */
+  if (sfxBase > 1.2) { sfxBase = 0; return; }  /* too late: discard */
   sfxBusy = now + sfxBase + len + 0.04;
   fn();
   sfxBase = 0;
@@ -466,7 +466,7 @@ function setDefault() {
   var st = curStep(), t = W.logged[st.slot].targets[st.set - 1];
   W.value = t; W.holdStart = null; W.side = 0; W.right = null;
 }
-/* Isometria começa sozinha: lead = segundos de contagem antes (0 quando o descanso acabou de contar 3, 2, 1). */
+/* Holds start on their own: lead = seconds of countdown before (0 when the rest just counted 3, 2, 1). */
 function autoStartHold(lead) {
   W.holdTotal = Math.max(1, W.value || 0); W.holdStart = Date.now() + lead * 1000;
   lastCue = lead ? null : 'h' + W.i + ':go';
@@ -502,7 +502,7 @@ function timerText(total, elapsed) {
   if (elapsed < 0) return String(Math.ceil(-elapsed));
   return Math.max(0, Math.ceil(total - elapsed)) + ' s';
 }
-/* Durante o 3, 2, 1 os botões de ajuste ficam desligados. O tempo só muda depois que a contagem começa. */
+/* During the 3, 2, 1 the adjust buttons are disabled. The time only changes after the count starts. */
 function lockAdj(act, on) {
   var bs = document.querySelectorAll('[data-act="' + act + '"]');
   for (var i = 0; i < bs.length; i++) bs[i].disabled = on;
@@ -543,7 +543,7 @@ function exList() {
   W.steps.forEach(function (s) { if (seen.indexOf(s.slot) < 0) seen.push(s.slot); });
   return seen;
 }
-/* Uma unidade por item do aquecimento e uma por série do treino. */
+/* One unit per warmup item and one per workout set. */
 function progressInfo() {
   var wn = warmupItems(D, state).length, total = wn + W.steps.length, d;
   if (W.phase === 'summary') d = total;
@@ -629,14 +629,14 @@ function renderWorkout() {
       '<div style="margin-top:14px;border-top:2px solid var(--ink)">' + (rows || '<p class="empty">No sets logged.</p>') + '</div>' +
       '<div style="margin-top:auto;padding-top:22px"><button class="btn tape" data-act="w-close">Close</button></div></div>';
   }
-  /* Mantém o iframe do vídeo entre renders (se o vídeo é o mesmo), para ele não recarregar a cada toque. */
+  /* Keeps the video iframe between renders (if the video is the same), so it does not reload on every tap. */
   var oldK = ov.querySelector('.vid-keep'), oldBody = ov.querySelector('.w-body');
   var key = W.phase + ':' + W.i + ':' + (W.side || 0), scr = oldBody && oldBody.scrollTop;
   var tmp = document.createElement('div');
   tmp.innerHTML = '<div class="overlay" role="region" aria-label="Workout in progress">' + body + '</div>';
   var newK = tmp.querySelector('.vid-keep'), oF = oldK && oldK.querySelector('iframe'), nF = newK && newK.querySelector('iframe');
   if (oF && nF && oF.getAttribute('src') === nF.getAttribute('src') && oldK.parentNode.className === 'w-body' && newK.parentNode.className === 'w-body') {
-    /* Mesmo vídeo: troca tudo em volta dele, sem mexer no iframe (mover um iframe recarrega o vídeo). */
+    /* Same video: replace everything around it without touching the iframe (moving an iframe reloads the video). */
     var ob = oldK.parentNode, nb = newK.parentNode;
     ov.querySelector('.w-head').replaceWith(tmp.querySelector('.w-head'));
     while (ob.firstChild !== oldK) ob.removeChild(ob.firstChild);
@@ -673,7 +673,7 @@ function finishNow() {
 }
 function closeWorkout() { W = null; stopTick(); $('#overlay').innerHTML = ''; document.body.classList.remove('no-scroll'); closeSheet(); render(); }
 
-/* ---------- Eventos ---------- */
+/* ---------- Events ---------- */
 var H = {
   'tab': function (el) { tab = el.dataset.tab; render(); window.scrollTo(0, 0); },
   'start': function () { startWorkout(); },
@@ -741,7 +741,7 @@ var H = {
   'reset-ask': function () { confirmBox('Delete everything?', 'Your logged workouts are deleted and the levels go back to the start. This cannot be undone.', [{ label: 'Delete everything', act: 'reset-do' }, { label: 'Cancel', act: 'sheet-close', cls: 'ghost' }]); },
   'reset-do': function () {
     var keepBar = state.settings.hasBar, keepDip = state.settings.hasDip; state = defaultState(D); state.settings.hasBar = keepBar; state.settings.hasDip = keepDip;
-    persistProfile(); if (dbRefs) { /* sessões antigas ficam na conta, mas não aparecem mais após limpar: apaga uma a uma */ dbRefs.sessions.get().then(function (sn) { sn.docs.forEach(function (d) { enqueue(function () { return dbRefs.sessions.doc(d.id).delete(); }); }); }, function () { }); }
+    persistProfile(); if (dbRefs) { /* old sessions stay in the account but no longer show after clearing: delete them one by one */ dbRefs.sessions.get().then(function (sn) { sn.docs.forEach(function (d) { enqueue(function () { return dbRefs.sessions.doc(d.id).delete(); }); }); }, function () { }); }
     closeSheet(); render(); toast('Everything deleted');
   },
   'bar': function (el) {
@@ -749,7 +749,7 @@ var H = {
     box.querySelectorAll('.bar').forEach(function (b) { b.classList.remove('sel'); });
     el.classList.add('sel'); box.querySelector('.chart-cap').textContent = el.getAttribute('data-cap');
   },
-  /* treino */
+  /* workout */
   'w-exit': function () {
     var any = Object.keys(W.logged).some(function (k) { return W.logged[k].sets.length; });
     confirmBox('Leave workout?', any ? 'You can save what you did or continue later where you stopped.' : 'You have not logged any set yet.', [
