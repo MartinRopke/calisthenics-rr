@@ -16,7 +16,32 @@ function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '
 function shortDate(s) { var p = s.split('-'); return p[2] + '/' + p[1]; }
 
 /* ---------- Armazenamento ---------- */
-function localSave() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { } }
+var fileMode = false, fileQueue = Promise.resolve();
+var FILE_NOTE = 'Salvo no arquivo data/treino.json deste computador.';
+function filePush() {
+  if (!fileMode) return;
+  var body = JSON.stringify(state);
+  fileQueue = fileQueue.then(function () {
+    return fetch('/api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: body });
+  }).then(function (r) {
+    if (!r.ok) throw new Error('http');
+    sync.err = false; sync.note = FILE_NOTE;
+  }).catch(function () {
+    sync.err = true; sync.note = 'Não consegui salvar no arquivo. Os dados continuam neste navegador.';
+    if (tab === 'ajustes') render();
+  });
+}
+async function fileInit() {
+  try {
+    var r = await withTimeout(fetch('/api/state', { cache: 'no-store' }), 3000);
+    if (!r.ok) return false;
+    mergeLoaded(await r.json(), null);
+    fileMode = true; sync = { mode: 'file', note: FILE_NOTE };
+    filePush();
+    return true;
+  } catch (e) { return false; }
+}
+function localSave() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { } filePush(); }
 function localLoad() {
   try {
     var raw = localStorage.getItem(LS_KEY);
@@ -57,6 +82,7 @@ function withTimeout(p, ms) {
 }
 async function initStorage() {
   localLoad();
+  if (await fileInit()) { localSave(); return; }
   if (typeof claude === 'undefined' || !claude.use) { sync = { mode: 'local', note: 'Sem conta aqui: os dados ficam só neste navegador.' }; return; }
   try {
     var user = await claude.use('user'), db = await claude.use('db');
