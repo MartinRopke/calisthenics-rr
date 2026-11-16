@@ -47,7 +47,7 @@ createServer((req, res) => {
         writeFileSync(dataFile + '.tmp', body);
         renameSync(dataFile + '.tmp', dataFile);
         send(res, 200, 'application/json', '{"ok":true}');
-      } catch (e) { send(res, 400, 'application/json', '{"ok":false}'); }
+      } catch { send(res, 400, 'application/json', '{"ok":false}'); }
     });
     return;
   }
@@ -60,7 +60,7 @@ createServer((req, res) => {
   console.log('Treino RR running (data in data/treino.json)');
   console.log('  Local:   http://localhost:' + port);
   if (host === '127.0.0.1' || host === 'localhost') return console.log('  Local-only mode (HOST=' + host + ')');
-  var found = false;
+  let found = false;
   Object.values(networkInterfaces()).forEach((list) => (list || []).forEach((a) => {
     if (a.family === 'IPv4' && !a.internal) { found = true; console.log('  Network: http://' + a.address + ':' + port); }
   }));
