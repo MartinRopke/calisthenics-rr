@@ -1,6 +1,6 @@
-/* Vídeos de demonstração por exercício. A chave é o id do nível (ou "w.<id>" no aquecimento).
-   id é o código do YouTube, t o título e c o canal. Sem entrada, o app mostra um link de busca.
-   Todos foram conferidos como incorporáveis em 15/11/2026. Para trocar um vídeo, mude o id, t e c da linha. */
+/* Demo videos per exercise. The key is the level id (or "w.<id>" for the warmup).
+   id is the YouTube code, t the title and c the channel. With no entry, the app shows a search link.
+   All were checked as embeddable on 2026-11-15. To replace a video, change the id, t and c of the line. */
 var VIDEOS = {
   "pushup.vert": { id: "wIPJvBQs7RA", t: "How to Do Wall Push Ups: A Guide from Physical Therapists", c: "Hinge Health" },
   "pushup.inc": { id: "Gvm5Q29UHbk", t: "How to do an Incline Push-Up", c: "NASM" },

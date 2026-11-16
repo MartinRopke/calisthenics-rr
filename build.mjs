@@ -1,16 +1,16 @@
-// Junta style.css e os scripts em um único index.html (é o arquivo que o GitHub Pages publica).
+// Bundles style.css and the scripts into a single index.html.
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const css = readFileSync('style.css', 'utf8');
 const js = ['data.js', 'videos.js', 'logic.js', 'app.js'].map((f) => readFileSync(f, 'utf8')).join('\n');
 
 const html = `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>Treino RR</title>
+<title>RR Workout</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
@@ -31,4 +31,4 @@ ${js}
 `;
 
 writeFileSync('index.html', html);
-console.log(`index.html gerado (${Buffer.byteLength(html)} bytes)`);
+console.log(`index.html built (${Buffer.byteLength(html)} bytes)`);
