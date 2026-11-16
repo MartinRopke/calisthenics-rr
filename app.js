@@ -411,20 +411,30 @@ function confirmBox(title, text, buttons) {
 }
 
 /* ---------- Treino guiado ---------- */
+/* Os sons entram numa fila: um novo som espera o anterior terminar, para não tocarem por cima um do outro. */
+var sfxBase = 0, sfxBusy = 0;
+function sfx(len, fn) {
+  var now = audioCtx ? audioCtx.currentTime : 0;
+  sfxBase = Math.max(0, sfxBusy - now);
+  if (sfxBase > 1.2) { sfxBase = 0; return; }  /* atrasado demais: descarta */
+  sfxBusy = now + sfxBase + len + 0.04;
+  fn();
+  sfxBase = 0;
+}
 function tone(freq, t, dur, vol) {
   try {
     if (!audioCtx) return;
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    var o = audioCtx.createOscillator(), g = audioCtx.createGain(), at = audioCtx.currentTime + t;
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain(), at = audioCtx.currentTime + sfxBase + t;
     o.frequency.value = freq; o.connect(g); g.connect(audioCtx.destination);
     g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol || 0.25, at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
     o.start(at); o.stop(at + dur + 0.02);
   } catch (e) { }
 }
-function beep() { tone(880, 0, 0.18); tone(880, 0.22, 0.18); try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) { } }
-function tickBeep() { tone(660, 0, 0.12); }
-function goBeep() { tone(1175, 0, 0.45, 0.3); try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) { } }
-function doneChime() { tone(660, 0, 0.14, 0.2); tone(880, 0.12, 0.14, 0.2); tone(1320, 0.24, 0.3, 0.2); }
+function beep() { sfx(0.42, function () { tone(880, 0, 0.18); tone(880, 0.22, 0.18); }); try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) { } }
+function tickBeep() { sfx(0.14, function () { tone(660, 0, 0.12); }); }
+function goBeep() { sfx(0.47, function () { tone(1175, 0, 0.45, 0.3); }); try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) { } }
+function doneChime() { sfx(0.56, function () { tone(660, 0, 0.14, 0.2); tone(880, 0.12, 0.14, 0.2); tone(1320, 0.24, 0.3, 0.2); }); }
 var lastCue = null;
 function cue(key, n) {
   if (lastCue === key) return;
@@ -510,13 +520,13 @@ function tick() {
     if (wel < 0) { if (wel >= -3) cue('w' + W.warmI + ':' + Math.ceil(-wel), Math.ceil(-wel)); } else if (wel < 1) cue('w' + W.warmI + ':go', 0); else if (wg - wel <= 3 && wg - wel > 0 && wg > 6) cue('w' + W.warmI + ':e' + Math.ceil(wg - wel), 1);
     if (we) we.textContent = timerText(wg, wel);
     lockAdj('w-warm-adj', wel < 0);
-    if (wel >= wg) { beep(); lastCue = null; H['w-warm-next'](); }
+    if (wel >= wg) { lastCue = null; H['w-warm-next'](); }
   } else if (W.phase === 'set' && W.holdStart) {
     var el2 = $('#holdTime'), hs = (Date.now() - W.holdStart) / 1000, htg = holdGoal();
     if (hs < 0) { if (hs >= -3) cue('h' + W.i + ':' + Math.ceil(-hs), Math.ceil(-hs)); } else if (hs < 1) cue('h' + W.i + ':go', 0); else if (htg - hs <= 3 && htg - hs > 0 && htg > 6) cue('h' + W.i + ':e' + Math.ceil(htg - hs), 1);
     if (el2) el2.textContent = timerText(htg, hs);
     lockAdj('w-hold-adj', hs < 0);
-    if (hs >= htg) { beep(); lastCue = null; H['w-hold-stop'](); H['w-log'](); }
+    if (hs >= htg) { lastCue = null; H['w-hold-stop'](); H['w-log'](); }
   }
 }
 function warmGo(d) {
