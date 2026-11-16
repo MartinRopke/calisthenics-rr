@@ -169,7 +169,7 @@ function viewProgresso() {
   var wItems = weeks.map(function (w) { return { v: w.n, label: shortDate(w.start), cap: 'Semana de ' + shortDate(w.start) + ': ' + w.n + (w.n === 1 ? ' treino' : ' treinos') }; });
   var out = '<div class="wrap"><div class="page-head"><h1>Progresso</h1><p>' + state.sessions.length + (state.sessions.length === 1 ? ' treino registrado' : ' treinos registrados') + '</p></div>';
   out += '<h2 class="sec-title" style="margin-top:6px">Treinos por semana</h2>' + barChart(wItems, { goal: 3, min: 3, valueLabels: true, aria: 'Treinos por semana nas últimas 8 semanas', defaultCap: 'Toque numa barra para ver a semana.', h: 100 });
-  out += '<h2 class="sec-title">Cada exercício</h2><p class="muted small">Cada barra é um treino: o total de repetições (ou segundos nos holds). Barras amarelas marcam o treino em que você subiu de nível.</p><div style="margin-top:8px">';
+  out += '<h2 class="sec-title">Cada exercício</h2><p class="muted small">Cada barra é um treino: o total de repetições (ou segundos nos holds). Barras laranjas marcam o treino em que você subiu de nível.</p><div style="margin-top:8px">';
   SLOT_ORDER.forEach(function (slot) {
     var S = SLOTS[slot], lvl = currentLevel(D, state, slot), ser = seriesFor(state, slot).slice(-12);
     var inactive = !isActive(D, state, slot);
