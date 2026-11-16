@@ -143,14 +143,26 @@ function viewHoje() {
   var dateTxt = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   var pips = [0, 1, 2].map(function (i) { return '<span class="pip ' + (i < wk ? 'on' : '') + '"></span>'; }).join('');
   var act = SLOT_ORDER.filter(function (s) { return isActive(D, state, s); }).length;
-  var rows = SLOT_ORDER.map(function (slot) {
+  function exRow(slot) {
     var S = SLOTS[slot], lvl = currentLevel(D, state, slot);
     if (!isActive(D, state, slot)) {
       return '<button class="ex off" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(S.label) + '</div><div class="ex-meta">Entra quando você tiver a barra</div></div></div>' + rungsHtml(slot) + '</button>';
     }
     var p = prescribe(D, state, slot);
     return '<button class="ex" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(lvl.name) + '</div><div class="ex-meta">' + esc(metaLine(S, lvl, p.first)) + '</div></div><div class="ex-target num">' + targetHtml(lvl, p.targets) + '</div></div>' + rungsHtml(slot) + '</button>';
+  }
+  function group(title, sub, rows) {
+    return '<div class="grp"><h3>' + title + '</h3><span class="muted small">' + sub + '</span></div><div class="ex-list">' + rows + '</div>';
+  }
+  var warm = warmupItems(D, state);
+  var warmRows = warm.map(function (it) {
+    return '<div class="ex"><div class="ex-name">' + esc(it.name) + '</div><div class="ex-meta">' + esc(it.n + ' ' + it.unit) + '</div></div>';
   }).join('');
+  var rows = group('Aquecimento', warm.length + ' itens', warmRows);
+  PAIRS.forEach(function (pair, i) {
+    rows += group('Par ' + (i + 1) + ' de 3', '3 séries, descanso de ' + state.settings.restMain + ' s', pair.map(exRow).join(''));
+  });
+  rows += group('Core', '3 séries, descanso de ' + state.settings.restCore + ' s', CORE.map(exRow).join(''));
   var cta;
   if (draft) {
     cta = '<div class="btn-row"><button class="btn tape" data-act="resume">Continuar treino</button><button class="btn ghost" data-act="discard-draft">Descartar</button></div>';
@@ -160,8 +172,8 @@ function viewHoje() {
   return '<div class="wrap"><div class="page-head"><h1>Hoje</h1><p class="date">' + esc(dateTxt) + '</p></div>' +
     '<div class="hint ' + hint.kind + '">' + esc(hint.text) + '</div>' + cta +
     '<div class="week"><span class="pips" aria-hidden="true">' + pips + '</span><span class="muted small">' + wk + ' de 3 treinos nesta semana</span></div>' +
-    '<h2 class="sec-title">Sua rotina</h2><p class="muted small">' + act + ' exercícios. Toque em um para ver como fazer ou mudar de nível.</p>' +
-    '<div class="ex-list" style="margin-top:10px">' + rows + '</div></div>';
+    '<h2 class="sec-title">Treino de hoje</h2><p class="muted small">Aquecimento e ' + act + ' exercícios, nesta ordem. Toque num exercício para ver como fazer ou mudar de nível.</p>' +
+    rows + '</div>';
 }
 
 function viewProgresso() {
