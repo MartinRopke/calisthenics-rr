@@ -80,9 +80,11 @@ ul { padding: 0; list-style: none; }
 .ex-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .ex-name { font-weight: 700; font-size: 18px; }
 .ex-meta { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.ex-equip { color: var(--ink2); font-size: 14px; margin-top: 4px; }
 .ex-target { font-size: 24px; white-space: nowrap; }
 .ex-target small { font-stretch: 100%; font-weight: 600; font-size: 13px; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
 .ex.off .ex-name, .ex.off .ex-target { color: var(--muted); }
+.ex-name { overflow-wrap: anywhere; }
 
 .rungs { display: flex; gap: 3px; margin-top: 9px; align-items: flex-end; height: 14px; }
 .rung { flex: 1; max-width: 34px; height: 6px; border-radius: 2px; border: 2px solid var(--line); }
