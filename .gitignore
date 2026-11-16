@@ -3,3 +3,4 @@ node_modules/
 __pycache__/
 shots/
 CLAUDE.local.md
+data/
