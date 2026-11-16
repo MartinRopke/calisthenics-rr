@@ -2,6 +2,9 @@
 var D = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS };
 var LS_KEY = 'treinoRR.v1', DRAFT_KEY = 'treinoRR.draft';
 
+/* Ícone de halter: Lucide "dumbbell" (licença ISC), embutido para não depender de nada externo. */
+var ICON_EQUIP = '<svg class="ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>';
+
 var state = defaultState(D);
 var tab = 'hoje';
 var W = null;            /* treino em andamento */
@@ -133,7 +136,7 @@ function metaLine(S, lvl, slot) {
   parts.push(levelText(slot));
   return parts.join(' · ');
 }
-function equipHtml(lvl) { return lvl.equip ? '<div class="ex-equip">🧰 Needs: ' + esc(lvl.equip) + '</div>' : ''; }
+function equipHtml(lvl) { return lvl.equip ? '<div class="ex-equip">' + ICON_EQUIP + ' Needs: ' + esc(lvl.equip) + '</div>' : ''; }
 function rungsHtml(slot) {
   var lad = ladderOf(D, state, slot), cur = state.levels[slot].idx;
   return '<div class="rungs" aria-hidden="true">' + lad.map(function (l, i) { return '<span class="rung ' + (i < cur ? 'done' : i === cur ? 'cur' : '') + '"></span>'; }).join('') + '</div>';
@@ -285,6 +288,12 @@ function playVideo(btn) {
   d.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + btn.dataset.id + '?autoplay=1&rel=0&playsinline=1&modestbranding=1" title="' + btn.dataset.title + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
   btn.replaceWith(d);
 }
+function vidTabs(lvl) {
+  if (!lvl.setup || !lvl.setup.length) return '';
+  var q = esc(lvl.q + ' tutorial');
+  return '<div class="pathsel" role="group" aria-label="Equipment options"><button data-act="vid-tab" data-key="' + lvl.id + '" data-q="' + q + '" aria-pressed="true">' + esc(lvl.std) + '</button>' +
+    lvl.setup.map(function (o) { return '<button data-act="vid-tab" data-key="' + (o.k || '') + '" data-q="' + esc(lvl.q + ' ' + (o.q || 'at home')) + '" aria-pressed="false">' + esc(o.label) + '</button>'; }).join('') + '</div>';
+}
 function openSheet(slot, ctx) { sheetCtx = { slot: slot, ctx: ctx }; renderSheet(); }
 function closeSheet() { sheetCtx = null; $('#sheet').innerHTML = ''; }
 function levelLocked() { return !!(W && sheetCtx && sheetCtx.ctx === 'workout' && W.logged[sheetCtx.slot] && W.logged[sheetCtx.slot].sets.length); }
@@ -308,11 +317,10 @@ function renderSheet() {
   var hist = seriesFor(state, slot).slice(-3).reverse().map(function (s) { return '<li>' + shortDate(s.date) + ' · ' + esc(s.name) + ' · ' + s.sets.join(' · ') + (s.kind === 'hold' ? ' s' : '') + '</li>'; }).join('');
   var html = '<div class="sheet-bg" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(lvl.name) + '"><div class="grab"></div>' +
     '<h2>' + esc(lvl.name) + '</h2><p class="muted" style="margin-top:6px">' + esc(S.label) + '. Works ' + esc(S.muscles.charAt(0).toLowerCase() + S.muscles.slice(1)) + '.</p>' +
-    (lvl.equip ? '<span class="chip">🧰 Needs: ' + esc(lvl.equip) + '</span>' : '') +
-    (lvl.setup && lvl.setup.length ? '<h3>No gear? Setup ideas</h3>' + lvl.setup.map(function (k) { return videoHtml(k, lvl.q + ' at home'); }).join('') : '') +
+    (lvl.equip ? '<span class="chip">' + ICON_EQUIP + ' Needs: ' + esc(lvl.equip) + '</span>' : '') +
     '<h3>How to</h3>' + cuesHtml +
     (lvl.note ? '<div class="note">' + esc(lvl.note) + '</div>' : '') +
-    '<h3>Video</h3>' + videoHtml(lvl.id, lvl.q + ' tutorial') +
+    '<h3>Video</h3>' + vidTabs(lvl) + '<div id="vidSlot">' + videoHtml(lvl.id, lvl.q + ' tutorial') + '</div>' +
     '<div class="links"><a href="' + ytUrl(lvl.q + ' tutorial') + '" target="_blank" rel="noopener">More videos on YouTube</a><a href="' + WIKI_BASE + S.wiki + '" target="_blank" rel="noopener">Guide on the r/bodyweightfitness wiki</a></div>' +
     '<h3>Progression ladder</h3>' + (locked ? '<p class="muted small" style="margin-bottom:6px">You already did sets of this exercise today, so the level can only change in your next workout.</p>' : '<p class="muted small" style="margin-bottom:6px">Tap a step to change level. Use it to adjust your starting point.</p>') + ladHtml + pathHtml +
     (hist ? '<h3>Recent records</h3><ul class="bul">' + hist + '</ul>' : '') +
@@ -326,6 +334,7 @@ function openWarm(id) {
   sheetCtx = null;
   $('#sheet').innerHTML = '<div class="sheet-bg" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(it.name) + '"><div class="grab"></div>' +
     '<h2>' + esc(it.name) + '</h2><p class="muted" style="margin-top:6px">Warm-up. ' + esc(it.n + ' ' + it.unit) + '.</p>' +
+    (it.equip ? '<span class="chip">' + ICON_EQUIP + ' Needs: ' + esc(it.equip) + '</span>' : '') +
     '<h3>How to</h3><ul class="bul">' + it.how.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' +
     (it.q ? '<h3>Video</h3>' + videoHtml('w.' + it.id, it.q) : '') +
     '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Close</button></div></div>';
@@ -508,6 +517,10 @@ var H = {
   'discard-draft': function () { clearDraft(); render(); },
   'open-ex': function (el) { openSheet(el.dataset.slot, 'home'); },
   'open-warm': function (el) { openWarm(el.dataset.id); },
+  'vid-tab': function (el) {
+    el.parentNode.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b === el ? 'true' : 'false'); });
+    $('#vidSlot').innerHTML = videoHtml(el.dataset.key, el.dataset.q);
+  },
   'sheet-close': function () { closeSheet(); },
   'pick-level': function (el) {
     var slot = el.dataset.slot, i = +el.dataset.i;
