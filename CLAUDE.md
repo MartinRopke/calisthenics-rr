@@ -41,7 +41,7 @@ App web de treino para o Recommended Routine (RR) do r/bodyweightfitness. Guia o
 ## Convenções
 
 - Todo texto visível do app (telas, botões, dicas de execução, avisos) fica em inglês, com frases curtas e verbos no imperativo nos botões ("Set done", "Skip"). Os nomes dos exercícios seguem o nome do guia (Pull-up, Hinge, Copenhagen plank). Este CLAUDE.md e os comentários do código continuam em português.
-- Exercício que pede equipamento mostra "🧰 Needs: ..." com as opções (campo `equip` do nível, em `data.js`). Sem equipamento, o campo fica vazio e nada aparece.
+- Exercício que pede equipamento mostra "Needs: ..." com um ícone de halter (Lucide, licença ISC, embutido no `app.js` como `ICON_EQUIP`) com as opções (campo `equip` do nível, em `data.js`). Sem equipamento, o campo fica vazio e nada aparece.
 - Mobile primeiro (390 px de largura), alvos de toque de pelo menos 44 px.
 - Sem dependências externas além da fonte Archivo e dos vídeos do YouTube.
 - Mexeu na lógica? Adicione ou atualize o teste em `test.js`.
