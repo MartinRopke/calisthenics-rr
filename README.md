@@ -25,3 +25,18 @@ Depois abra o `index.html` no navegador. Os vídeos só tocam quando o app está
 ## Regra de progressão
 
 Começa em 3x5, soma 1 repetição por série a cada treino até 3x8, e então passa para o próximo nível em 3x5. Isometrias vão de 10 a 30 s.
+
+## Home use
+
+Use the app on your iPhone while the Mac serves it over the home Wi-Fi.
+
+1. On the Mac, run `npm run home`. The server prints the local URL and the network URLs.
+2. On the iPhone, on the same Wi-Fi, open `http://<ip>:8000` (or `http://<mac-name>.local:8000`) in Safari.
+3. Tap Share, then Add to Home Screen.
+
+Notes:
+
+- Anyone on the same Wi-Fi can reach the app and read or change the history. Use it only on a network you trust. Set `HOST=127.0.0.1` to go back to local-only access.
+- Reserve the Mac's IP address in the router, so the URL does not change.
+- The Mac must stay awake. `npm run home` uses `caffeinate` to prevent idle sleep while the server runs.
+- YouTube videos over plain http by IP address are untested and may fail with error 153.
