@@ -7,9 +7,10 @@ import {
   prescribe, buildSteps, restSeconds, warmupItems, finishWorkout, weeklyCounts,
   seriesFor, scheduleHint, projectWorkouts, sessionSummaryText
 } from './logic.js';
+import { createStorage } from './storage.js';
 
 var D = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS };
-var LS_KEY = 'treinoRR.v1', DRAFT_KEY = 'treinoRR.draft';
+var store = createStorage();
 
 var state = defaultState(D);
 var tab = 'today';
@@ -29,9 +30,9 @@ var fileMode = false, fileQueue = Promise.resolve();
 var FILE_NOTE = 'Saved to the file data/treino.json on this computer.';
 function filePush() {
   if (!fileMode) return;
-  var body = JSON.stringify(state);
+  var snap = JSON.parse(JSON.stringify(state));
   fileQueue = fileQueue.then(function () {
-    return fetch('/api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: body });
+    return store.pushServer(snap);
   }).then(function (r) {
     if (!r.ok) throw new Error('http');
     sync.err = false; sync.note = FILE_NOTE;
@@ -42,20 +43,17 @@ function filePush() {
 }
 async function fileInit() {
   try {
-    var r = await withTimeout(fetch('/api/state', { cache: 'no-store' }), 3000);
-    if (!r.ok) return false;
-    mergeLoaded(await r.json(), null);
+    var srv = await store.loadServer();
+    if (!srv) return false;
+    mergeLoaded(srv, null);
     fileMode = true; sync = { mode: 'file', note: FILE_NOTE };
     filePush();
     return true;
   } catch (e) { return false; }
 }
-function localSave() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { } filePush(); }
+function localSave() { store.saveLocal(state); filePush(); }
 function localLoad() {
-  try {
-    var raw = localStorage.getItem(LS_KEY);
-    if (raw) mergeLoaded(JSON.parse(raw), null);
-  } catch (e) { }
+  mergeLoaded(store.loadLocal(), null);
 }
 function mergeLoaded(obj, only) {
   if (!obj) return;
@@ -116,15 +114,9 @@ async function initStorage() {
 }
 
 /* ---------- Workout draft ---------- */
-function saveDraft() { try { if (W && W.phase !== 'summary') localStorage.setItem(DRAFT_KEY, JSON.stringify(W)); } catch (e) { } }
-function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { } }
-function loadDraft() {
-  try {
-    var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
-    if (d && d.startedAt && Date.now() - d.startedAt < 8 * 3600 * 1000 && d.steps) return d;
-  } catch (e) { }
-  return null;
-}
+function saveDraft() { store.saveDraft(W); }
+function clearDraft() { store.clearDraft(); }
+function loadDraft() { return store.loadDraft(); }
 
 /* ---------- Small formatters ---------- */
 function unitOf(level) { return level.kind === 'hold' ? ' s' : ''; }

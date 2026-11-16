@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.mjs",
     "home": "caffeinate -i node server.mjs",
-    "test": "node test.js",
+    "test": "node --test",
     "test:e2e": "python3 e2e.py && python3 e2e2.py",
     "guide": "node scripts/generate-guide.mjs",
     "wiki": "node scripts/fetch-wiki.mjs",
