@@ -279,14 +279,8 @@ function render() {
 function videoHtml(key, q) {
   var v = (typeof VIDEOS !== 'undefined') && VIDEOS[key];
   if (!v) return '<a class="vid-link" href="' + ytUrl(q) + '" target="_blank" rel="noopener">Search for a video on YouTube</a>';
-  return '<div class="vid-box"><button class="vid" data-act="play-vid" data-id="' + v.id + '" data-title="' + esc(v.t) + '" aria-label="Play video: ' + esc(v.t) + '"><img src="https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></button>' +
+  return '<div class="vid-box"><div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/' + v.id + '?rel=0&playsinline=1&modestbranding=1" title="' + esc(v.t) + '" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>' +
     '<p class="vid-cap">' + esc(v.t) + ' · ' + esc(v.c) + '</p></div>';
-}
-function playVideo(btn) {
-  var box = btn.closest('.vid-box'); if (!box) return;
-  var d = document.createElement('div'); d.className = 'vid';
-  d.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + btn.dataset.id + '?autoplay=1&rel=0&playsinline=1&modestbranding=1" title="' + btn.dataset.title + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
-  btn.replaceWith(d);
 }
 function vidTabs(lvl) {
   if (!lvl.setup || !lvl.setup.length) return '';
@@ -294,6 +288,7 @@ function vidTabs(lvl) {
   return '<div class="pathsel" role="group" aria-label="Equipment options"><button data-act="vid-tab" data-key="' + lvl.id + '" data-q="' + q + '" aria-pressed="true">' + esc(lvl.std) + '</button>' +
     lvl.setup.map(function (o) { return '<button data-act="vid-tab" data-key="' + (o.k || '') + '" data-q="' + esc(lvl.q + ' ' + (o.q || 'at home')) + '" aria-pressed="false">' + esc(o.label) + '</button>'; }).join('') + '</div>';
 }
+function vidBlock(lvl) { return '<div class="vid-wrap">' + vidTabs(lvl) + '<div class="vid-slot">' + videoHtml(lvl.id, lvl.q + ' tutorial') + '</div></div>'; }
 function openSheet(slot, ctx) { sheetCtx = { slot: slot, ctx: ctx }; renderSheet(); }
 function closeSheet() { sheetCtx = null; $('#sheet').innerHTML = ''; }
 function levelLocked() { return !!(W && sheetCtx && sheetCtx.ctx === 'workout' && W.logged[sheetCtx.slot] && W.logged[sheetCtx.slot].sets.length); }
@@ -320,7 +315,7 @@ function renderSheet() {
     (lvl.equip ? '<span class="chip">' + ICON_EQUIP + ' Needs: ' + esc(lvl.equip) + '</span>' : '') +
     '<h3>How to</h3>' + cuesHtml +
     (lvl.note ? '<div class="note">' + esc(lvl.note) + '</div>' : '') +
-    '<h3>Video</h3>' + vidTabs(lvl) + '<div id="vidSlot">' + videoHtml(lvl.id, lvl.q + ' tutorial') + '</div>' +
+    '<h3>Video</h3>' + vidBlock(lvl) +
     '<div class="links"><a href="' + ytUrl(lvl.q + ' tutorial') + '" target="_blank" rel="noopener">More videos on YouTube</a><a href="' + WIKI_BASE + S.wiki + '" target="_blank" rel="noopener">Guide on the r/bodyweightfitness wiki</a></div>' +
     '<h3>Progression ladder</h3>' + (locked ? '<p class="muted small" style="margin-bottom:6px">You already did sets of this exercise today, so the level can only change in your next workout.</p>' : '<p class="muted small" style="margin-bottom:6px">Tap a step to change level. Use it to adjust your starting point.</p>') + ladHtml + pathHtml +
     (hist ? '<h3>Recent records</h3><ul class="bul">' + hist + '</ul>' : '') +
@@ -384,7 +379,7 @@ function nextIndex(from) {
 }
 function setDefault() {
   var st = curStep(), t = W.logged[st.slot].targets[st.set - 1];
-  W.value = t; W.holdStart = null;
+  W.value = t; W.holdStart = null; W.side = 0; W.right = null;
 }
 function goSet(idx) {
   W.i = idx; W.phase = 'set'; setDefault(); saveDraft(); renderWorkout();
@@ -401,19 +396,26 @@ function resumeWorkout() {
 function startTick() { clearInterval(tickTimer); tickTimer = setInterval(tick, 250); }
 function stopTick() { clearInterval(tickTimer); tickTimer = null; try { if (wakeLock && wakeLock.release) wakeLock.release(); } catch (e) { } wakeLock = null; }
 function fmtClock(sec) { sec = Math.max(0, Math.ceil(sec)); var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
+function subUpdate(label, pct) {
+  var b = $('#subBar'), l = $('#subLabel');
+  if (b) b.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  if (l) l.textContent = label;
+}
 function tick() {
   if (!W) return;
   if (W.phase === 'rest') {
     var rem = (W.restEnd - Date.now()) / 1000, el = $('#restTime');
     if (el) el.textContent = fmtClock(rem);
-    var bar = $('#restBar'); if (bar) bar.style.width = Math.max(0, Math.min(100, 100 * (1 - rem / W.restTotal))) + '%';
+    subUpdate(fmtClock(rem), 100 * (1 - rem / W.restTotal));
     if (rem <= 0) { beep(); var n = nextIndex(W.i + 1); if (n >= 0) goSet(n); else finishNow(); }
-  } else if (W.phase === 'warmup' && W.warmEnd) {
-    var wr = (W.warmEnd - Date.now()) / 1000, we = $('#warmTime');
-    if (we) we.textContent = fmtClock(wr);
-    if (wr <= 0) { beep(); H['w-warm-next'](); }
+  } else if (W.phase === 'warmup' && W.warmEnd > 0) {
+    var wit = warmupItems(D, state)[W.warmI || 0], wel = wit.secs - (W.warmEnd - Date.now()) / 1000, we = $('#warmTime');
+    if (we) we.textContent = Math.min(wit.secs, Math.floor(wel)) + ' s';
+    if (wel >= wit.secs) { beep(); W.warmEnd = -1; saveDraft(); renderWorkout(); }
   } else if (W.phase === 'set' && W.holdStart) {
-    var el2 = $('#holdTime'); if (el2) el2.textContent = Math.floor((Date.now() - W.holdStart) / 1000) + ' s';
+    var el2 = $('#holdTime'), hs = (Date.now() - W.holdStart) / 1000, hst = curStep(), htg = W.logged[hst.slot].targets[hst.set - 1];
+    if (el2) el2.textContent = Math.min(htg, Math.floor(hs)) + ' s';
+    if (hs >= htg) { beep(); H['w-hold-stop'](); }
   }
 }
 function warmGo(d) {
@@ -422,32 +424,48 @@ function warmGo(d) {
   if (i >= n) { H['w-begin'](); return; }
   W.warmI = Math.max(0, i); saveDraft(); renderWorkout();
 }
+function exList() {
+  var seen = [];
+  W.steps.forEach(function (s) { if (seen.indexOf(s.slot) < 0) seen.push(s.slot); });
+  return seen;
+}
+function progressInfo() {
+  var wn = warmupItems(D, state).length, ex = exList(), done = 0;
+  ex.forEach(function (s) { var L = W.logged[s]; if (W.skipped.indexOf(s) >= 0 || (L && L.sets.length >= 3)) done++; });
+  var total = wn + ex.length, d = W.phase === 'warmup' ? Math.min(W.warmI || 0, wn) : wn + done;
+  return { done: d, total: total };
+}
 function groupLabel(step) {
   if (step.group === 'core') return 'Core';
   return 'Pair ' + step.group.slice(1) + ' of 3';
 }
+var lastKey = '';
 function renderWorkout() {
   var ov = $('#overlay');
-  if (!W) { ov.innerHTML = ''; return; }
-  var top = function (label, pct) {
-    return '<div class="w-top"><button class="w-x" data-act="w-exit" aria-label="Leave workout">×</button><div class="w-prog" role="progressbar" aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100" aria-label="Workout progress"><i style="width:' + pct + '%"></i></div><span class="w-count">' + label + '</span></div>';
+  if (!W) { ov.innerHTML = ''; document.body.classList.remove('no-scroll'); return; }
+  var top = function (label, pct, sub) {
+    return '<div class="w-head"><div class="w-top"><button class="w-x" data-act="w-exit" aria-label="Leave workout">×</button><div class="w-prog" role="progressbar" aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100" aria-label="Workout progress"><i style="width:' + pct + '%"></i></div><span class="w-count">' + label + '</span></div>' + (sub || '') + '</div>';
   };
+  var topFor = function (sub) { var p = progressInfo(); return top(Math.min(p.done + 1, p.total) + '/' + p.total, 100 * p.done / p.total, sub); };
+  var subTime = function (label, pct) { return '<div class="w-sub-row"><div class="w-prog sub"><i id="subBar" style="width:' + pct + '%"></i></div><span class="w-count" id="subLabel">' + label + '</span></div>'; };
   var body = '';
   if (W.phase === 'warmup') {
     var items = warmupItems(D, state), wi = Math.min(W.warmI || 0, items.length - 1), it = items[wi];
     var timerBox = '', main;
     if (it.secs && W.warmEnd) {
-      timerBox = '<div class="big-stepper"><span class="val num" id="warmTime">' + fmtClock((W.warmEnd - Date.now()) / 1000) + '</span></div>';
+      var shown = W.warmEnd < 0 ? it.secs : Math.min(it.secs, Math.floor(it.secs - (W.warmEnd - Date.now()) / 1000));
+      timerBox = '<div class="big-stepper"><span class="val num" id="warmTime">' + shown + ' s</span></div>';
       main = '<button class="btn tape" data-act="w-warm-next">Done</button>';
     } else if (it.secs) {
-      main = '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-warm-timer">Start ' + it.secs + ' s timer</button><button class="btn tape" data-act="w-warm-next">Done</button></div>';
+      timerBox = '<div class="big-stepper"><span class="val num">' + it.secs + ' s</span></div>';
+      main = '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-warm-timer">Start timer</button><button class="btn tape" data-act="w-warm-next">Done</button></div>';
     } else {
       main = '<button class="btn tape" data-act="w-warm-next">Done</button>';
     }
-    body = top((wi + 1) + '/' + items.length, 100 * wi / items.length) + '<div class="w-body"><p class="w-group">Warm-up · ' + (wi + 1) + ' of ' + items.length + '</p><h1 class="w-name">' + esc(it.name) + '</h1>' +
-      '<div class="w-target sm"><span class="num">' + esc(it.n) + '</span><span>' + esc(it.unit) + '</span></div>' +
-      '<ul class="how">' + it.how.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' + timerBox + main +
-      (it.q ? '<div style="margin-top:16px">' + videoHtml('w.' + it.id, it.q) + '</div>' : '') +
+    body = topFor('') + '<div class="w-body"><p class="w-group">Warm-up</p><h1 class="w-name">' + esc(it.name) + '</h1>' +
+      '<p class="w-sub">Item ' + (wi + 1) + ' of ' + items.length + '</p><div class="w-target"><span class="num">' + esc(it.n) + '</span><span>' + esc(it.unit) + '</span></div>' +
+      it.how.map(function (t) { return '<p class="w-cue">' + esc(t) + '</p>'; }).join('') + timerBox + main +
+      (it.q ? '<div class="vid-keep" style="margin-top:16px">' + videoHtml('w.' + it.id, it.q) + '</div>' : '') +
       '<div class="w-links">' + (wi > 0 ? '<button data-act="w-warm-back">Back</button>' : '') + '<button data-act="w-warm-skip">Skip this</button><button data-act="w-begin">Skip warm-up</button></div></div>';
   } else if (W.phase === 'set') {
     var st = curStep(), lvl = levelOfStep(st), S = SLOTS[st.slot], L = W.logged[st.slot], tg = L.targets[st.set - 1];
@@ -455,26 +473,30 @@ function renderWorkout() {
     var pips = [1, 2, 3].map(function (n) { return '<i class="' + (n < st.set ? 'done' : n === st.set ? 'cur' : '') + '"></i>'; }).join('');
     var unit = lvl.kind === 'hold' ? 'seconds' : 'reps';
     if (lvl.perSide) unit += ' per side';
+    var doneLabel = lvl.perSide ? (W.side ? 'Left side done' : 'Right side done') : 'Set done';
+    var sidesHtml = lvl.perSide ? '<div class="sides" aria-label="Sides"><span class="' + (W.side ? 'done' : 'cur') + '">Right side</span><span class="' + (W.side ? 'cur' : '') + '">Left side</span></div><p class="muted small">Do one side, then the other. Both sides count as one set.</p>' : '';
     var input;
     if (lvl.kind === 'hold') {
       input = (W.holdStart ? '<div class="big-stepper"><span class="val num" id="holdTime">0 s</span></div><button class="btn tape" data-act="w-hold-stop">Stop</button>' :
         '<div class="big-stepper"><button data-act="w-val" data-d="-5" aria-label="Minus 5 seconds">−</button><span class="val num" id="val">' + W.value + ' s</span><button data-act="w-val" data-d="5" aria-label="Plus 5 seconds">+</button></div>' +
-        '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-hold-start">Start timer</button><button class="btn tape" data-act="w-log">Set done</button></div>');
+        '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-hold-start">Start timer</button><button class="btn tape" data-act="w-log">' + doneLabel + '</button></div>');
     } else {
-      input = '<div class="big-stepper"><button data-act="w-val" data-d="-1" aria-label="Minus one rep">−</button><span class="val num" id="val">' + W.value + '</span><button data-act="w-val" data-d="1" aria-label="Plus one rep">+</button></div><button class="btn tape" data-act="w-log">Set done</button>';
+      input = '<div class="big-stepper"><button data-act="w-val" data-d="-1" aria-label="Minus one rep">−</button><span class="val num" id="val">' + W.value + '</span><button data-act="w-val" data-d="1" aria-label="Plus one rep">+</button></div><button class="btn tape" data-act="w-log">' + doneLabel + '</button>';
     }
-    body = top((W.i + 1) + '/' + W.steps.length, pct) + '<div class="w-body"><p class="w-group">' + groupLabel(st) + ' · ' + esc(S.label) + '</p><h1 class="w-name">' + esc(lvl.name) + '</h1><p class="w-sub">Set ' + st.set + ' of 3</p><div class="sets" aria-hidden="true">' + pips + '</div>' +
-      '<div class="w-target"><span class="num">' + tg + '</span><span>' + unit + ' target</span></div><p class="w-cue">' + esc(lvl.cues[0] || (S.general && S.general[0]) || '') + '</p>' + input +
-      '<div class="w-links"><button data-act="w-info">How to</button><button data-act="w-skip">Skip exercise</button><button data-act="w-finish-ask">Finish workout</button></div></div>';
+    var ssub = '';
+    body = topFor(ssub) + '<div class="w-body"><p class="w-group">' + groupLabel(st) + ' · ' + esc(S.label) + '</p><h1 class="w-name">' + esc(lvl.name) + '</h1><p class="w-sub">Set ' + st.set + ' of 3</p>' +
+      sidesHtml + '<div class="w-target"><span class="num">' + tg + '</span><span>' + unit + ' target</span></div><p class="w-cue">' + esc(lvl.cues[0] || (S.general && S.general[0]) || '') + '</p>' + input + '<div class="vid-keep" style="margin-top:16px">' + vidBlock(lvl) + '</div>' +
+      '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-info">How to</button><button data-act="w-skip">Skip exercise</button><button data-act="w-finish-ask">Finish workout</button></div></div>';
   } else if (W.phase === 'rest') {
     var st2 = curStep(), n = nextIndex(W.i + 1), pct2 = 100 * (W.i + 1) / W.steps.length;
     var nextHtml = '';
     if (n >= 0) {
       var ns = W.steps[n], nl = levelOfStep(ns), nt = W.logged[ns.slot].targets[ns.set - 1];
-      nextHtml = '<div class="next-up"><span class="muted small">Up next</span><div class="n">' + esc(nl.name) + '</div><span class="muted">Set ' + ns.set + ' of 3 · target ' + nt + (nl.kind === 'hold' ? ' s' : ' reps') + (nl.perSide ? ' per side' : '') + '</span>' + '<div style="margin-top:12px">' + videoHtml(nl.id, nl.q + ' tutorial') + '</div>' + '</div>';
+      nextHtml = '<div class="next-up"><span class="muted small">Up next</span><div class="n">' + esc(nl.name) + '</div><span class="muted">Set ' + ns.set + ' of 3 · target ' + nt + (nl.kind === 'hold' ? ' s' : ' reps') + (nl.perSide ? ' per side' : '') + '</span>' + '<div class="vid-keep" style="margin-top:12px">' + vidBlock(nl) + '</div>' + '</div>';
     }
-    body = top((W.i + 1) + '/' + W.steps.length, pct2) + '<div class="w-body"><p class="w-group">Rest</p><div class="rest-time num" id="restTime">' + fmtClock((W.restEnd - Date.now()) / 1000) + '</div><div class="rest-bar"><i id="restBar" style="width:0%"></i></div>' +
-      '<div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Skip</button></div>' + nextHtml + '</div>';
+    var rrem = (W.restEnd - Date.now()) / 1000;
+    body = topFor(subTime(fmtClock(rrem), 100 * (1 - rrem / W.restTotal))) + '<div class="w-body"><p class="w-group">Rest</p><div class="rest-time num" id="restTime">' + fmtClock((W.restEnd - Date.now()) / 1000) + '</div>' +
+      '<div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Skip</button></div>' + nextHtml + '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-finish-ask">Finish workout</button></div></div>';
   } else if (W.phase === 'summary') {
     var r = W.result, mins = Math.max(1, Math.round(r.session.durationSec / 60));
     var rows = SLOT_ORDER.filter(function (k) { return r.session.entries[k]; }).map(function (k) {
@@ -486,7 +508,27 @@ function renderWorkout() {
       '<div style="margin-top:14px;border-top:2px solid var(--ink)">' + (rows || '<p class="empty">No sets logged.</p>') + '</div>' +
       '<div style="margin-top:auto;padding-top:22px"><button class="btn tape" data-act="w-close">Close</button></div></div>';
   }
-  $('#overlay').innerHTML = '<div class="overlay" role="region" aria-label="Workout in progress">' + body + '</div>';
+  /* Mantém o iframe do vídeo entre renders (se o vídeo é o mesmo), para ele não recarregar a cada toque. */
+  var oldK = ov.querySelector('.vid-keep'), oldBody = ov.querySelector('.w-body');
+  var key = W.phase + ':' + W.i + ':' + (W.side || 0), scr = oldBody && oldBody.scrollTop;
+  var tmp = document.createElement('div');
+  tmp.innerHTML = '<div class="overlay" role="region" aria-label="Workout in progress">' + body + '</div>';
+  var newK = tmp.querySelector('.vid-keep'), oF = oldK && oldK.querySelector('iframe'), nF = newK && newK.querySelector('iframe');
+  if (oF && nF && oF.getAttribute('src') === nF.getAttribute('src') && oldK.parentNode.className === 'w-body' && newK.parentNode.className === 'w-body') {
+    /* Mesmo vídeo: troca tudo em volta dele, sem mexer no iframe (mover um iframe recarrega o vídeo). */
+    var ob = oldK.parentNode, nb = newK.parentNode;
+    ov.querySelector('.w-head').replaceWith(tmp.querySelector('.w-head'));
+    while (ob.firstChild !== oldK) ob.removeChild(ob.firstChild);
+    while (oldK.nextSibling) ob.removeChild(oldK.nextSibling);
+    while (nb.firstChild !== newK) ob.insertBefore(nb.firstChild, oldK);
+    while (newK.nextSibling) ob.appendChild(newK.nextSibling);
+  } else {
+    ov.innerHTML = ''; ov.appendChild(tmp.firstChild);
+    var nbody = ov.querySelector('.w-body');
+    if (nbody && scr && key === lastKey) nbody.scrollTop = scr;
+  }
+  lastKey = key;
+  document.body.classList.add('no-scroll');
 }
 function logSet() {
   var st = curStep(), L = W.logged[st.slot];
@@ -507,7 +549,7 @@ function finishNow() {
   clearDraft(); stopTick();
   W.phase = 'summary'; W.result = res; renderWorkout();
 }
-function closeWorkout() { W = null; stopTick(); $('#overlay').innerHTML = ''; closeSheet(); render(); }
+function closeWorkout() { W = null; stopTick(); $('#overlay').innerHTML = ''; document.body.classList.remove('no-scroll'); closeSheet(); render(); }
 
 /* ---------- Eventos ---------- */
 var H = {
@@ -519,7 +561,7 @@ var H = {
   'open-warm': function (el) { openWarm(el.dataset.id); },
   'vid-tab': function (el) {
     el.parentNode.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b === el ? 'true' : 'false'); });
-    $('#vidSlot').innerHTML = videoHtml(el.dataset.key, el.dataset.q);
+    el.closest('.vid-wrap').querySelector('.vid-slot').innerHTML = videoHtml(el.dataset.key, el.dataset.q);
   },
   'sheet-close': function () { closeSheet(); },
   'pick-level': function (el) {
@@ -574,8 +616,8 @@ var H = {
       { label: 'Continue workout', act: 'sheet-close', cls: 'tape' }].concat(any ? [{ label: 'Save and finish', act: 'w-finish', cls: 'ghost' }] : []).concat([
       { label: any ? 'Leave and continue later' : 'Leave workout', act: 'w-leave', cls: 'ghost' }, { label: 'Discard workout', act: 'w-discard', cls: 'ghost' }]));
   },
-  'w-leave': function () { saveDraft(); W = null; stopTick(); $('#overlay').innerHTML = ''; closeSheet(); render(); },
-  'w-discard': function () { clearDraft(); W = null; stopTick(); $('#overlay').innerHTML = ''; closeSheet(); render(); },
+  'w-leave': function () { saveDraft(); W = null; stopTick(); $('#overlay').innerHTML = ''; document.body.classList.remove('no-scroll'); closeSheet(); render(); },
+  'w-discard': function () { clearDraft(); W = null; stopTick(); $('#overlay').innerHTML = ''; document.body.classList.remove('no-scroll'); closeSheet(); render(); },
   'w-finish-ask': function () { H['w-exit'](); },
   'w-finish': function () { closeSheet(); finishNow(); },
   'w-warm-next': function () { var it = warmupItems(D, state)[W.warmI || 0]; if (it) W.warm[it.id] = true; warmGo(1); },
@@ -588,12 +630,31 @@ var H = {
     W.value = Math.max(0, W.value + d); saveDraft();
     $('#val').textContent = W.value + (lvl.kind === 'hold' ? ' s' : '');
   },
+  'w-back': function () {
+    var from = W.phase === 'rest' ? W.i : W.i - 1, p = -1;
+    for (var k = from; k >= 0; k--) if (W.skipped.indexOf(W.steps[k].slot) < 0) { p = k; break; }
+    if (p < 0) {
+      var wi = warmupItems(D, state).length - 1;
+      W.phase = 'warmup'; W.warmI = Math.max(0, wi); W.warmEnd = 0; W.holdStart = null; saveDraft(); renderWorkout(); return;
+    }
+    var ps = W.steps[p], L = W.logged[ps.slot], prev = L.sets[ps.set - 1];
+    L.sets.length = Math.min(L.sets.length, ps.set - 1);
+    W.i = p; W.phase = 'set'; setDefault();
+    if (prev != null) W.value = prev;
+    saveDraft(); renderWorkout();
+  },
   'w-hold-start': function () { W.holdStart = Date.now(); renderWorkout(); },
-  'w-hold-stop': function () { W.value = Math.max(1, Math.round((Date.now() - W.holdStart) / 1000)); W.holdStart = null; saveDraft(); renderWorkout(); },
-  'w-log': function () { logSet(); },
+  'w-hold-stop': function () { var hst = curStep(), cap = W.logged[hst.slot].targets[hst.set - 1]; W.value = Math.min(cap, Math.max(1, Math.round((Date.now() - W.holdStart) / 1000))); W.holdStart = null; saveDraft(); renderWorkout(); },
+  'w-log': function () {
+    var st = curStep(), lvl = levelOfStep(st);
+    if (lvl.perSide) {
+      if (!W.side) { W.right = W.value; W.side = 1; W.value = W.logged[st.slot].targets[st.set - 1]; W.holdStart = null; saveDraft(); renderWorkout(); return; }
+      W.value = Math.min(W.right == null ? W.value : W.right, W.value);
+    }
+    logSet();
+  },
   'w-rest-add': function () { W.restEnd += 15000; W.restTotal += 15; saveDraft(); },
   'w-rest-skip': function () { var n = nextIndex(W.i + 1); if (n >= 0) goSet(n); else finishNow(); },
-  'play-vid': function (el) { playVideo(el); },
   'w-info': function () { openSheet(curStep().slot, 'workout'); },
   'w-skip': function () {
     var st = curStep(); W.skipped.push(st.slot);
