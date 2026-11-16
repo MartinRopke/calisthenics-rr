@@ -91,9 +91,11 @@ ul { padding: 0; list-style: none; }
 .ex-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .ex-name { font-weight: 700; font-size: 18px; }
 .ex-meta { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.ex-equip { color: var(--ink2); font-size: 14px; margin-top: 4px; }
 .ex-target { font-size: 24px; white-space: nowrap; }
 .ex-target small { font-stretch: 100%; font-weight: 600; font-size: 13px; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
 .ex.off .ex-name, .ex.off .ex-target { color: var(--muted); }
+.ex-name { overflow-wrap: anywhere; }
 
 .rungs { display: flex; gap: 3px; margin-top: 9px; align-items: flex-end; height: 14px; }
 .rung { flex: 1; max-width: 34px; height: 6px; border-radius: 2px; border: 2px solid var(--line); }
@@ -243,6 +245,7 @@ function mk(id, name, kind, opts) {
     perSide: !!opts.perSide,
     cues: opts.cues || [],
     equip: opts.equip || '',
+    setup: opts.setup || [],
     note: opts.note || '',
     q: opts.q || name,
     lo: kind === 'hold' ? 10 : (core ? 8 : 5),
@@ -253,118 +256,124 @@ function mk(id, name, kind, opts) {
 }
 
 var SLOTS = {
-  pullup: { label: 'Pull-up', group: 'Puxar na vertical', wiki: 'pullup', needsBar: true,
-    muscles: 'Dorsais, bíceps e parte alta das costas',
-    general: ['Corpo levemente em hollow, pernas estendidas e sem cruzar', 'Braços retos embaixo, sem pensar em mais nada', 'Busque o peito na barra em cima, subindo aos poucos nessa amplitude', 'Pescoço neutro, sem esticar o queixo para passar da barra'] },
-  squat: { label: 'Agachamento', group: 'Pernas', wiki: 'squat',
-    muscles: 'Quadríceps e glúteos',
-    general: ['Fique em pé por completo no topo', 'Desça o máximo que conseguir, de preferência com o quadril abaixo dos joelhos', 'Pressione o dedão e o calcanhar no chão', 'Joelhos alinhados com os pés e empurrando para fora'] },
-  dip: { label: 'Dip', group: 'Empurrar na vertical', wiki: 'dip',
-    muscles: 'Peito (parte de baixo), tríceps e ombros',
-    general: ['Corpo reto ou levemente em hollow, sem dobrar no quadril', 'Braços travados e escápulas para baixo no topo', 'Desça o máximo que conseguir', 'Cotovelos junto ao corpo'] },
-  hinge: { label: 'Hinge', group: 'Posterior de coxa', wiki: 'hinge',
-    muscles: 'Posteriores da coxa, glúteos e lombar',
+  pullup: { label: 'Pull-up', group: 'Vertical pull', wiki: 'pullup', needsBar: true,
+    muscles: 'Lats, biceps and upper back',
+    general: ['Slightly hollow body, legs straight and uncrossed', 'Arms fully straight at the bottom, with no extra tricks', 'Aim to bring your chest to the bar at the top, building up to that range over time', 'Neutral neck, without stretching your chin to clear the bar'] },
+  squat: { label: 'Squat', group: 'Legs', wiki: 'squat',
+    muscles: 'Quads and glutes',
+    general: ['Stand up fully at the top', 'Go as deep as you can, ideally with the hips below the knees', 'Press the big toe and the heel into the floor', 'Knees in line with the feet and pushing out'] },
+  dip: { label: 'Dip', group: 'Vertical push', wiki: 'dip',
+    muscles: 'Lower chest, triceps and shoulders',
+    general: ['Straight or slightly hollow body, no bending at the hips', 'Lock the arms and push the shoulder blades down at the top', 'Go as deep as you can', 'Elbows close to the body'] },
+  hinge: { label: 'Hinge', group: 'Hamstrings', wiki: 'hinge',
+    muscles: 'Hamstrings, glutes and lower back',
     general: [] },
-  row: { label: 'Remada', group: 'Puxar na horizontal', wiki: 'row',
-    muscles: 'Meio das costas, dorsais, parte de trás dos ombros e bíceps',
-    general: ['Corpo reto', 'Cotovelos junto ao corpo', 'Braços esticados embaixo', 'Peito até a barra ou a borda, com as escápulas juntas em cima', 'Não encolha os ombros'] },
-  pushup: { label: 'Flexão', group: 'Empurrar na horizontal', wiki: 'pushup',
-    muscles: 'Peito, ombros (frente) e tríceps, com o core firme',
-    general: ['Corpo em linha reta da cabeça aos pés, sem deixar o quadril cair', 'Braços travados e escápulas afastadas no topo', 'Desça até o peito quase tocar o chão', 'Cotovelos junto ao corpo e ombros longe das orelhas'] },
-  core_ae: { label: 'Core: anti-extensão', group: 'Core', wiki: 'core', core: true,
-    muscles: 'Abdômen (reto abdominal e transverso)', general: [] },
-  core_ar: { label: 'Core: anti-rotação', group: 'Core', wiki: 'core', core: true,
-    muscles: 'Oblíquos e estabilizadores do quadril', general: [] },
-  core_ex: { label: 'Core: extensão', group: 'Core', wiki: 'core', core: true,
-    muscles: 'Lombar e glúteos', general: [] }
+  row: { label: 'Row', group: 'Horizontal pull', wiki: 'row',
+    muscles: 'Mid back, lats, rear shoulders and biceps',
+    general: ['Straight body', 'Elbows close to the body', 'Arms fully straight at the bottom', 'Chest to the bar or the edge, with the shoulder blades together at the top', 'Do not shrug the shoulders'] },
+  pushup: { label: 'Push-up', group: 'Horizontal push', wiki: 'pushup',
+    muscles: 'Chest, front shoulders and triceps, with a tight core',
+    general: ['Straight line from head to feet, without letting the hips sag', 'Arms locked and shoulder blades spread apart at the top', 'Lower until the chest almost touches the floor', 'Elbows close to the body and shoulders away from the ears'] },
+  core_ae: { label: 'Core: anti-extension', group: 'Core', wiki: 'core', core: true,
+    muscles: 'Abs (rectus abdominis and transverse abdominis)', general: [] },
+  core_ar: { label: 'Core: anti-rotation', group: 'Core', wiki: 'core', core: true,
+    muscles: 'Obliques and hip stabilizers', general: [] },
+  core_ex: { label: 'Core: extension', group: 'Core', wiki: 'core', core: true,
+    muscles: 'Lower back and glutes', general: [] }
 };
 
-/* Cada slot tem caminhos (paths) com a sua escada de níveis. O primeiro é o caminho padrão. */
+/* Cada slot tem caminhos (paths) com a sua escada de níveis. O primeiro é o caminho padrão.
+   equip: o que o exercício pede, com as opções. Fica vazio quando não precisa de nada. */
+var EQ_ROW = 'low bar, rings or a sturdy table';
+var EQ_BAR = 'pull-up bar, monkey bars or rings';
+var EQ_DIP = 'parallel bars, two sturdy chairs or a counter corner';
+var ROW_SETUP = ['eq.row.sheet', 'eq.row.table'];
+var EQ_COP = 'bench, couch, counter or sturdy chair';
 var LADDERS = {
-  pushup: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('pushup.vert', 'Flexão vertical', 'reps', { q: 'wall push up', cues: ['Em pé, de frente para a parede, mãos apoiadas nela', 'Faça a flexão mantendo o corpo reto'] }),
-    mk('pushup.inc', 'Flexão inclinada', 'reps', { q: 'incline push up', cues: ['Mãos num apoio firme, como mesa ou banco', 'Quanto mais baixo o apoio, mais difícil'] }),
-    mk('pushup.full', 'Flexão completa', 'reps', { q: 'push up form' }),
-    mk('pushup.dia', 'Flexão diamante', 'reps', { q: 'diamond push up', cues: ['Mãos juntas, polegares e indicadores se tocando', 'Se incomodar, comece com as mãos um pouco mais juntas que o normal e feche aos poucos'] }),
-    mk('pushup.ppu', 'Pseudo planche push-up', 'reps', { q: 'pseudo planche push up', cues: ['Mãos viradas para os lados, ombros à frente das mãos', 'Mantenha a inclinação durante toda a repetição e afaste as escápulas no topo', 'Mais inclinação deixa mais difícil, menos deixa mais fácil'] })
+  pushup: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('pushup.vert', 'Wall push-up', 'reps', { q: 'wall push up', cues: ['Stand facing a wall with your hands on it', 'Do the push-up keeping the body straight'] }),
+    mk('pushup.inc', 'Incline push-up', 'reps', { q: 'incline push up', equip: 'table, bench or another sturdy surface', cues: ['Hands on a sturdy surface, like a table or bench', 'The lower the surface, the harder it gets'] }),
+    mk('pushup.full', 'Full push-up', 'reps', { q: 'push up form' }),
+    mk('pushup.dia', 'Diamond push-up', 'reps', { q: 'diamond push up', cues: ['Hands together, thumbs and index fingers touching', 'If it hurts, start with the hands slightly closer than normal and bring them together gradually'] }),
+    mk('pushup.ppu', 'Pseudo planche push-up', 'reps', { q: 'pseudo planche push up', cues: ['Hands turned out to the sides, shoulders ahead of the hands', 'Keep the lean through the whole rep and spread the shoulder blades at the top', 'More lean is harder, less lean is easier'] })
   ] } } },
 
-  row: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('row.vert', 'Remada vertical', 'reps', { q: 'vertical row bodyweight', cues: ['A mesma remada, com o corpo na vertical'] }),
-    mk('row.inc', 'Remada inclinada', 'reps', { q: 'incline inverted row', cues: ['Corpo entre vertical e horizontal', 'Mais perto da horizontal, mais difícil', 'Na mesa: pés mais afastados deixam mais difícil'] }),
-    mk('row.hor', 'Remada horizontal', 'reps', { q: 'inverted row', cues: ['Corpo reto e paralelo ao chão', 'Pernas dobradas deixam a remada mais fácil'] }),
-    mk('row.wide', 'Remada aberta', 'reps', { q: 'wide grip inverted row', cues: ['Pegada com cerca de 1,5 vez a largura dos ombros', 'Aqui os cotovelos podem abrir'] }),
-    mk('row.wt', 'Remada invertida com peso', 'reps', { q: 'weighted inverted row', equip: 'colete de peso ou anilha', cues: ['Peso no peito ou na barriga, ou colete de peso'] })
+  row: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('row.vert', 'Vertical row', 'reps', { q: 'vertical row bodyweight', equip: EQ_ROW, setup: ROW_SETUP, cues: ['The same row, with the body upright'] }),
+    mk('row.inc', 'Incline row', 'reps', { q: 'incline inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Body between vertical and horizontal', 'The closer to horizontal, the harder', 'On a table: feet farther away make it harder'] }),
+    mk('row.hor', 'Horizontal row', 'reps', { q: 'inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Straight body, parallel to the floor', 'Bent legs make the row easier'] }),
+    mk('row.wide', 'Wide row', 'reps', { q: 'wide grip inverted row', equip: EQ_ROW, setup: ROW_SETUP, cues: ['Grip about 1.5 times shoulder width', 'Here the elbows can flare out'] }),
+    mk('row.wt', 'Weighted row', 'reps', { q: 'weighted inverted row', equip: EQ_ROW + ', plus a weight vest or plate', cues: ['Weight on the chest or belly, or a weight vest'] })
   ] } } },
 
-  squat: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('squat.assist', 'Agachamento assistido', 'reps', { q: 'assisted squat', cues: ['Segure em algo à frente e use as mãos para ajudar', 'Reduza a ajuda com o tempo'] }),
-    mk('squat.sq', 'Agachamento', 'reps', { q: 'bodyweight squat form' }),
-    mk('squat.split', 'Agachamento dividido', 'reps', { perSide: true, q: 'split squat', cues: ['Fique na posição de afundo durante toda a série', 'Diferente do avanço, os pés não voltam a se juntar'] }),
-    mk('squat.bulg', 'Agachamento búlgaro', 'reps', { perSide: true, q: 'bulgarian split squat', equip: 'banco ou cadeira', cues: ['Pé de trás apoiado num banco', 'Para evoluir, eleve também o pé da frente'] }),
-    mk('squat.shr1', 'Shrimp squat iniciante', 'reps', { perSide: true, q: 'beginner shrimp squat', cues: ['O joelho e a ponta do pé de trás saem do chão juntos'] }),
-    mk('squat.shr2', 'Shrimp squat intermediário', 'reps', { perSide: true, q: 'intermediate shrimp squat', cues: ['O joelho toca o chão, a ponta do pé não'] }),
-    mk('squat.shr3', 'Shrimp squat avançado', 'reps', { perSide: true, q: 'advanced shrimp squat', cues: ['Segure o calcanhar ao descer', 'Só o joelho toca o chão'] }),
-    mk('squat.shrw', 'Shrimp squat com peso', 'reps', { perSide: true, q: 'weighted shrimp squat', equip: 'peso', cues: ['O mesmo shrimp avançado, com carga extra'] })
+  squat: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('squat.assist', 'Assisted squat', 'reps', { q: 'assisted squat', cues: ['Hold something in front of you and use your hands to help', 'Reduce the help over time'] }),
+    mk('squat.sq', 'Squat', 'reps', { q: 'bodyweight squat form' }),
+    mk('squat.split', 'Split squat', 'reps', { perSide: true, q: 'split squat', cues: ['Stay in the lunge position for the whole set', 'Unlike a lunge, the feet never come back together'] }),
+    mk('squat.bulg', 'Bulgarian split squat', 'reps', { perSide: true, q: 'bulgarian split squat', equip: 'bench or chair', cues: ['Back foot resting on a bench', 'To progress, also raise the front foot'] }),
+    mk('squat.shr1', 'Beginner shrimp squat', 'reps', { perSide: true, q: 'beginner shrimp squat', cues: ['The back knee and the back toes leave the floor together'] }),
+    mk('squat.shr2', 'Intermediate shrimp squat', 'reps', { perSide: true, q: 'intermediate shrimp squat', cues: ['The knee touches the floor, the toes do not'] }),
+    mk('squat.shr3', 'Advanced shrimp squat', 'reps', { perSide: true, q: 'advanced shrimp squat', cues: ['Hold the heel as you go down', 'Only the knee touches the floor'] }),
+    mk('squat.shrw', 'Weighted shrimp squat', 'reps', { perSide: true, q: 'weighted shrimp squat', equip: 'weights', cues: ['The same advanced shrimp, with extra load'] })
   ] } } },
 
-  pullup: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('pullup.scap', 'Scapular pulls', 'reps', { q: 'scapular pull ups', equip: 'barra', cues: ['Cotovelos retos o tempo todo', 'Segure de 3 a 5 s em cima, apertando as escápulas, e solte até a pendurada com controle', 'Se não sair da pendurada, use faixa ou os pés para ajudar'] }),
-    mk('pullup.arch', 'Arch hangs', 'hold', { q: 'arch hang pull up progression', equip: 'barra', cues: ['Cotovelos retos, segure pelo tempo da meta', 'Evolua em direção a 90 graus no ombro'] }),
-    mk('pullup.neg', 'Pull-ups negativas', 'reps', { q: 'negative pull ups', equip: 'barra', cues: ['Pule até o topo e desça o mais devagar que conseguir, até esticar os braços', 'Vá subindo até descidas de 10 s'] }),
-    mk('pullup.pu', 'Pull-up', 'reps', { q: 'pull up form', equip: 'barra' }),
-    mk('pullup.wt', 'Pull-up com peso', 'reps', { q: 'weighted pull up', equip: 'barra e peso', cues: ['A mesma pull-up, com carga extra'] })
+  pullup: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('pullup.scap', 'Scapular pulls', 'reps', { q: 'scapular pull ups', equip: EQ_BAR, cues: ['Elbows straight the whole time', 'Hold 3 to 5 s at the top, squeezing the shoulder blades, then lower back to the hang with control', 'If you cannot leave the hang, use a band or your feet to help'] }),
+    mk('pullup.arch', 'Arch hangs', 'hold', { q: 'arch hang pull up progression', equip: EQ_BAR, cues: ['Elbows straight, hold for the target time', 'Work toward 90 degrees at the shoulder'] }),
+    mk('pullup.neg', 'Negative pull-ups', 'reps', { q: 'negative pull ups', equip: EQ_BAR, cues: ['Jump to the top and lower as slowly as you can, until your arms are straight', 'Work up to 10 s descents'] }),
+    mk('pullup.pu', 'Pull-up', 'reps', { q: 'pull up form', equip: EQ_BAR }),
+    mk('pullup.wt', 'Weighted pull-up', 'reps', { q: 'weighted pull up', equip: EQ_BAR + ', plus weights', cues: ['The same pull-up, with extra load'] })
   ] } } },
 
-  dip: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('dip.hold', 'Sustentação nas paralelas', 'hold', { q: 'parallel bar support hold', equip: 'duas cadeiras firmes ou quina de balcão', note: 'A página do dip pede chegar a 1 minuto. A regra geral do guia é 30 s, que é a meta usada aqui.', cues: ['Braços retos, corpo firme e escápulas para baixo, segurando pelo tempo da meta', 'Sem paralelas: duas cadeiras firmes (ponha peso nos assentos), a quina de um balcão em 90 graus ou duas mesas da mesma altura', 'Se não sustentar, ajude com os pés ou uma faixa'] }),
-    mk('dip.neg', 'Dips negativos', 'reps', { q: 'negative dips', equip: 'duas cadeiras firmes ou quina de balcão', cues: ['Só a descida, com controle', 'Suba pulando ou com um apoio', 'Vá subindo até descidas de 10 s'] }),
-    mk('dip.pb', 'Dips nas paralelas', 'reps', { q: 'parallel bar dips', equip: 'paralelas ou apoio firme' }),
-    mk('dip.wt', 'Dips com peso', 'reps', { q: 'weighted dips', equip: 'paralelas e peso', cues: ['O mesmo dip, com carga extra'] })
+  dip: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('dip.hold', 'Parallel bar support hold', 'hold', { q: 'parallel bar support hold', equip: EQ_DIP, note: 'The dip page asks you to work up to 1 minute. The guide\'s general rule is 30 s, which is the target used here.', cues: ['Straight arms, tight body and shoulder blades down, holding for the target time', 'No parallel bars: two sturdy chairs (put some weight on the seats), a counter corner at 90 degrees or two tables of the same height', 'If you cannot hold it, help with your feet or a band'] }),
+    mk('dip.neg', 'Negative dips', 'reps', { q: 'negative dips', equip: EQ_DIP, cues: ['Only the way down, with control', 'Get back up by jumping or with a support', 'Work up to 10 s descents'] }),
+    mk('dip.pb', 'Parallel bar dips', 'reps', { q: 'parallel bar dips', equip: EQ_DIP }),
+    mk('dip.wt', 'Weighted dips', 'reps', { q: 'weighted dips', equip: 'parallel bars and weights', cues: ['The same dip, with extra load'] })
   ] } } },
 
-  hinge: { defaultPath: 'main', paths: { main: { label: 'Escada principal', levels: [
-    mk('hinge.rdl', 'Levantamento terra romeno', 'reps', { q: 'bodyweight romanian deadlift', cues: ['Em pé, contraia o glúteo para deixar a lombar neutra', 'Leve o quadril para trás e incline o tronco para não cair', 'Mãos no peito e na barriga para ter feedback, ou soltas ao lado', 'O movimento é suave'] }),
-    mk('hinge.sldl', 'Terra unilateral', 'reps', { perSide: true, q: 'single leg romanian deadlift', cues: ['Sem equilíbrio, apoie uma mão numa superfície ou afaste as pernas'] }),
-    mk('hinge.nn', 'Nordic curl negativo com faixa', 'reps', { q: 'banded nordic curl negative', equip: 'faixa elástica e apoio para os pés', cues: ['Prenda os pés sob algo firme, a cerca de um punho do tornozelo', 'Contraia o glúteo para manter o quadril estendido', 'Desça devagar, sem dobrar no quadril', 'No fim, faça uma pequena flexão para voltar'] }),
-    mk('hinge.nc', 'Nordic curl com faixa', 'reps', { q: 'banded nordic curl', equip: 'faixa elástica e apoio para os pés', cues: ['Mesma montagem, agora subindo com a força dos posteriores', 'Quando ficar fácil, repita as duas etapas com faixas mais fracas'] }),
-    mk('hinge.nord', 'Nordic curl', 'reps', { q: 'nordic hamstring curl', equip: 'apoio para os pés', cues: ['Contraia o glúteo, desça e suba sem dobrar no quadril'] })
+  hinge: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
+    mk('hinge.rdl', 'Romanian deadlift', 'reps', { q: 'bodyweight romanian deadlift', cues: ['Standing, squeeze the glutes to keep the lower back neutral', 'Send the hips back and lean the torso forward so you do not fall over', 'Hands on the chest and belly for feedback, or hanging at your sides', 'The movement is smooth'] }),
+    mk('hinge.sldl', 'Single leg deadlift', 'reps', { perSide: true, q: 'single leg romanian deadlift', cues: ['If you lack balance, rest a hand on a surface or widen your stance'] }),
+    mk('hinge.nn', 'Banded nordic curl negative', 'reps', { q: 'banded nordic curl negative', equip: 'resistance band and something sturdy to anchor your feet', cues: ['Anchor your feet under something sturdy, about a fist away from the ankle', 'Squeeze the glutes to keep the hips extended', 'Lower slowly, without piking at the hips', 'At the bottom, do a small push-up to get back up'] }),
+    mk('hinge.nc', 'Banded nordic curl', 'reps', { q: 'banded nordic curl', equip: 'resistance band and something sturdy to anchor your feet', cues: ['Same setup, now coming up with the strength of the hamstrings', 'When it gets easy, repeat both steps with weaker bands'] }),
+    mk('hinge.nord', 'Nordic curl', 'reps', { q: 'nordic hamstring curl', equip: 'something sturdy to anchor your feet', cues: ['Squeeze the glutes, go down and come up without piking at the hips'] })
   ] } } },
 
   core_ae: { defaultPath: 'plank', paths: {
-    plank: { label: 'Prancha e rollouts', levels: [
-      mk('core_ae.plank', 'Prancha', 'hold', { core: true, q: 'plank form', cues: ['Faça só a prancha, sem os outros exercícios do vídeo', 'Quando chegar a 30 s, passe para os rollouts'] }),
-      mk('core_ae.roll', 'Ring ab rollouts', 'reps', { core: true, q: 'ring ab rollout', equip: 'argolas', cues: ['Cotovelos retos', 'Fique em hollow: costelas para baixo e quadril encaixado', 'Mãos tão perto quanto a mobilidade do ombro permitir', 'Argolas mais altas facilitam, pés elevados dificultam'] })
+    plank: { label: 'Plank and rollouts', levels: [
+      mk('core_ae.plank', 'Plank', 'hold', { core: true, q: 'plank form', cues: ['Do only the plank, not the other drills in the video', 'When you reach 30 s, move on to the rollouts'] }),
+      mk('core_ae.roll', 'Ring ab rollouts', 'reps', { core: true, q: 'ring ab rollout', equip: 'gymnastic rings', cues: ['Elbows straight', 'Stay hollow: ribs down and hips tucked', 'Hands as close as your shoulder mobility allows', 'Higher rings make it easier, elevated feet make it harder'] })
     ] },
-    hlr: { label: 'Elevação de pernas na barra', levels: [
-      mk('core_ae.tuck', 'Tucked hanging leg raises', 'reps', { core: true, q: 'tucked hanging leg raise', equip: 'barra', cues: ['Pendurada passiva, em hollow', 'Pés à frente do quadril e pausa de 1 s em cima e embaixo para não balançar'] }),
-      mk('core_ae.pike', 'Pike hanging leg raises negativo', 'reps', { core: true, q: 'hanging leg raise negative', equip: 'barra', cues: ['Suba com as pernas dobradas, estique e desça com as pernas retas'] }),
-      mk('core_ae.hlr', 'Straight hanging leg raises', 'reps', { core: true, q: 'straight leg hanging leg raise', equip: 'barra', cues: ['Pernas retas, sem balançar'] })
+    hlr: { label: 'Hanging leg raises', levels: [
+      mk('core_ae.tuck', 'Tucked hanging leg raises', 'reps', { core: true, q: 'tucked hanging leg raise', equip: 'bar or rings', cues: ['Passive hang, hollow body', 'Feet in front of the hips and a 1 s pause at the top and bottom to avoid swinging'] }),
+      mk('core_ae.pike', 'Pike hanging leg raises negative', 'reps', { core: true, q: 'hanging leg raise negative', equip: 'bar or rings', cues: ['Lift with the legs bent, straighten them and lower with straight legs'] }),
+      mk('core_ae.hlr', 'Straight hanging leg raises', 'reps', { core: true, q: 'straight leg hanging leg raise', equip: 'bar or rings', cues: ['Straight legs, no swinging'] })
     ] }
   } },
 
   core_ar: { defaultPath: 'cph', paths: {
     cph: { label: 'Copenhagen plank', levels: [
-      mk('core_ar.cph1', 'Copenhagen com joelho, assistido', 'hold', { core: true, perSide: true, q: 'assisted knee copenhagen plank', equip: 'banco, sofá ou cadeira firme', cues: ['A perna de baixo dá o mínimo de ajuda necessário', 'Não deixe o quadril cair', 'Pode apoiar na mão em vez do cotovelo'] }),
-      mk('core_ar.cph2', 'Copenhagen com joelho', 'hold', { core: true, perSide: true, q: 'knee copenhagen plank', equip: 'banco, sofá ou cadeira firme', cues: ['Não deixe o quadril cair', 'Pode apoiar na mão em vez do cotovelo'] }),
-      mk('core_ar.cph3', 'Copenhagen assistido', 'hold', { core: true, perSide: true, q: 'assisted copenhagen plank', equip: 'banco, sofá ou cadeira firme', cues: ['A perna de baixo dá o mínimo de ajuda necessário', 'Não deixe o quadril cair'] }),
-      mk('core_ar.cph4', 'Copenhagen plank', 'hold', { core: true, perSide: true, q: 'copenhagen plank', equip: 'banco, sofá ou cadeira firme', cues: ['Não deixe o quadril cair'] }),
-      mk('core_ar.cph5', 'Copenhagen com movimento', 'reps', { core: true, perSide: true, q: 'copenhagen plank with movement', equip: 'banco, sofá ou cadeira firme', cues: ['Leve a perna livre ao peito e volte com controle', 'Não deixe o quadril cair'] })
+      mk('core_ar.cph1', 'Assisted knee Copenhagen plank', 'hold', { core: true, perSide: true, q: 'assisted knee copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['The bottom leg gives the minimum help you need', 'Do not let the hips sag', 'You can rest on your hand instead of your elbow'] }),
+      mk('core_ar.cph2', 'Knee Copenhagen plank', 'hold', { core: true, perSide: true, q: 'knee copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['Do not let the hips sag', 'You can rest on your hand instead of your elbow'] }),
+      mk('core_ar.cph3', 'Assisted Copenhagen plank', 'hold', { core: true, perSide: true, q: 'assisted copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['The bottom leg gives the minimum help you need', 'Do not let the hips sag'] }),
+      mk('core_ar.cph4', 'Copenhagen plank', 'hold', { core: true, perSide: true, q: 'copenhagen plank', equip: EQ_COP, setup: ['eq.cop'], cues: ['Do not let the hips sag'] }),
+      mk('core_ar.cph5', 'Copenhagen plank with movement', 'reps', { core: true, perSide: true, q: 'copenhagen plank with movement', equip: EQ_COP, setup: ['eq.cop'], cues: ['Bring the free leg to the chest and return with control', 'Do not let the hips sag'] })
     ] },
     pallof: { label: 'Pallof press', levels: [
-      mk('core_ar.pal', 'Pallof press com faixa', 'reps', { core: true, perSide: true, q: 'banded pallof press', equip: 'faixa elástica', cues: ['Com controle, e uma pausa curta com os braços estendidos'] }),
-      mk('core_ar.ringpal', 'Ring Pallof press', 'reps', { core: true, perSide: true, q: 'ring pallof press', equip: 'argolas', cues: ['Afastar as pernas facilita, juntar dificulta'] })
+      mk('core_ar.pal', 'Banded Pallof press', 'reps', { core: true, perSide: true, q: 'banded pallof press', equip: 'resistance band', cues: ['Under control, with a short pause with the arms extended'] }),
+      mk('core_ar.ringpal', 'Ring Pallof press', 'reps', { core: true, perSide: true, q: 'ring pallof press', equip: 'gymnastic rings', cues: ['A wider stance makes it easier, a narrow one makes it harder'] })
     ] }
   } },
 
   core_ex: { defaultPath: 'arch', paths: {
-    arch: { label: 'Arch no chão', levels: [
-      mk('core_ex.raise', 'Arch raises', 'reps', { core: true, q: 'arch raises', cues: ['Só as elevações da parte de baixo do corpo, como no vídeo do guia'] }),
-      mk('core_ex.hold', 'Arch body hold', 'hold', { core: true, q: 'arch body hold', cues: ['Agora vale o resto do vídeo do guia'] }),
-      mk('core_ex.rock', 'Arch body rocks', 'reps', { core: true, q: 'arch body rocks', cues: ['Balance com controle, mantendo o arco'] })
+    arch: { label: 'Arch on the floor', levels: [
+      mk('core_ex.raise', 'Arch raises', 'reps', { core: true, q: 'arch raises', cues: ['Only the lower-body raises, as in the guide\'s video'] }),
+      mk('core_ex.hold', 'Arch body hold', 'hold', { core: true, q: 'arch body hold', cues: ['Now the rest of the guide\'s video applies'] }),
+      mk('core_ex.rock', 'Arch body rocks', 'reps', { core: true, q: 'arch body rocks', cues: ['Rock with control, keeping the arch'] })
     ] },
     rev: { label: 'Reverse hyperextension', levels: [
-      mk('core_ex.rev', 'Reverse hyperextension', 'reps', { core: true, q: 'reverse hyperextension bodyweight', equip: 'banco ou balcão', cues: ['Mantenha o bumbum contraído'] })
+      mk('core_ex.rev', 'Reverse hyperextension', 'reps', { core: true, q: 'reverse hyperextension bodyweight', equip: 'bench or counter', cues: ['Keep the glutes squeezed'] })
     ] }
   } }
 };
@@ -378,29 +387,28 @@ var SLOT_ORDER = [].concat.apply([], PAIRS).concat(CORE);
 var START_LEVELS = { pushup: 3, row: 1, squat: 1, pullup: 0, dip: 0, hinge: 0, core_ae: 0, core_ar: 0, core_ex: 0 };
 
 /* Aquecimento do guia, mais os extras que entram conforme você sobe de nível.
-   n e unit formam a meta ("5 a 10" + "repetições"); secs liga um cronômetro; how são os passos. */
+   n e unit formam a meta ("5 to 10" + "reps"); secs liga um cronômetro; how são os passos. */
 var WARMUP = [
-  { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 a 10', unit: 'repetições', q: 'Yuri shoulder band warmup',
-    how: ['Segure a faixa, ou uma camiseta, com os braços retos e as mãos bem afastadas', 'Leve a faixa por cima da cabeça até atrás do corpo e volte pelo mesmo caminho', 'Devagar e com os cotovelos retos. Se travar, abra mais as mãos'] },
-  { id: 'sky', name: 'Squat sky reaches', n: '5 a 10', unit: 'repetições', q: 'squat sky reaches',
-    how: ['Desça num agachamento fundo, com os pés na largura dos ombros', 'Embaixo, estique os braços para cima e abra o peito', 'Volte em pé e repita'] },
-  { id: 'wrist', name: 'GMB wrist prep', n: '10 ou mais', unit: 'de cada movimento', q: 'GMB wrist prep',
-    how: ['Apoie as mãos no chão e faça movimentos suaves de punho', 'Para frente e para trás, para os lados e em círculos', 'Sem forçar. Pare se doer'] },
-  { id: 'deadbug', name: 'Deadbugs', n: '30', unit: 'segundos', secs: 30, q: 'dead bug exercise',
-    how: ['Deitado, braços estendidos para cima e joelhos dobrados no ar', 'Lombar colada no chão o tempo todo', 'Estique um braço e a perna do lado oposto, volte e troque'] }
+  { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 to 10', unit: 'reps', equip: 'resistance band or a t-shirt', q: 'Yuri shoulder band warmup',
+    how: ['Hold the band, or a t-shirt, with straight arms and hands far apart', 'Take the band over your head to behind your body and come back the same way', 'Slowly and with straight elbows. If it gets stuck, widen your hands'] },
+  { id: 'sky', name: 'Squat sky reaches', n: '5 to 10', unit: 'reps', q: 'squat sky reaches',
+    how: ['Drop into a deep squat, feet shoulder width apart', 'At the bottom, reach your arms up and open the chest', 'Stand up and repeat'] },
+  { id: 'wrist', name: 'GMB wrist prep', n: '10 or more', unit: 'of each movement', q: 'GMB wrist prep',
+    how: ['Place your hands on the floor and do smooth wrist movements', 'Forward and back, side to side and in circles', 'Do not force it. Stop if it hurts'] },
+  { id: 'deadbug', name: 'Deadbugs', n: '30', unit: 'seconds', secs: 30, q: 'dead bug exercise',
+    how: ['Lying down, arms straight up and knees bent in the air', 'Keep your lower back on the floor the whole time', 'Extend one arm and the opposite leg, come back and switch'] }
 ];
 /* Extras: aparecem quando o exercício chega ao índice indicado. prevLevel usa o nível abaixo do atual. */
 var WARMUP_EXTRAS = [
-  { id: 'x_arch', slot: 'pullup', minIdx: 2, name: 'Arch hangs', n: '10', unit: 'repetições', q: 'arch hang pull up progression',
-    how: ['Pendurado na barra, com os cotovelos retos', 'Afaste o peito da barra e junte as escápulas, formando um arco', 'Solte e repita sem dobrar os cotovelos'] },
-  { id: 'x_sup', slot: 'dip', minIdx: 1, name: 'Sustentação nas paralelas', n: '30', unit: 'segundos', secs: 30, q: 'parallel bar support hold',
-    how: ['Braços retos e escápulas para baixo', 'Corpo firme, sem encolher os ombros', 'Se precisar, ajude com os pés no chão'] },
-  { id: 'x_squat', slot: 'squat', minIdx: 3, prevLevel: true, name: 'Agachamento do nível anterior', n: '10', unit: 'repetições',
-    how: ['É o exercício de agachamento do nível abaixo do de hoje', 'Faça com técnica limpa, sem pressa'] },
-  { id: 'x_hinge', slot: 'hinge', minIdx: 3, prevLevel: true, name: 'Terra do nível anterior', n: '10', unit: 'repetições',
-    how: ['É o exercício de hinge do nível abaixo do de hoje', 'Faça com técnica limpa, sem pressa'] }
+  { id: 'x_arch', slot: 'pullup', minIdx: 2, name: 'Arch hangs', n: '10', unit: 'reps', equip: EQ_BAR, q: 'arch hang pull up progression',
+    how: ['Hanging from the bar with straight elbows', 'Push your chest away from the bar and bring the shoulder blades together, forming an arch', 'Release and repeat without bending the elbows'] },
+  { id: 'x_sup', slot: 'dip', minIdx: 1, name: 'Support hold', n: '30', unit: 'seconds', secs: 30, equip: EQ_DIP, q: 'parallel bar support hold',
+    how: ['Straight arms and shoulder blades down', 'Tight body, without shrugging the shoulders', 'If you need to, help with your feet on the floor'] },
+  { id: 'x_squat', slot: 'squat', minIdx: 3, prevLevel: true, name: 'Easier squat progression', n: '10', unit: 'reps',
+    how: ['This is the squat exercise one level below today\'s', 'Do it with clean technique, without rushing'] },
+  { id: 'x_hinge', slot: 'hinge', minIdx: 3, prevLevel: true, name: 'Easier hinge progression', n: '10', unit: 'reps',
+    how: ['This is the hinge exercise one level below today\'s', 'Do it with clean technique, without rushing'] }
 ];
-
 if (typeof module !== 'undefined') module.exports = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS, ytUrl: ytUrl, WIKI_BASE: WIKI_BASE };
 
 /* Vídeos de demonstração por exercício. A chave é o id do nível (ou "w.<id>" no aquecimento).
@@ -460,7 +468,10 @@ var VIDEOS = {
   "w.wrist": { id: "mSZWSQSSEjE", t: "Wrist Strength & Mobility Exercises", c: "GMB Fitness" },
   "w.deadbug": { id: "GbSC02oU3To", t: "How to Do a Dead Bug: A Guide from Physical Therapists", c: "Hinge Health" },
   "w.x_arch": { id: "ptlUYYmc86U", t: "The Secret to Stronger Pull-Ups: Arch Hang Activation", c: "Carl Paoli" },
-  "w.x_sup": { id: "eLI7t-5wHno", t: "Parallel Bar Support Hold Position Exercise", c: "Strength Project" }
+  "w.x_sup": { id: "eLI7t-5wHno", t: "Parallel Bar Support Hold Position Exercise", c: "Strength Project" },
+  "eq.row.sheet": { id: "rloXYB8M3vU", t: "How To Do Incline Rows With Minimal Equipment (Just a bed-sheet and a door) with Antranik", c: "Antranik Kizirian" },
+  "eq.row.table": { id: "-N_dnZMMmQY", t: "Inverted row at home, no gym, no equipment, just a table.", c: "The Functional Body Lab" },
+  "eq.cop": { id: "df8hjsKX16o", t: "Copenhagen Plank Exercise: At Home Adductor Exercise with NO Equipment for Strong Inner Thighs!", c: "FITBODY with Julie Lohre" }
 };
 
 /* Lógica pura do app: níveis, metas, progressão, ordem do treino e contagens.
@@ -566,7 +577,7 @@ function warmupItems(D, state) {
     var p = ladderOf(D, state, x.slot)[state.levels[x.slot].idx - 1];
     if (!p) return;
     var y = {}; Object.keys(x).forEach(function (k) { y[k] = x[k]; });
-    y.name = p.name; y.q = p.q; y.how = ['Esta é a etapa anterior à de hoje', 'Faça com técnica limpa, sem pressa'];
+    y.name = p.name; y.q = p.q; y.how = ['This is the step before today\'s', 'Do it with clean technique, without rushing'];
     items.push(y);
   });
   return items;
@@ -634,10 +645,10 @@ function scheduleHint(sessions, todayStr) {
   sessions.forEach(function (s) { if (!last || s.date > last) last = s.date; });
   var dow = (parseISO(todayStr).getUTCDay() + 6) % 7; /* seg = 0 */
   var gap = last ? dayDiff(todayStr, last) : null;
-  if (gap === 0) return { kind: 'done', text: 'Você já treinou hoje.' };
-  if (gap === 1) return { kind: 'rest', text: 'Você treinou ontem. O guia pede ao menos um dia entre os treinos.' };
-  if (dow === 0 || dow === 2 || dow === 4) return { kind: 'go', text: 'Hoje é dia de rotina completa.' };
-  return { kind: 'off', text: 'Hoje é dia de habilidade, mobilidade ou descanso. Dá para treinar se quiser.' };
+  if (gap === 0) return { kind: 'done', text: 'You already trained today.' };
+  if (gap === 1) return { kind: 'rest', text: 'You trained yesterday. The guide asks for at least one day between workouts.' };
+  if (dow === 0 || dow === 2 || dow === 4) return { kind: 'go', text: 'Today is a full routine day.' };
+  return { kind: 'off', text: 'Today is a skill, mobility or rest day. You can still train if you want.' };
 }
 
 function sessionSummaryText(entry) {
@@ -662,7 +673,7 @@ var state = defaultState(D);
 var tab = 'hoje';
 var W = null;            /* treino em andamento */
 var sheetCtx = null;     /* {slot, ctx} da folha aberta */
-var sync = { mode: 'local', note: 'Carregando…' };
+var sync = { mode: 'local', note: 'Loading…' };
 var dbRefs = null;
 var queue = Promise.resolve();
 var audioCtx = null, wakeLock = null, tickTimer = null, toastTimer = null;
@@ -673,7 +684,7 @@ function shortDate(s) { var p = s.split('-'); return p[2] + '/' + p[1]; }
 
 /* ---------- Armazenamento ---------- */
 var fileMode = false, fileQueue = Promise.resolve();
-var FILE_NOTE = 'Salvo no arquivo data/treino.json deste computador.';
+var FILE_NOTE = 'Saved to the file data/treino.json on this computer.';
 function filePush() {
   if (!fileMode) return;
   var body = JSON.stringify(state);
@@ -683,7 +694,7 @@ function filePush() {
     if (!r.ok) throw new Error('http');
     sync.err = false; sync.note = FILE_NOTE;
   }).catch(function () {
-    sync.err = true; sync.note = 'Não consegui salvar no arquivo. Os dados continuam neste navegador.';
+    sync.err = true; sync.note = 'Could not save to the file. Your data stays in this browser.';
     if (tab === 'ajustes') render();
   });
 }
@@ -716,8 +727,8 @@ function mergeLoaded(obj, only) {
   }
 }
 function enqueue(fn) {
-  queue = queue.then(fn).then(function () { if (sync.mode === 'db') { sync.note = 'Salvo na sua conta.'; sync.err = false; } }).catch(function (e) {
-    sync.err = true; sync.note = 'Não consegui salvar na conta (' + ((e && e.code) || 'erro') + '). Os dados continuam neste aparelho.';
+  queue = queue.then(fn).then(function () { if (sync.mode === 'db') { sync.note = 'Saved to your account.'; sync.err = false; } }).catch(function (e) {
+    sync.err = true; sync.note = 'Could not save to your account (' + ((e && e.code) || 'error') + '). Your data stays on this device.';
     if (tab === 'ajustes') render();
   });
   return queue;
@@ -739,11 +750,11 @@ function withTimeout(p, ms) {
 async function initStorage() {
   localLoad();
   if (await fileInit()) { localSave(); return; }
-  if (typeof claude === 'undefined' || !claude.use) { sync = { mode: 'local', note: 'Sem conta aqui: os dados ficam só neste navegador.' }; return; }
+  if (typeof claude === 'undefined' || !claude.use) { sync = { mode: 'local', note: 'No account here: your data stays only in this browser.' }; return; }
   try {
     var user = await claude.use('user'), db = await claude.use('db');
     var uid = user ? await user.id() : null;
-    if (!db || !uid) { sync = { mode: 'local', note: 'Sem conta aqui: os dados ficam só neste navegador.' }; return; }
+    if (!db || !uid) { sync = { mode: 'local', note: 'No account here: your data stays only in this browser.' }; return; }
     var prof = db.doc('data/users/' + uid + '/profile');
     var sess = prof.collection('sessions');
     var snap = await withTimeout(prof.get(), 10000);
@@ -753,12 +764,12 @@ async function initStorage() {
     var remoteIds = {};
     ssnap.docs.forEach(function (d) { var v = d.data(); if (v) remoteIds[d.id] = 1; mergeLoaded({ sessions: [v] }, null); });
     dbRefs = { profile: prof, sessions: sess };
-    sync = { mode: 'db', note: 'Salvo na sua conta.' };
+    sync = { mode: 'db', note: 'Saved to your account.' };
     if (!snap.exists) persistProfile();
     state.sessions.forEach(function (s) { if (!remoteIds[s.id]) persistSession(s); });
     localSave();
   } catch (e) {
-    sync = { mode: 'local', note: 'Não consegui falar com a sua conta. Os dados ficam neste navegador por enquanto.', err: true };
+    sync = { mode: 'local', note: 'Could not reach your account. Your data stays in this browser for now.', err: true };
   }
 }
 
@@ -775,20 +786,21 @@ function loadDraft() {
 
 /* ---------- Pequenos formatadores ---------- */
 function unitOf(level) { return level.kind === 'hold' ? ' s' : ''; }
-function sideOf(level) { return level.perSide ? ' por lado' : ''; }
+function sideOf(level) { return level.perSide ? ' per side' : ''; }
 function targetHtml(level, targets) {
   var same = targets.every(function (t) { return t === targets[0]; });
-  var u = level.kind === 'hold' ? 's' : (level.perSide ? 'por lado' : 'reps');
-  if (level.kind === 'hold' && level.perSide) u = 's por lado';
+  var u = level.kind === 'hold' ? 's' : (level.perSide ? 'per side' : 'reps');
+  if (level.kind === 'hold' && level.perSide) u = 's per side';
   return same ? '3 × ' + targets[0] + '<small>' + u + '</small>' : targets.join(' · ') + '<small>' + u + '</small>';
 }
-function metaLine(S, lvl, first) {
-  var same = S.label.toLowerCase() === lvl.name.toLowerCase();
+function levelText(slot) { return 'Level ' + (state.levels[slot].idx + 1) + ' of ' + ladderOf(D, state, slot).length; }
+function metaLine(S, lvl, slot) {
   var parts = [];
-  if (!same) parts.push(S.label);
-  if (first) parts.push('primeira vez neste nível');
-  return parts.join(' · ') || S.group;
+  if (S.label.toLowerCase() !== lvl.name.toLowerCase()) parts.push(S.label);
+  parts.push(levelText(slot));
+  return parts.join(' · ');
 }
+function equipHtml(lvl) { return lvl.equip ? '<div class="ex-equip">🧰 Needs: ' + esc(lvl.equip) + '</div>' : ''; }
 function rungsHtml(slot) {
   var lad = ladderOf(D, state, slot), cur = state.levels[slot].idx;
   return '<div class="rungs" aria-hidden="true">' + lad.map(function (l, i) { return '<span class="rung ' + (i < cur ? 'done' : i === cur ? 'cur' : '') + '"></span>'; }).join('') + '</div>';
@@ -805,7 +817,7 @@ function barChart(items, o) {
   var max = Math.max.apply(null, items.map(function (i) { return i.v; }).concat([o.min || 1]));
   var gap = 8, bw = Math.min(34, (Wd - gap * (n + 1)) / n), total = n * bw + (n + 1) * gap, x0 = (Wd - total) / 2 + gap;
   var plotH = Ht - padB - padT, base = Ht - padB, out = '';
-  if (o.goal) { var gy = base - plotH * o.goal / max; out += '<line class="goal" x1="0" x2="' + Wd + '" y1="' + gy + '" y2="' + gy + '"/><text x="' + Wd + '" y="' + (gy - 4) + '" text-anchor="end">meta ' + o.goal + '</text>'; }
+  if (o.goal) { var gy = base - plotH * o.goal / max; out += '<line class="goal" x1="0" x2="' + Wd + '" y1="' + gy + '" y2="' + gy + '"/><text x="' + Wd + '" y="' + (gy - 4) + '" text-anchor="end">goal ' + o.goal + '</text>'; }
   items.forEach(function (it, i) {
     var x = x0 + i * (bw + gap), h = Math.max(it.v ? 3 : 0, plotH * it.v / max), y = base - h, r = Math.min(4, h);
     var d = h ? 'M' + x + ',' + base + 'V' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y + 'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + y + ' ' + (x + bw) + ',' + (y + r) + 'V' + base + 'Z' : '';
@@ -822,79 +834,79 @@ function barChart(items, o) {
 function viewHoje() {
   var today = isoDate(), hint = scheduleHint(state.sessions, today), draft = W ? null : loadDraft();
   var wk = weeklyCounts(state.sessions, 1, today)[0].n;
-  var dateTxt = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  var dateTxt = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   var pips = [0, 1, 2].map(function (i) { return '<span class="pip ' + (i < wk ? 'on' : '') + '"></span>'; }).join('');
   var act = SLOT_ORDER.filter(function (s) { return isActive(D, state, s); }).length;
   function exRow(slot) {
     var S = SLOTS[slot], lvl = currentLevel(D, state, slot);
     if (!isActive(D, state, slot)) {
-      return '<button class="ex off" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(S.label) + '</div><div class="ex-meta">Entra quando você tiver a barra</div></div></div>' + rungsHtml(slot) + '</button>';
+      return '<button class="ex off" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(S.label) + '</div><div class="ex-meta">Unlocks when you have the bar</div></div></div>' + rungsHtml(slot) + '</button>';
     }
     var p = prescribe(D, state, slot);
-    return '<button class="ex" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(lvl.name) + '</div><div class="ex-meta">' + esc(metaLine(S, lvl, p.first)) + '</div></div><div class="ex-target num">' + targetHtml(lvl, p.targets) + '</div></div>' + rungsHtml(slot) + '</button>';
+    return '<button class="ex" data-act="open-ex" data-slot="' + slot + '"><div class="ex-top"><div><div class="ex-name">' + esc(lvl.name) + '</div><div class="ex-meta">' + esc(metaLine(S, lvl, slot)) + '</div>' + equipHtml(lvl) + '</div><div class="ex-target num">' + targetHtml(lvl, p.targets) + '</div></div>' + rungsHtml(slot) + '</button>';
   }
   function group(title, sub, rows) {
     return '<div class="grp"><h3>' + title + '</h3><span class="muted small">' + sub + '</span></div><div class="ex-list">' + rows + '</div>';
   }
   var warm = warmupItems(D, state);
   var warmRows = warm.map(function (it) {
-    return '<button class="ex" data-act="open-warm" data-id="' + it.id + '"><div class="ex-name">' + esc(it.name) + '</div><div class="ex-meta">' + esc(it.n + ' ' + it.unit) + '</div></button>';
+    return '<button class="ex" data-act="open-warm" data-id="' + it.id + '"><div class="ex-name">' + esc(it.name) + '</div><div class="ex-meta">' + esc(it.n + ' ' + it.unit) + '</div>' + equipHtml(it) + '</button>';
   }).join('');
-  var rows = group('Aquecimento', warm.length + ' itens', warmRows);
+  var rows = group('Warm-up', warm.length + ' items', warmRows);
   PAIRS.forEach(function (pair, i) {
-    rows += group('Par ' + (i + 1) + ' de 3', '3 séries, descanso de ' + state.settings.restMain + ' s', pair.map(exRow).join(''));
+    rows += group('Pair ' + (i + 1) + ' of 3', '3 sets, ' + state.settings.restMain + ' s rest', pair.map(exRow).join(''));
   });
-  rows += group('Core', '3 séries, descanso de ' + state.settings.restCore + ' s', CORE.map(exRow).join(''));
+  rows += group('Core', '3 sets, ' + state.settings.restCore + ' s rest', CORE.map(exRow).join(''));
   var cta;
   if (draft) {
-    cta = '<div class="btn-row"><button class="btn tape" data-act="resume">Continuar treino</button><button class="btn ghost" data-act="discard-draft">Descartar</button></div>';
+    cta = '<div class="btn-row"><button class="btn tape" data-act="resume">Continue workout</button><button class="btn ghost" data-act="discard-draft">Discard</button></div>';
   } else {
-    cta = '<button class="btn tape" data-act="start">Começar treino</button>';
+    cta = '<button class="btn tape" data-act="start">Start workout</button>';
   }
-  return '<div class="wrap"><div class="page-head"><h1>Hoje</h1><p class="date">' + esc(dateTxt) + '</p></div>' +
+  return '<div class="wrap"><div class="page-head"><h1>Today</h1><p class="date">' + esc(dateTxt) + '</p></div>' +
     '<div class="hint ' + hint.kind + '">' + esc(hint.text) + '</div>' + cta +
-    '<div class="week"><span class="pips" aria-hidden="true">' + pips + '</span><span class="muted small">' + wk + ' de 3 treinos nesta semana</span></div>' +
-    '<h2 class="sec-title">Treino de hoje</h2><p class="muted small">Aquecimento e ' + act + ' exercícios, nesta ordem. Toque num exercício para ver como fazer ou mudar de nível.</p>' +
+    '<div class="week"><span class="pips" aria-hidden="true">' + pips + '</span><span class="muted small">' + wk + ' of 3 workouts this week</span></div>' +
+    '<h2 class="sec-title">Today\'s workout</h2><p class="muted small">Warm-up and ' + act + ' exercises, in this order. Tap an exercise to see how to do it or change its level.</p>' +
     rows + '</div>';
 }
 
 function viewProgresso() {
   var today = isoDate(), weeks = weeklyCounts(state.sessions, 8, today);
-  var wItems = weeks.map(function (w) { return { v: w.n, label: shortDate(w.start), cap: 'Semana de ' + shortDate(w.start) + ': ' + w.n + (w.n === 1 ? ' treino' : ' treinos') }; });
-  var out = '<div class="wrap"><div class="page-head"><h1>Progresso</h1><p>' + state.sessions.length + (state.sessions.length === 1 ? ' treino registrado' : ' treinos registrados') + '</p></div>';
-  out += '<h2 class="sec-title" style="margin-top:6px">Treinos por semana</h2>' + barChart(wItems, { goal: 3, min: 3, valueLabels: true, aria: 'Treinos por semana nas últimas 8 semanas', defaultCap: 'Toque numa barra para ver a semana.', h: 100 });
-  out += '<h2 class="sec-title">Cada exercício</h2><p class="muted small">Cada barra é um treino: o total de repetições (ou segundos nos holds). Barras laranjas marcam o treino em que você subiu de nível.</p><div style="margin-top:8px">';
+  var wItems = weeks.map(function (w) { return { v: w.n, label: shortDate(w.start), cap: 'Week of ' + shortDate(w.start) + ': ' + w.n + (w.n === 1 ? ' workout' : ' workouts') }; });
+  var out = '<div class="wrap"><div class="page-head"><h1>Progress</h1><p>' + state.sessions.length + (state.sessions.length === 1 ? ' workout logged' : ' workouts logged') + '</p></div>';
+  out += '<h2 class="sec-title" style="margin-top:6px">Workouts per week</h2>' + barChart(wItems, { goal: 3, min: 3, valueLabels: true, aria: 'Workouts per week over the last 8 weeks', defaultCap: 'Tap a bar to see the week.', h: 100 });
+  out += '<h2 class="sec-title">Each exercise</h2><p class="muted small">Each bar is a workout: total reps (or seconds on holds). Orange bars mark the workout where you moved up a level.</p><div style="margin-top:8px">';
   SLOT_ORDER.forEach(function (slot) {
     var S = SLOTS[slot], lvl = currentLevel(D, state, slot), ser = seriesFor(state, slot).slice(-12);
     var inactive = !isActive(D, state, slot);
-    out += '<div class="pcard"><div class="pcard-top"><h3>' + esc(inactive ? S.label : lvl.name) + '</h3><span class="muted small">' + (S.label.toLowerCase() === lvl.name.toLowerCase() || inactive ? '' : esc(S.label)) + '</span></div>' + rungsHtml(slot);
-    if (!ser.length) out += '<p class="empty small" style="padding:10px 0 0">' + (inactive ? 'Aguardando a barra.' : 'Sem registros ainda. Faça um treino para ver a evolução.') + '</p>';
+    out += '<div class="pcard"><div class="pcard-top"><h3>' + esc(inactive ? S.label : lvl.name) + '</h3><span class="muted small">' + (inactive ? '' : levelText(slot)) + '</span></div>' + rungsHtml(slot);
+    if (!ser.length) out += '<p class="empty small" style="padding:10px 0 0">' + (inactive ? 'Waiting for the bar.' : 'No records yet. Do a workout to see your progress.') + '</p>';
     else {
       var items = ser.map(function (s) {
         var u = s.kind === 'hold' ? ' s' : ' reps';
-        return { v: s.total, up: s.promoted, label: shortDate(s.date), cap: shortDate(s.date) + ' · ' + s.name + ' · ' + s.sets.join(' + ') + u + (s.promoted ? ' · subiu para ' + s.promotedTo : '') };
+        return { v: s.total, up: s.promoted, label: shortDate(s.date), cap: shortDate(s.date) + ' · ' + s.name + ' · ' + s.sets.join(' + ') + u + (s.promoted ? ' · moved up to ' + s.promotedTo : '') };
       });
-      out += barChart(items, { aria: 'Total por treino de ' + S.label, defaultCap: items[items.length - 1].cap, h: 96 });
+      out += barChart(items, { aria: 'Total per workout for ' + S.label, defaultCap: items[items.length - 1].cap, h: 96 });
     }
     out += '</div>';
   });
-  out += '</div><h2 class="sec-title">Histórico</h2>';
-  if (!state.sessions.length) out += '<p class="empty">Os treinos que você concluir aparecem aqui.</p>';
+  out += '</div><h2 class="sec-title">History</h2>';
+  if (!state.sessions.length) out += '<p class="empty">Workouts you finish show up here.</p>';
   else {
     out += state.sessions.slice().reverse().slice(0, 30).map(function (s) {
       var list = SLOT_ORDER.filter(function (k) { return s.entries[k]; }).map(function (k) {
         var e = s.entries[k];
-        return '<li><span>' + esc(e.name) + (e.promotedTo ? '<span class="up-tag">subiu</span>' : '') + '</span><span>' + esc(sessionSummaryText(e)) + '</span></li>';
+        return '<li><span>' + esc(e.name) + (e.promotedTo ? '<span class="up-tag">level up</span>' : '') + '</span><span>' + esc(sessionSummaryText(e)) + '</span></li>';
       }).join('');
       var n = Object.keys(s.entries).length;
-      return '<details class="sess"><summary><span>' + shortDate(s.date) + '</span><span class="muted">' + n + ' exercícios' + (s.durationSec ? ' · ' + Math.max(1, Math.round(s.durationSec / 60)) + ' min' : '') + '</span></summary><ul>' + list + '</ul></details>';
+      return '<details class="sess"><summary><span>' + shortDate(s.date) + '</span><span class="muted">' + n + ' exercises' + (s.durationSec ? ' · ' + Math.max(1, Math.round(s.durationSec / 60)) + ' min' : '') + '</span></summary><ul>' + list + '</ul></details>';
     }).join('');
   }
   return out + '</div>';
 }
 
 function stepper(act, id, val, unit) {
-  return '<div class="stepper"><button data-act="' + act + '" data-d="-1" aria-label="Diminuir">−</button><span class="val num" id="' + id + '">' + val + unit + '</span><button data-act="' + act + '" data-d="1" aria-label="Aumentar">+</button></div>';
+  return '<div class="stepper"><button data-act="' + act + '" data-d="-1" aria-label="Decrease">−</button><span class="val num" id="' + id + '">' + val + unit + '</span><button data-act="' + act + '" data-d="1" aria-label="Increase">+</button></div>';
 }
 function viewAjustes() {
   var st = state.settings;
@@ -905,21 +917,21 @@ function viewAjustes() {
     }).join('') + '</div></div>';
   }).join('');
   var exp = JSON.stringify({ v: 1, settings: state.settings, levels: state.levels, sessions: state.sessions });
-  return '<div class="wrap"><div class="page-head"><h1>Ajustes</h1><p>' + esc(sync.note) + '</p></div>' +
-    '<div class="set-row"><div><b>Tenho a barra de pull-up</b><p>Liga a pull-up e o Pair 1 completo no treino.</p></div><button class="switch" role="switch" aria-checked="' + !!st.hasBar + '" aria-label="Tenho a barra de pull-up" data-act="toggle-bar"></button></div>' +
-    '<div class="set-row"><div><b>Descanso na força</b><p>Entre séries dos pares</p></div>' + stepper('rest-main', 'rm', st.restMain, ' s') + '</div>' +
-    '<div class="set-row"><div><b>Descanso no core</b><p>Entre séries do trio</p></div>' + stepper('rest-core', 'rc', st.restCore, ' s') + '</div>' +
-    '<h2 class="sec-title">Exercícios de core</h2><p class="muted small">Os padrões usam só o seu corpo e um apoio firme. Troque se tiver faixa, argolas ou barra.</p>' + pathRows +
-    '<h2 class="sec-title">Backup</h2><p class="muted small">Copie o texto abaixo e guarde onde quiser. Para restaurar, cole um backup na caixa e toque em importar.</p>' +
-    '<textarea id="bk" aria-label="Backup dos dados" spellcheck="false">' + esc(exp) + '</textarea>' +
-    '<div class="btn-row"><button class="btn small ghost" data-act="copy-bk">Copiar</button><button class="btn small ghost" data-act="import-bk">Importar</button></div>' +
-    '<h2 class="sec-title">Começar de novo</h2><p class="muted small">Apaga os treinos e volta os níveis ao ponto de partida do plano.</p>' +
+  return '<div class="wrap"><div class="page-head"><h1>Settings</h1><p>' + esc(sync.note) + '</p></div>' +
+    '<div class="set-row"><div><b>I have a pull-up bar</b><p>Adds the pull-up and the full Pair 1 to your workout.</p></div><button class="switch" role="switch" aria-checked="' + !!st.hasBar + '" aria-label="I have a pull-up bar" data-act="toggle-bar"></button></div>' +
+    '<div class="set-row"><div><b>Rest for strength</b><p>Between sets of the pairs</p></div>' + stepper('rest-main', 'rm', st.restMain, ' s') + '</div>' +
+    '<div class="set-row"><div><b>Rest for core</b><p>Between sets of the triplet</p></div>' + stepper('rest-core', 'rc', st.restCore, ' s') + '</div>' +
+    '<h2 class="sec-title">Core exercises</h2><p class="muted small">The default paths use only your body and a sturdy support. Switch if you have a band, rings or a bar.</p>' + pathRows +
+    '<h2 class="sec-title">Backup</h2><p class="muted small">Copy the text below and keep it wherever you like. To restore, paste a backup into the box and tap Import.</p>' +
+    '<textarea id="bk" aria-label="Backup data" spellcheck="false">' + esc(exp) + '</textarea>' +
+    '<div class="btn-row"><button class="btn small ghost" data-act="copy-bk">Copy</button><button class="btn small ghost" data-act="import-bk">Import</button></div>' +
+    '<h2 class="sec-title">Start over</h2><p class="muted small">Deletes your workouts and sets the levels back to the plan\'s starting point.</p>' +
     '<div class="btn-row"><button class="btn small ghost" data-act="reset-ask">Apagar tudo</button></div></div>';
 }
 
 function tabbar() {
   function t(id, label) { return '<button class="tab" data-act="tab" data-tab="' + id + '"' + (tab === id ? ' aria-current="page"' : '') + '>' + label + '</button>'; }
-  return '<nav class="tabbar" aria-label="Seções">' + t('hoje', 'Hoje') + t('progresso', 'Progresso') + t('ajustes', 'Ajustes') + '</nav>';
+  return '<nav class="tabbar" aria-label="Sections">' + t('hoje', 'Today') + t('progresso', 'Progress') + t('ajustes', 'Settings') + '</nav>';
 }
 function render() {
   var v = tab === 'hoje' ? viewHoje() : tab === 'progresso' ? viewProgresso() : viewAjustes();
@@ -930,8 +942,8 @@ function render() {
 /* Vídeo: o quadro mostra a miniatura e só carrega o player quando tocado (economiza dados e não reinicia a cada tela). */
 function videoHtml(key, q) {
   var v = (typeof VIDEOS !== 'undefined') && VIDEOS[key];
-  if (!v) return '<a class="vid-link" href="' + ytUrl(q) + '" target="_blank" rel="noopener">Buscar vídeo no YouTube</a>';
-  return '<div class="vid-box"><button class="vid" data-act="play-vid" data-id="' + v.id + '" data-title="' + esc(v.t) + '" aria-label="Tocar vídeo: ' + esc(v.t) + '"><img src="https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></button>' +
+  if (!v) return '<a class="vid-link" href="' + ytUrl(q) + '" target="_blank" rel="noopener">Search for a video on YouTube</a>';
+  return '<div class="vid-box"><button class="vid" data-act="play-vid" data-id="' + v.id + '" data-title="' + esc(v.t) + '" aria-label="Play video: ' + esc(v.t) + '"><img src="https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></button>' +
     '<p class="vid-cap">' + esc(v.t) + ' · ' + esc(v.c) + '</p></div>';
 }
 function playVideo(btn) {
@@ -950,27 +962,28 @@ function renderSheet() {
   var cues = lvl.cues.concat(S.general || []);
   var li = function (arr) { return '<ul class="bul">' + arr.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>'; };
   var cuesHtml = lvl.cues.length ? li(lvl.cues) : li(S.general || []);
-  if (lvl.cues.length && S.general && S.general.length) cuesHtml += '<h3>Postura em todos os níveis</h3>' + li(S.general);
+  if (lvl.cues.length && S.general && S.general.length) cuesHtml += '<h3>Form for every level</h3>' + li(S.general);
   var ladHtml = '<div class="ladder">' + lad.map(function (l, i) {
-    return '<button class="' + (i < cur ? 'done' : i === cur ? 'cur' : '') + (locked && i !== cur ? ' lock' : '') + '" data-act="pick-level" data-slot="' + slot + '" data-i="' + i + '"' + (locked ? ' disabled' : '') + '><span class="mark"></span><span>' + esc(l.name) + (i === cur ? ' · agora' : '') + '</span></button>';
+    return '<button class="' + (i < cur ? 'done' : i === cur ? 'cur' : '') + (locked && i !== cur ? ' lock' : '') + '" data-act="pick-level" data-slot="' + slot + '" data-i="' + i + '"' + (locked ? ' disabled' : '') + '><span class="mark"></span><span>' + esc(l.name) + (i === cur ? ' · now' : '') + '</span></button>';
   }).join('') + '</div>';
   var paths = LADDERS[slot].paths, pathHtml = '';
   if (Object.keys(paths).length > 1 && !(sheetCtx.ctx === 'workout')) {
-    pathHtml = '<h3>Variação</h3><div class="pathsel">' + Object.keys(paths).map(function (k) {
+    pathHtml = '<h3>Variation</h3><div class="pathsel">' + Object.keys(paths).map(function (k) {
       return '<button data-act="set-path" data-slot="' + slot + '" data-path="' + k + '" aria-pressed="' + (k === state.levels[slot].path) + '">' + esc(paths[k].label) + '</button>';
     }).join('') + '</div>';
   }
   var hist = seriesFor(state, slot).slice(-3).reverse().map(function (s) { return '<li>' + shortDate(s.date) + ' · ' + esc(s.name) + ' · ' + s.sets.join(' · ') + (s.kind === 'hold' ? ' s' : '') + '</li>'; }).join('');
   var html = '<div class="sheet-bg" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(lvl.name) + '"><div class="grab"></div>' +
-    '<h2>' + esc(lvl.name) + '</h2><p class="muted" style="margin-top:6px">' + esc(S.label) + '. Trabalha ' + esc(S.muscles.charAt(0).toLowerCase() + S.muscles.slice(1)) + '.</p>' +
-    (lvl.equip ? '<span class="chip">Precisa de: ' + esc(lvl.equip) + '</span>' : '') +
-    '<h3>Como fazer</h3>' + cuesHtml +
+    '<h2>' + esc(lvl.name) + '</h2><p class="muted" style="margin-top:6px">' + esc(S.label) + '. Works ' + esc(S.muscles.charAt(0).toLowerCase() + S.muscles.slice(1)) + '.</p>' +
+    (lvl.equip ? '<span class="chip">🧰 Needs: ' + esc(lvl.equip) + '</span>' : '') +
+    (lvl.setup && lvl.setup.length ? '<h3>No gear? Setup ideas</h3>' + lvl.setup.map(function (k) { return videoHtml(k, lvl.q + ' at home'); }).join('') : '') +
+    '<h3>How to</h3>' + cuesHtml +
     (lvl.note ? '<div class="note">' + esc(lvl.note) + '</div>' : '') +
-    '<h3>Vídeo</h3>' + videoHtml(lvl.id, lvl.q + ' tutorial') +
-    '<div class="links"><a href="' + ytUrl(lvl.q + ' tutorial') + '" target="_blank" rel="noopener">Mais vídeos no YouTube</a><a href="' + WIKI_BASE + S.wiki + '" target="_blank" rel="noopener">Guia no wiki do r/bodyweightfitness</a></div>' +
-    '<h3>Escada de progressão</h3>' + (locked ? '<p class="muted small" style="margin-bottom:6px">Você já fez séries neste exercício hoje, então o nível só muda no próximo treino.</p>' : '<p class="muted small" style="margin-bottom:6px">Toque num degrau para mudar de nível. Serve para ajustar o ponto de partida.</p>') + ladHtml + pathHtml +
-    (hist ? '<h3>Últimos registros</h3><ul class="bul">' + hist + '</ul>' : '') +
-    '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Fechar</button></div></div>';
+    '<h3>Video</h3>' + videoHtml(lvl.id, lvl.q + ' tutorial') +
+    '<div class="links"><a href="' + ytUrl(lvl.q + ' tutorial') + '" target="_blank" rel="noopener">More videos on YouTube</a><a href="' + WIKI_BASE + S.wiki + '" target="_blank" rel="noopener">Guide on the r/bodyweightfitness wiki</a></div>' +
+    '<h3>Progression ladder</h3>' + (locked ? '<p class="muted small" style="margin-bottom:6px">You already did sets of this exercise today, so the level can only change in your next workout.</p>' : '<p class="muted small" style="margin-bottom:6px">Tap a step to change level. Use it to adjust your starting point.</p>') + ladHtml + pathHtml +
+    (hist ? '<h3>Recent records</h3><ul class="bul">' + hist + '</ul>' : '') +
+    '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Close</button></div></div>';
   $('#sheet').innerHTML = html;
 }
 
@@ -979,10 +992,10 @@ function openWarm(id) {
   if (!it) return;
   sheetCtx = null;
   $('#sheet').innerHTML = '<div class="sheet-bg" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(it.name) + '"><div class="grab"></div>' +
-    '<h2>' + esc(it.name) + '</h2><p class="muted" style="margin-top:6px">Aquecimento. ' + esc(it.n + ' ' + it.unit) + '.</p>' +
-    '<h3>Como fazer</h3><ul class="bul">' + it.how.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' +
-    (it.q ? '<h3>Vídeo</h3>' + videoHtml('w.' + it.id, it.q) : '') +
-    '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Fechar</button></div></div>';
+    '<h2>' + esc(it.name) + '</h2><p class="muted" style="margin-top:6px">Warm-up. ' + esc(it.n + ' ' + it.unit) + '.</p>' +
+    '<h3>How to</h3><ul class="bul">' + it.how.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' +
+    (it.q ? '<h3>Video</h3>' + videoHtml('w.' + it.id, it.q) : '') +
+    '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Close</button></div></div>';
 }
 
 function confirmBox(title, text, buttons) {
@@ -1069,13 +1082,13 @@ function warmGo(d) {
 }
 function groupLabel(step) {
   if (step.group === 'core') return 'Core';
-  return 'Par ' + step.group.slice(1) + ' de 3';
+  return 'Pair ' + step.group.slice(1) + ' of 3';
 }
 function renderWorkout() {
   var ov = $('#overlay');
   if (!W) { ov.innerHTML = ''; return; }
   var top = function (label, pct) {
-    return '<div class="w-top"><button class="w-x" data-act="w-exit" aria-label="Sair do treino">×</button><div class="w-prog" role="progressbar" aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso do treino"><i style="width:' + pct + '%"></i></div><span class="w-count">' + label + '</span></div>';
+    return '<div class="w-top"><button class="w-x" data-act="w-exit" aria-label="Leave workout">×</button><div class="w-prog" role="progressbar" aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100" aria-label="Workout progress"><i style="width:' + pct + '%"></i></div><span class="w-count">' + label + '</span></div>';
   };
   var body = '';
   if (W.phase === 'warmup') {
@@ -1083,55 +1096,55 @@ function renderWorkout() {
     var timerBox = '', main;
     if (it.secs && W.warmEnd) {
       timerBox = '<div class="big-stepper"><span class="val num" id="warmTime">' + fmtClock((W.warmEnd - Date.now()) / 1000) + '</span></div>';
-      main = '<button class="btn tape" data-act="w-warm-next">Feito</button>';
+      main = '<button class="btn tape" data-act="w-warm-next">Done</button>';
     } else if (it.secs) {
-      main = '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-warm-timer">Cronometrar ' + it.secs + ' s</button><button class="btn tape" data-act="w-warm-next">Feito</button></div>';
+      main = '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-warm-timer">Start ' + it.secs + ' s timer</button><button class="btn tape" data-act="w-warm-next">Done</button></div>';
     } else {
-      main = '<button class="btn tape" data-act="w-warm-next">Feito</button>';
+      main = '<button class="btn tape" data-act="w-warm-next">Done</button>';
     }
-    body = top((wi + 1) + '/' + items.length, 100 * wi / items.length) + '<div class="w-body"><p class="w-group">Aquecimento · ' + (wi + 1) + ' de ' + items.length + '</p><h1 class="w-name">' + esc(it.name) + '</h1>' +
+    body = top((wi + 1) + '/' + items.length, 100 * wi / items.length) + '<div class="w-body"><p class="w-group">Warm-up · ' + (wi + 1) + ' of ' + items.length + '</p><h1 class="w-name">' + esc(it.name) + '</h1>' +
       '<div class="w-target sm"><span class="num">' + esc(it.n) + '</span><span>' + esc(it.unit) + '</span></div>' +
       '<ul class="how">' + it.how.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' + timerBox + main +
       (it.q ? '<div style="margin-top:16px">' + videoHtml('w.' + it.id, it.q) + '</div>' : '') +
-      '<div class="w-links">' + (wi > 0 ? '<button data-act="w-warm-back">Voltar</button>' : '') + '<button data-act="w-warm-skip">Pular este</button><button data-act="w-begin">Pular aquecimento</button></div></div>';
+      '<div class="w-links">' + (wi > 0 ? '<button data-act="w-warm-back">Back</button>' : '') + '<button data-act="w-warm-skip">Skip this</button><button data-act="w-begin">Skip warm-up</button></div></div>';
   } else if (W.phase === 'set') {
     var st = curStep(), lvl = levelOfStep(st), S = SLOTS[st.slot], L = W.logged[st.slot], tg = L.targets[st.set - 1];
     var pct = 100 * W.i / W.steps.length;
     var pips = [1, 2, 3].map(function (n) { return '<i class="' + (n < st.set ? 'done' : n === st.set ? 'cur' : '') + '"></i>'; }).join('');
-    var unit = lvl.kind === 'hold' ? 'segundos' : 'repetições';
-    if (lvl.perSide) unit += ' por lado';
+    var unit = lvl.kind === 'hold' ? 'seconds' : 'reps';
+    if (lvl.perSide) unit += ' per side';
     var input;
     if (lvl.kind === 'hold') {
-      input = (W.holdStart ? '<div class="big-stepper"><span class="val num" id="holdTime">0 s</span></div><button class="btn tape" data-act="w-hold-stop">Parar</button>' :
-        '<div class="big-stepper"><button data-act="w-val" data-d="-5" aria-label="Menos 5 segundos">−</button><span class="val num" id="val">' + W.value + ' s</span><button data-act="w-val" data-d="5" aria-label="Mais 5 segundos">+</button></div>' +
-        '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-hold-start">Cronometrar</button><button class="btn tape" data-act="w-log">Série feita</button></div>');
+      input = (W.holdStart ? '<div class="big-stepper"><span class="val num" id="holdTime">0 s</span></div><button class="btn tape" data-act="w-hold-stop">Stop</button>' :
+        '<div class="big-stepper"><button data-act="w-val" data-d="-5" aria-label="Minus 5 seconds">−</button><span class="val num" id="val">' + W.value + ' s</span><button data-act="w-val" data-d="5" aria-label="Plus 5 seconds">+</button></div>' +
+        '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-hold-start">Start timer</button><button class="btn tape" data-act="w-log">Set done</button></div>');
     } else {
-      input = '<div class="big-stepper"><button data-act="w-val" data-d="-1" aria-label="Menos uma repetição">−</button><span class="val num" id="val">' + W.value + '</span><button data-act="w-val" data-d="1" aria-label="Mais uma repetição">+</button></div><button class="btn tape" data-act="w-log">Série feita</button>';
+      input = '<div class="big-stepper"><button data-act="w-val" data-d="-1" aria-label="Minus one rep">−</button><span class="val num" id="val">' + W.value + '</span><button data-act="w-val" data-d="1" aria-label="Plus one rep">+</button></div><button class="btn tape" data-act="w-log">Set done</button>';
     }
-    body = top((W.i + 1) + '/' + W.steps.length, pct) + '<div class="w-body"><p class="w-group">' + groupLabel(st) + ' · ' + esc(S.label) + '</p><h1 class="w-name">' + esc(lvl.name) + '</h1><p class="w-sub">Série ' + st.set + ' de 3</p><div class="sets" aria-hidden="true">' + pips + '</div>' +
-      '<div class="w-target"><span class="num">' + tg + '</span><span>' + unit + ' de meta</span></div><p class="w-cue">' + esc(lvl.cues[0] || (S.general && S.general[0]) || '') + '</p>' + input +
-      '<div class="w-links"><button data-act="w-info">Como fazer</button><button data-act="w-skip">Pular exercício</button><button data-act="w-finish-ask">Terminar treino</button></div></div>';
+    body = top((W.i + 1) + '/' + W.steps.length, pct) + '<div class="w-body"><p class="w-group">' + groupLabel(st) + ' · ' + esc(S.label) + '</p><h1 class="w-name">' + esc(lvl.name) + '</h1><p class="w-sub">Set ' + st.set + ' of 3</p><div class="sets" aria-hidden="true">' + pips + '</div>' +
+      '<div class="w-target"><span class="num">' + tg + '</span><span>' + unit + ' target</span></div><p class="w-cue">' + esc(lvl.cues[0] || (S.general && S.general[0]) || '') + '</p>' + input +
+      '<div class="w-links"><button data-act="w-info">How to</button><button data-act="w-skip">Skip exercise</button><button data-act="w-finish-ask">Finish workout</button></div></div>';
   } else if (W.phase === 'rest') {
     var st2 = curStep(), n = nextIndex(W.i + 1), pct2 = 100 * (W.i + 1) / W.steps.length;
     var nextHtml = '';
     if (n >= 0) {
       var ns = W.steps[n], nl = levelOfStep(ns), nt = W.logged[ns.slot].targets[ns.set - 1];
-      nextHtml = '<div class="next-up"><span class="muted small">Em seguida</span><div class="n">' + esc(nl.name) + '</div><span class="muted">Série ' + ns.set + ' de 3 · meta ' + nt + (nl.kind === 'hold' ? ' s' : ' reps') + (nl.perSide ? ' por lado' : '') + '</span>' + '<div style="margin-top:12px">' + videoHtml(nl.id, nl.q + ' tutorial') + '</div>' + '</div>';
+      nextHtml = '<div class="next-up"><span class="muted small">Up next</span><div class="n">' + esc(nl.name) + '</div><span class="muted">Set ' + ns.set + ' of 3 · target ' + nt + (nl.kind === 'hold' ? ' s' : ' reps') + (nl.perSide ? ' per side' : '') + '</span>' + '<div style="margin-top:12px">' + videoHtml(nl.id, nl.q + ' tutorial') + '</div>' + '</div>';
     }
-    body = top((W.i + 1) + '/' + W.steps.length, pct2) + '<div class="w-body"><p class="w-group">Descanso</p><div class="rest-time num" id="restTime">' + fmtClock((W.restEnd - Date.now()) / 1000) + '</div><div class="rest-bar"><i id="restBar" style="width:0%"></i></div>' +
-      '<div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Pular</button></div>' + nextHtml + '</div>';
+    body = top((W.i + 1) + '/' + W.steps.length, pct2) + '<div class="w-body"><p class="w-group">Rest</p><div class="rest-time num" id="restTime">' + fmtClock((W.restEnd - Date.now()) / 1000) + '</div><div class="rest-bar"><i id="restBar" style="width:0%"></i></div>' +
+      '<div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Skip</button></div>' + nextHtml + '</div>';
   } else if (W.phase === 'summary') {
     var r = W.result, mins = Math.max(1, Math.round(r.session.durationSec / 60));
     var rows = SLOT_ORDER.filter(function (k) { return r.session.entries[k]; }).map(function (k) {
       var e = r.session.entries[k];
       return '<div class="res"><span>' + esc(e.name) + '</span><span class="r">' + esc(sessionSummaryText(e)) + '</span></div>';
     }).join('');
-    var ups = r.promotions.map(function (p) { return '<div class="up-banner">Subiu de nível: ' + esc(p.from) + ' → ' + esc(p.to) + '. Na próxima vez, comece em 3 × 5.</div>'; }).join('');
-    body = top('', 100) + '<div class="w-body"><h1 class="w-name">Treino concluído</h1><p class="w-sub">' + mins + ' min · ' + Object.keys(r.session.entries).length + ' exercícios</p>' + ups +
-      '<div style="margin-top:14px;border-top:2px solid var(--ink)">' + (rows || '<p class="empty">Nenhuma série registrada.</p>') + '</div>' +
-      '<div style="margin-top:auto;padding-top:22px"><button class="btn tape" data-act="w-close">Fechar</button></div></div>';
+    var ups = r.promotions.map(function (p) { return '<div class="up-banner">Level up: ' + esc(p.from) + ' → ' + esc(p.to) + '. Next time, start at 3 × 5.</div>'; }).join('');
+    body = top('', 100) + '<div class="w-body"><h1 class="w-name">Workout complete</h1><p class="w-sub">' + mins + ' min · ' + Object.keys(r.session.entries).length + ' exercises</p>' + ups +
+      '<div style="margin-top:14px;border-top:2px solid var(--ink)">' + (rows || '<p class="empty">No sets logged.</p>') + '</div>' +
+      '<div style="margin-top:auto;padding-top:22px"><button class="btn tape" data-act="w-close">Close</button></div></div>';
   }
-  $('#overlay').innerHTML = '<div class="overlay" role="region" aria-label="Treino em andamento">' + body + '</div>';
+  $('#overlay').innerHTML = '<div class="overlay" role="region" aria-label="Workout in progress">' + body + '</div>';
 }
 function logSet() {
   var st = curStep(), L = W.logged[st.slot];
@@ -1178,14 +1191,14 @@ var H = {
     if (state.levels[slot].path !== path) { state.levels[slot] = { path: path, idx: 0 }; persistProfile(); }
     render(); renderSheet();
   },
-  'toggle-bar': function () { state.settings.hasBar = !state.settings.hasBar; persistProfile(); render(); toast(state.settings.hasBar ? 'Pull-up incluída no treino' : 'Pull-up fora do treino'); },
+  'toggle-bar': function () { state.settings.hasBar = !state.settings.hasBar; persistProfile(); render(); toast(state.settings.hasBar ? 'Pull-up added to your workout' : 'Pull-up left out of your workout'); },
   'rest-main': function (el) { state.settings.restMain = Math.max(30, Math.min(300, state.settings.restMain + 15 * +el.dataset.d)); persistProfile(); $('#rm').textContent = state.settings.restMain + ' s'; },
   'rest-core': function (el) { state.settings.restCore = Math.max(30, Math.min(300, state.settings.restCore + 15 * +el.dataset.d)); persistProfile(); $('#rc').textContent = state.settings.restCore + ' s'; },
   'copy-bk': function () {
     var ta = $('#bk'); ta.focus(); ta.select();
     var done = false;
-    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value).then(function () { toast('Backup copiado'); }, function () { toast('Selecionei o texto, copie manualmente'); }); done = true; } } catch (e) { }
-    if (!done) toast('Selecionei o texto, copie manualmente');
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value).then(function () { toast('Backup copied'); }, function () { toast('Text selected, copy it manually'); }); done = true; } } catch (e) { }
+    if (!done) toast('Text selected, copy it manually');
   },
   'import-bk': function () {
     try {
@@ -1194,14 +1207,14 @@ var H = {
       var before = state.sessions.length;
       mergeLoaded(o, null);
       persistProfile(); state.sessions.forEach(function (s) { persistSession(s); });
-      render(); toast((state.sessions.length - before) + ' treinos importados');
-    } catch (e) { toast('Backup inválido. Cole o texto completo.'); }
+      render(); toast((state.sessions.length - before) + ' workouts imported');
+    } catch (e) { toast('Invalid backup. Paste the full text.'); }
   },
-  'reset-ask': function () { confirmBox('Apagar tudo?', 'Os treinos registrados e os níveis voltam ao começo. Isso não dá para desfazer.', [{ label: 'Apagar tudo', act: 'reset-do' }, { label: 'Cancelar', act: 'sheet-close', cls: 'ghost' }]); },
+  'reset-ask': function () { confirmBox('Delete everything?', 'Your logged workouts are deleted and the levels go back to the start. This cannot be undone.', [{ label: 'Delete everything', act: 'reset-do' }, { label: 'Cancel', act: 'sheet-close', cls: 'ghost' }]); },
   'reset-do': function () {
     var keepBar = state.settings.hasBar; state = defaultState(D); state.settings.hasBar = keepBar;
     persistProfile(); if (dbRefs) { /* sessões antigas ficam na conta, mas não aparecem mais após limpar: apaga uma a uma */ dbRefs.sessions.get().then(function (sn) { sn.docs.forEach(function (d) { enqueue(function () { return dbRefs.sessions.doc(d.id).delete(); }); }); }, function () { }); }
-    closeSheet(); render(); toast('Tudo apagado');
+    closeSheet(); render(); toast('Everything deleted');
   },
   'bar': function (el) {
     var box = el.closest('.chart-box'); if (!box) return;
@@ -1211,9 +1224,9 @@ var H = {
   /* treino */
   'w-exit': function () {
     var any = Object.keys(W.logged).some(function (k) { return W.logged[k].sets.length; });
-    confirmBox('Sair do treino?', any ? 'Você pode guardar o que já fez ou continuar depois de onde parou.' : 'Você ainda não registrou nenhuma série.', [
-      { label: 'Continuar treino', act: 'sheet-close', cls: 'tape' }].concat(any ? [{ label: 'Guardar e terminar', act: 'w-finish', cls: 'ghost' }] : []).concat([
-      { label: any ? 'Sair e continuar depois' : 'Sair do treino', act: 'w-leave', cls: 'ghost' }, { label: 'Descartar treino', act: 'w-discard', cls: 'ghost' }]));
+    confirmBox('Leave workout?', any ? 'You can save what you did or continue later where you stopped.' : 'You have not logged any set yet.', [
+      { label: 'Continue workout', act: 'sheet-close', cls: 'tape' }].concat(any ? [{ label: 'Save and finish', act: 'w-finish', cls: 'ghost' }] : []).concat([
+      { label: any ? 'Leave and continue later' : 'Leave workout', act: 'w-leave', cls: 'ghost' }, { label: 'Discard workout', act: 'w-discard', cls: 'ghost' }]));
   },
   'w-leave': function () { saveDraft(); W = null; stopTick(); $('#overlay').innerHTML = ''; closeSheet(); render(); },
   'w-discard': function () { clearDraft(); W = null; stopTick(); $('#overlay').innerHTML = ''; closeSheet(); render(); },
@@ -1238,7 +1251,7 @@ var H = {
   'w-info': function () { openSheet(curStep().slot, 'workout'); },
   'w-skip': function () {
     var st = curStep(); W.skipped.push(st.slot);
-    var n = nextIndex(W.i + 1); if (n >= 0) { toast(SLOTS[st.slot].label + ' pulado hoje'); goSet(n); } else finishNow();
+    var n = nextIndex(W.i + 1); if (n >= 0) { toast(SLOTS[st.slot].label + ' skipped today'); goSet(n); } else finishNow();
   },
   'w-close': function () { closeWorkout(); }
 };
