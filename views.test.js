@@ -19,7 +19,8 @@ const addSession = (state, date, sets) => {
   L.finishWorkout(D, state, { startedAt: 1, logged, warmDone: 4 }, date, 1800);
 };
 
-const today = (state, o) => V.viewToday(state, { today: TODAY, now: NOW, draft: null, dayIdx: 0, ...o });
+const today = (state, o) =>
+  V.viewToday(state, { today: TODAY, now: NOW, draft: null, dayIdx: 0, ...o });
 const progress = (state, o) => V.viewProgress(state, { today: TODAY, progTab: 'overview', ...o });
 const settings = (state, o) => V.viewSettings(state, { syncNote: 'Saved to your account.', ...o });
 
@@ -53,8 +54,14 @@ describe('small helpers', () => {
     assert.equal(V.targetHtml({ kind: 'reps' }, [5, 5, 5]), '3 × 5<small>reps</small>');
     assert.equal(V.targetHtml({ kind: 'reps' }, [6, 5, 5]), '6 · 5 · 5<small>reps</small>');
     assert.equal(V.targetHtml({ kind: 'hold' }, [10, 10, 10]), '3 × 10<small>s</small>');
-    assert.equal(V.targetHtml({ kind: 'hold', perSide: true }, [10, 10, 10]), '3 × 10<small>s per side</small>');
-    assert.equal(V.targetHtml({ kind: 'reps', perSide: true }, [5, 5, 5]), '3 × 5<small>per side</small>');
+    assert.equal(
+      V.targetHtml({ kind: 'hold', perSide: true }, [10, 10, 10]),
+      '3 × 10<small>s per side</small>'
+    );
+    assert.equal(
+      V.targetHtml({ kind: 'reps', perSide: true }, [5, 5, 5]),
+      '3 × 5<small>per side</small>'
+    );
   });
 
   it('levelText and rungsHtml follow the level index', () => {
@@ -69,7 +76,8 @@ describe('small helpers', () => {
 
   it('metaLine adds the slot label only when it differs from the level name', () => {
     const s = fresh();
-    const S = D.SLOTS.pushup, lvl = L.currentLevel(D, s, 'pushup');
+    const S = D.SLOTS.pushup,
+      lvl = L.currentLevel(D, s, 'pushup');
     const meta = V.metaLine(s, S, lvl, 'pushup');
     assert.ok(meta.endsWith(V.levelText(s, 'pushup')));
     assert.equal(meta.includes(' · '), S.label.toLowerCase() !== lvl.name.toLowerCase());
@@ -86,7 +94,10 @@ describe('small helpers', () => {
 
   it('barChart draws one bar per item, a goal line and a caption', () => {
     const html = V.barChart(
-      [{ v: 2, label: '01/03', cap: 'two' }, { v: 3, label: '08/03', cap: 'three', up: true }],
+      [
+        { v: 2, label: '01/03', cap: 'two' },
+        { v: 3, label: '08/03', cap: 'three', up: true },
+      ],
       { goal: 3, min: 3, valueLabels: true, aria: 'Chart', defaultCap: 'Tap a bar.', h: 100 }
     );
     assert.equal(count(html, 'data-act="bar"'), 2);
@@ -101,7 +112,9 @@ describe('small helpers', () => {
     const html = V.tabbar('progress');
     assert.equal(count(html, 'aria-current="page"'), 1);
     assert.ok(html.includes('data-tab="progress" aria-current="page"'));
-    ['today', 'progress', 'settings'].forEach((t) => assert.ok(html.includes('data-tab="' + t + '"')));
+    ['today', 'progress', 'settings'].forEach((t) =>
+      assert.ok(html.includes('data-tab="' + t + '"'))
+    );
   });
 });
 
@@ -113,7 +126,9 @@ describe('viewToday', () => {
     assert.ok(html.includes('Wednesday, March 4'));
     assert.ok(html.includes('data-act="start"'));
     assert.ok(html.includes('Warm-up'));
-    ['Pair 1 of 3', 'Pair 2 of 3', 'Pair 3 of 3', '>Core<'].forEach((x) => assert.ok(html.includes(x), x));
+    ['Pair 1 of 3', 'Pair 2 of 3', 'Pair 3 of 3', '>Core<'].forEach((x) =>
+      assert.ok(html.includes(x), x)
+    );
     assert.ok(html.includes('3 sets, 90 s rest'));
     assert.ok(html.includes('3 sets, 60 s rest'));
     assert.ok(html.includes('Diamond push-up'));
@@ -254,8 +269,14 @@ describe('viewSettings', () => {
     const html = settings(s);
     assertClean(html);
     assert.ok(html.includes('<h1>Settings</h1><p>Saved to your account.</p>'));
-    assert.ok(html.includes('aria-checked="false" aria-label="I have a pull-up bar" data-act="toggle-bar"'));
-    assert.ok(html.includes('aria-checked="false" aria-label="I have a safe dip setup" data-act="toggle-dip"'));
+    assert.ok(
+      html.includes('aria-checked="false" aria-label="I have a pull-up bar" data-act="toggle-bar"')
+    );
+    assert.ok(
+      html.includes(
+        'aria-checked="false" aria-label="I have a safe dip setup" data-act="toggle-dip"'
+      )
+    );
     assert.ok(html.includes('id="rm">90 s</span>'));
     assert.ok(html.includes('id="rc">60 s</span>'));
     s.settings.hasBar = true;
@@ -269,7 +290,18 @@ describe('viewSettings', () => {
       const paths = D.LADDERS[slot].paths;
       Object.keys(paths).forEach((k) => {
         const pressed = k === s.levels[slot].path;
-        assert.ok(html.includes('data-act="set-path" data-slot="' + slot + '" data-path="' + k + '" aria-pressed="' + pressed + '"'), slot + k);
+        assert.ok(
+          html.includes(
+            'data-act="set-path" data-slot="' +
+              slot +
+              '" data-path="' +
+              k +
+              '" aria-pressed="' +
+              pressed +
+              '"'
+          ),
+          slot + k
+        );
       });
     });
   });
@@ -279,11 +311,20 @@ describe('viewSettings', () => {
     const html = settings(s);
     const m = html.match(/<textarea id="bk"[^>]*>([\s\S]*?)<\/textarea>/);
     assert.ok(m);
-    const json = m[1].replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    const json = m[1]
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&');
     const back = JSON.parse(json);
     assert.equal(back.v, 1);
     assert.deepEqual(back.settings, s.settings);
-    assert.ok(html.includes('data-act="copy-bk"') && html.includes('data-act="import-bk"') && html.includes('data-act="reset-ask"'));
+    assert.ok(
+      html.includes('data-act="copy-bk"') &&
+        html.includes('data-act="import-bk"') &&
+        html.includes('data-act="reset-ask"')
+    );
   });
 
   it('escapes the sync note', () => {

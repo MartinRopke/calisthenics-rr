@@ -27,13 +27,26 @@ export function serializeState(state) {
 /* Parses stored JSON text and migrates it. Returns null when empty or corrupt. */
 export function parseState(raw) {
   if (!raw) return null;
-  try { return migrate(JSON.parse(raw)); } catch { return null; }
+  try {
+    return migrate(JSON.parse(raw));
+  } catch {
+    return null;
+  }
 }
 
 export function withTimeout(promise, ms) {
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('timeout')), ms);
-    promise.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+    promise.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      }
+    );
   });
 }
 
@@ -44,9 +57,27 @@ export function createStorage({
   timeoutMs = 3000,
   now = Date.now,
 } = {}) {
-  const lsGet = (key) => { try { return ls ? ls.getItem(key) : null; } catch { return null; } };
-  const lsSet = (key, value) => { try { if (ls) ls.setItem(key, value); } catch { /* storage full or blocked */ } };
-  const lsRemove = (key) => { try { if (ls) ls.removeItem(key); } catch { /* ignore */ } };
+  const lsGet = (key) => {
+    try {
+      return ls ? ls.getItem(key) : null;
+    } catch {
+      return null;
+    }
+  };
+  const lsSet = (key, value) => {
+    try {
+      if (ls) ls.setItem(key, value);
+    } catch {
+      /* storage full or blocked */
+    }
+  };
+  const lsRemove = (key) => {
+    try {
+      if (ls) ls.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  };
 
   /* Server copy, migrated. null when the endpoint is missing, fails or times out. */
   async function loadServer() {
@@ -55,7 +86,9 @@ export function createStorage({
       const r = await withTimeout(fetchFn(API_URL, { cache: 'no-store' }), timeoutMs);
       if (!r.ok) return null;
       return migrate(await r.json());
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   const loadLocal = () => parseState(lsGet(LS_KEY));
@@ -65,9 +98,15 @@ export function createStorage({
   async function pushServer(state) {
     if (!fetchFn) return { ok: false };
     try {
-      const r = await fetchFn(API_URL, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: serializeState(state) });
+      const r = await fetchFn(API_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: serializeState(state),
+      });
       return { ok: !!r.ok };
-    } catch { return { ok: false }; }
+    } catch {
+      return { ok: false };
+    }
   }
 
   /* Writes localStorage always and the server file when opts.server is true. Resolves { ok }. */
@@ -76,13 +115,17 @@ export function createStorage({
     return server ? pushServer(state) : { ok: true };
   }
 
-  const saveDraft = (w) => { if (w && w.phase !== 'summary') lsSet(DRAFT_KEY, JSON.stringify(w)); };
+  const saveDraft = (w) => {
+    if (w && w.phase !== 'summary') lsSet(DRAFT_KEY, JSON.stringify(w));
+  };
   const clearDraft = () => lsRemove(DRAFT_KEY);
   function loadDraft() {
     try {
       const d = JSON.parse(lsGet(DRAFT_KEY) || 'null');
       if (d && d.startedAt && now() - d.startedAt < DRAFT_MAX_AGE_MS && d.steps) return d;
-    } catch { /* corrupt draft */ }
+    } catch {
+      /* corrupt draft */
+    }
     return null;
   }
 

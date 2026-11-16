@@ -1,14 +1,26 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createStorage, migrate, serializeState, parseState, SCHEMA_VERSION, LS_KEY, DRAFT_KEY } from './storage.js';
+import {
+  createStorage,
+  migrate,
+  serializeState,
+  parseState,
+  SCHEMA_VERSION,
+  LS_KEY,
+  DRAFT_KEY,
+} from './storage.js';
 
 const memoryStore = (initial = {}) => {
   const data = { ...initial };
   return {
     data,
     getItem: (k) => (k in data ? data[k] : null),
-    setItem: (k, v) => { data[k] = String(v); },
-    removeItem: (k) => { delete data[k]; },
+    setItem: (k, v) => {
+      data[k] = String(v);
+    },
+    removeItem: (k) => {
+      delete data[k];
+    },
   };
 };
 const okJson = (obj) => async () => ({ ok: true, json: async () => obj });
@@ -19,8 +31,16 @@ const oldState = () => ({
   settings: { hasBar: true, hasDip: false, restMain: 90, restCore: 60 },
   levels: { pull: { idx: 2, first: false }, squat: { idx: 1, first: true } },
   sessions: [
-    { id: 's1', date: '2026-10-05', entries: { squat: { levelId: 'squat-2', sets: [5, 5, 5], targets: [5, 5, 5] } } },
-    { id: 's2', date: '2026-10-07', entries: { squat: { levelId: 'squat-2', sets: [6, 6, 6], targets: [6, 6, 6] } } },
+    {
+      id: 's1',
+      date: '2026-10-05',
+      entries: { squat: { levelId: 'squat-2', sets: [5, 5, 5], targets: [5, 5, 5] } },
+    },
+    {
+      id: 's2',
+      date: '2026-10-07',
+      entries: { squat: { levelId: 'squat-2', sets: [6, 6, 6], targets: [6, 6, 6] } },
+    },
   ],
 });
 
@@ -75,7 +95,10 @@ describe('schemaVersion and migrate', () => {
 describe('createStorage load', () => {
   it('loads from the server when /api/state answers', async () => {
     const calls = [];
-    const fetch = async (url) => { calls.push(url); return okJson(oldState())(); };
+    const fetch = async (url) => {
+      calls.push(url);
+      return okJson(oldState())();
+    };
     const s = createStorage({ fetch, localStorage: memoryStore() });
     const got = await s.loadServer();
     assert.equal(calls[0], '/api/state');
@@ -97,12 +120,21 @@ describe('createStorage load', () => {
   });
 
   it('returns null when fetch rejects', async () => {
-    const s = createStorage({ fetch: async () => { throw new Error('offline'); }, localStorage: memoryStore() });
+    const s = createStorage({
+      fetch: async () => {
+        throw new Error('offline');
+      },
+      localStorage: memoryStore(),
+    });
     assert.equal(await s.loadServer(), null);
   });
 
   it('returns null when the server times out', async () => {
-    const s = createStorage({ fetch: () => new Promise(() => {}), localStorage: memoryStore(), timeoutMs: 20 });
+    const s = createStorage({
+      fetch: () => new Promise(() => {}),
+      localStorage: memoryStore(),
+      timeoutMs: 20,
+    });
     assert.equal(await s.loadServer(), null);
   });
 
@@ -135,7 +167,17 @@ describe('createStorage load', () => {
   });
 
   it('a throwing localStorage does not crash', () => {
-    const bad = { getItem() { throw new Error('x'); }, setItem() { throw new Error('x'); }, removeItem() { throw new Error('x'); } };
+    const bad = {
+      getItem() {
+        throw new Error('x');
+      },
+      setItem() {
+        throw new Error('x');
+      },
+      removeItem() {
+        throw new Error('x');
+      },
+    };
     const s = createStorage({ fetch: null, localStorage: bad });
     assert.equal(s.loadLocal(), null);
     s.saveLocal({ sessions: [] });
@@ -148,7 +190,10 @@ describe('createStorage save', () => {
   it('save writes localStorage and PUTs to the server with schemaVersion', async () => {
     const ls = memoryStore();
     const puts = [];
-    const fetch = async (url, opts) => { puts.push({ url, opts }); return { ok: true }; };
+    const fetch = async (url, opts) => {
+      puts.push({ url, opts });
+      return { ok: true };
+    };
     const s = createStorage({ fetch, localStorage: ls });
     const res = await s.save(oldState(), { server: true });
     assert.equal(res.ok, true);
@@ -163,7 +208,13 @@ describe('createStorage save', () => {
 
   it('save skips the server when not in server mode', async () => {
     let called = false;
-    const s = createStorage({ fetch: async () => { called = true; return { ok: true }; }, localStorage: memoryStore() });
+    const s = createStorage({
+      fetch: async () => {
+        called = true;
+        return { ok: true };
+      },
+      localStorage: memoryStore(),
+    });
     const res = await s.save(oldState(), { server: false });
     assert.equal(called, false);
     assert.equal(res.ok, true);
@@ -178,7 +229,12 @@ describe('createStorage save', () => {
   });
 
   it('save reports a rejected fetch as a failure', async () => {
-    const s = createStorage({ fetch: async () => { throw new Error('x'); }, localStorage: memoryStore() });
+    const s = createStorage({
+      fetch: async () => {
+        throw new Error('x');
+      },
+      localStorage: memoryStore(),
+    });
     assert.equal((await s.save(oldState(), { server: true })).ok, false);
   });
 });

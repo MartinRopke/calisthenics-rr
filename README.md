@@ -42,14 +42,14 @@ Notes:
 
 ### Layers
 
-| File                           | Role                                                                         |
-| ------------------------------ | ---------------------------------------------------------------------------- |
-| `data.js`, `videos.js`         | Plain data: exercises, ladders, warmup, videos.                              |
-| `logic.js`                     | Functional core. Pure functions, every progression rule. No DOM, no storage. |
-| `storage.js` | Storage adapter: `localStorage` and `/api/state`, with a `schemaVersion`.    |
-| `views.js`   | Builds HTML strings as pure functions.                                       |
-| `app.js`                       | Imperative shell: events, timer, guided workout. Wires the layers together.  |
-| `server.mjs`                   | Serves the app files and `/api/state`. Zero dependencies.                    |
+| File                   | Role                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| `data.js`, `videos.js` | Plain data: exercises, ladders, warmup, videos.                              |
+| `logic.js`             | Functional core. Pure functions, every progression rule. No DOM, no storage. |
+| `storage.js`           | Storage adapter: `localStorage` and `/api/state`, with a `schemaVersion`.    |
+| `views.js`             | Builds HTML strings as pure functions.                                       |
+| `app.js`               | Imperative shell: events, timer, guided workout. Wires the layers together.  |
+| `server.mjs`           | Serves the app files and `/api/state`. Zero dependencies.                    |
 
 Dependency rule: dependencies point inward. `app.js` may use everything, `views.js` and `storage.js` may use `logic.js` and data, and `logic.js` never touches the DOM or storage.
 

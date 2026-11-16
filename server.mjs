@@ -1,7 +1,14 @@
 // Servidor local, sem dependências: serve o index.html em http://localhost:8000
 // e guarda o histórico em data/treino.json (a pasta data/ fica fora do git).
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, renameSync, copyFileSync, mkdirSync, existsSync } from 'node:fs';
+import {
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  copyFileSync,
+  mkdirSync,
+  existsSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
@@ -27,7 +34,10 @@ const STATIC = {
   '/storage.js': ['storage.js', 'text/javascript; charset=utf-8'],
 };
 
-const send = (res, code, type, body) => { res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' }); res.end(body); };
+const send = (res, code, type, body) => {
+  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
+  res.end(body);
+};
 
 createServer((req, res) => {
   const path = req.url.split('?')[0];
@@ -35,19 +45,27 @@ createServer((req, res) => {
     return send(res, 200, 'application/json', existsSync(dataFile) ? readFileSync(dataFile) : '{}');
   }
   if (path === '/api/state' && req.method === 'PUT') {
-    const chunks = []; let size = 0;
-    req.on('data', (c) => { size += c.length; if (size > 5e6) req.destroy(); else chunks.push(c); });
+    const chunks = [];
+    let size = 0;
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > 5e6) req.destroy();
+      else chunks.push(c);
+    });
     req.on('end', () => {
       try {
         const body = Buffer.concat(chunks).toString('utf8');
         const obj = JSON.parse(body);
-        if (!obj || typeof obj !== 'object' || !Array.isArray(obj.sessions)) throw new Error('formato inválido');
+        if (!obj || typeof obj !== 'object' || !Array.isArray(obj.sessions))
+          throw new Error('formato inválido');
         mkdirSync(dataDir, { recursive: true });
         if (existsSync(dataFile)) copyFileSync(dataFile, join(dataDir, 'treino.bak.json'));
         writeFileSync(dataFile + '.tmp', body);
         renameSync(dataFile + '.tmp', dataFile);
         send(res, 200, 'application/json', '{"ok":true}');
-      } catch { send(res, 400, 'application/json', '{"ok":false}'); }
+      } catch {
+        send(res, 400, 'application/json', '{"ok":false}');
+      }
     });
     return;
   }
@@ -59,10 +77,16 @@ createServer((req, res) => {
 }).listen(port, host, () => {
   console.log('Treino RR running (data in data/treino.json)');
   console.log('  Local:   http://localhost:' + port);
-  if (host === '127.0.0.1' || host === 'localhost') return console.log('  Local-only mode (HOST=' + host + ')');
+  if (host === '127.0.0.1' || host === 'localhost')
+    return console.log('  Local-only mode (HOST=' + host + ')');
   let found = false;
-  Object.values(networkInterfaces()).forEach((list) => (list || []).forEach((a) => {
-    if (a.family === 'IPv4' && !a.internal) { found = true; console.log('  Network: http://' + a.address + ':' + port); }
-  }));
+  Object.values(networkInterfaces()).forEach((list) =>
+    (list || []).forEach((a) => {
+      if (a.family === 'IPv4' && !a.internal) {
+        found = true;
+        console.log('  Network: http://' + a.address + ':' + port);
+      }
+    })
+  );
   if (!found) console.log('  Network: no LAN address found');
 });
