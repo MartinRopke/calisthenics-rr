@@ -2,7 +2,7 @@
   "name": "calisthenics-rr",
   "version": "1.0.0",
   "private": true,
-  "description": "App de treino para o Recommended Routine do r/bodyweightfitness",
+  "description": "Workout app for the Recommended Routine of r/bodyweightfitness",
   "type": "commonjs",
   "scripts": {
     "build": "node build.mjs",
@@ -11,6 +11,16 @@
     "test": "node test.js",
     "test:e2e": "python3 e2e.py && python3 e2e2.py",
     "guide": "node scripts/generate-guide.mjs",
-    "wiki": "node scripts/fetch-wiki.mjs"
+    "wiki": "node scripts/fetch-wiki.mjs",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1"
   }
 }
