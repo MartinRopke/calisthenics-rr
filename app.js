@@ -6,9 +6,10 @@ import {
   prescribe, buildSteps, restSeconds, warmupItems, finishWorkout, weeklyCounts,
   seriesFor, scheduleHint, projectWorkouts, sessionSummaryText
 } from './logic.js';
+import { createStorage } from './storage.js';
 
 var D = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS };
-var LS_KEY = 'treinoRR.v1', DRAFT_KEY = 'treinoRR.draft';
+var store = createStorage();
 
 /* Dumbbell icon: Lucide "dumbbell" (ISC license), inlined to avoid external dependencies. */
 var ICON_EQUIP = '<svg class="ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>';
@@ -33,9 +34,9 @@ var fileMode = false, fileQueue = Promise.resolve();
 var FILE_NOTE = 'Saved to the file data/treino.json on this computer.';
 function filePush() {
   if (!fileMode) return;
-  var body = JSON.stringify(state);
+  var snap = JSON.parse(JSON.stringify(state));
   fileQueue = fileQueue.then(function () {
-    return fetch('/api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: body });
+    return store.pushServer(snap);
   }).then(function (r) {
     if (!r.ok) throw new Error('http');
     sync.err = false; sync.note = FILE_NOTE;
@@ -46,20 +47,17 @@ function filePush() {
 }
 async function fileInit() {
   try {
-    var r = await withTimeout(fetch('/api/state', { cache: 'no-store' }), 3000);
-    if (!r.ok) return false;
-    mergeLoaded(await r.json(), null);
+    var srv = await store.loadServer();
+    if (!srv) return false;
+    mergeLoaded(srv, null);
     fileMode = true; sync = { mode: 'file', note: FILE_NOTE };
     filePush();
     return true;
   } catch (e) { return false; }
 }
-function localSave() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { } filePush(); }
+function localSave() { store.saveLocal(state); filePush(); }
 function localLoad() {
-  try {
-    var raw = localStorage.getItem(LS_KEY);
-    if (raw) mergeLoaded(JSON.parse(raw), null);
-  } catch (e) { }
+  mergeLoaded(store.loadLocal(), null);
 }
 function mergeLoaded(obj, only) {
   if (!obj) return;
@@ -120,15 +118,9 @@ async function initStorage() {
 }
 
 /* ---------- Workout draft ---------- */
-function saveDraft() { try { if (W && W.phase !== 'summary') localStorage.setItem(DRAFT_KEY, JSON.stringify(W)); } catch (e) { } }
-function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { } }
-function loadDraft() {
-  try {
-    var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
-    if (d && d.startedAt && Date.now() - d.startedAt < 8 * 3600 * 1000 && d.steps) return d;
-  } catch (e) { }
-  return null;
-}
+function saveDraft() { store.saveDraft(W); }
+function clearDraft() { store.clearDraft(); }
+function loadDraft() { return store.loadDraft(); }
 
 /* ---------- Small formatters ---------- */
 function unitOf(level) { return level.kind === 'hold' ? ' s' : ''; }
