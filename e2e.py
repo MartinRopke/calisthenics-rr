@@ -74,7 +74,7 @@ with sync_playwright() as p:
     page.click('[data-act=start]')
     page.wait_for_timeout(200)
     page.screenshot(path='shots/04-aquecimento.png')
-    assert page.locator('.vid-box [data-act=play-vid]').count()==1  # vídeo do aquecimento
+    assert page.locator('.vid-box iframe').count()==1  # vídeo do aquecimento
     page.screenshot(path='shots/04-aquecimento.png')
     for _ in range(3): page.click('[data-act=w-warm-next]')
     assert 'Deadbugs' in page.locator('.w-name').inner_text()
@@ -101,11 +101,10 @@ with sync_playwright() as p:
         steps+=1
         if page.locator('#restTime').count():
             if not shot_rest:
-                assert page.locator('.next-up .vid-box [data-act=play-vid]').count()==1  # vídeo do próximo exercício
+                assert page.locator('.next-up .vid-box iframe').count()==1  # vídeo do próximo exercício
                 page.screenshot(path='shots/06-descanso.png'); shot_rest=True
-                page.click('.next-up [data-act=play-vid]')
                 src=page.locator('.next-up iframe').get_attribute('src')
-                assert 'youtube-nocookie.com/embed/' in src and 'autoplay=1' in src, src
+                assert 'youtube-nocookie.com/embed/' in src, src
                 page.wait_for_timeout(1300)  # o timer continua e o player não some
                 assert page.locator('.next-up iframe').count()==1
                 page.screenshot(path='shots/06b-descanso-video.png')
