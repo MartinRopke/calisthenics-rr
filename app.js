@@ -182,7 +182,7 @@ function viewHoje() {
   }
   var warm = warmupItems(D, state);
   var warmRows = warm.map(function (it) {
-    return '<div class="ex"><div class="ex-name">' + esc(it.name) + '</div><div class="ex-meta">' + esc(it.n + ' ' + it.unit) + '</div></div>';
+    return '<button class="ex" data-act="open-warm" data-id="' + it.id + '"><div class="ex-name">' + esc(it.name) + '</div><div class="ex-meta">' + esc(it.n + ' ' + it.unit) + '</div></button>';
   }).join('');
   var rows = group('Aquecimento', warm.length + ' itens', warmRows);
   PAIRS.forEach(function (pair, i) {
@@ -316,6 +316,17 @@ function renderSheet() {
     (hist ? '<h3>Últimos registros</h3><ul class="bul">' + hist + '</ul>' : '') +
     '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Fechar</button></div></div>';
   $('#sheet').innerHTML = html;
+}
+
+function openWarm(id) {
+  var it = warmupItems(D, state).filter(function (x) { return x.id === id; })[0];
+  if (!it) return;
+  sheetCtx = null;
+  $('#sheet').innerHTML = '<div class="sheet-bg" data-act="sheet-close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="' + esc(it.name) + '"><div class="grab"></div>' +
+    '<h2>' + esc(it.name) + '</h2><p class="muted" style="margin-top:6px">Aquecimento. ' + esc(it.n + ' ' + it.unit) + '.</p>' +
+    '<h3>Como fazer</h3><ul class="bul">' + it.how.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' +
+    (it.q ? '<h3>Vídeo</h3>' + videoHtml('w.' + it.id, it.q) : '') +
+    '<div class="btn-row" style="margin-top:22px"><button class="btn" data-act="sheet-close">Fechar</button></div></div>';
 }
 
 function confirmBox(title, text, buttons) {
@@ -494,6 +505,7 @@ var H = {
   'resume': function () { resumeWorkout(); },
   'discard-draft': function () { clearDraft(); render(); },
   'open-ex': function (el) { openSheet(el.dataset.slot, 'home'); },
+  'open-warm': function (el) { openWarm(el.dataset.id); },
   'sheet-close': function () { closeSheet(); },
   'pick-level': function (el) {
     var slot = el.dataset.slot, i = +el.dataset.i;
