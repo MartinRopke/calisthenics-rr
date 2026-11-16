@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "Workout app for the Recommended Routine of r/bodyweightfitness",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
-    "build": "node build.mjs",
     "start": "node server.mjs",
     "home": "caffeinate -i node server.mjs",
     "test": "node test.js",

@@ -1,18 +1,18 @@
 /* Pure app logic: levels, targets, progression, workout order and counts.
    Nothing here touches the DOM, so it can be tested in Node. */
 
-function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-function isoDate(d) { d = d || new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
-function parseISO(s) { var p = s.split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
-function dayDiff(a, b) { return Math.round((parseISO(a) - parseISO(b)) / 86400000); }
-function weekStartISO(s) {
+export function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+export function isoDate(d) { d = d || new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+export function parseISO(s) { var p = s.split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
+export function dayDiff(a, b) { return Math.round((parseISO(a) - parseISO(b)) / 86400000); }
+export function weekStartISO(s) {
   var d = parseISO(s);
   var dow = (d.getUTCDay() + 6) % 7; /* segunda = 0 */
   d.setUTCDate(d.getUTCDate() - dow);
   return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
 }
 
-function defaultState(D) {
+export function defaultState(D) {
   var levels = {};
   Object.keys(D.LADDERS).forEach(function (slot) {
     levels[slot] = { path: D.LADDERS[slot].defaultPath, idx: D.START_LEVELS[slot] || 0 };
@@ -20,24 +20,24 @@ function defaultState(D) {
   return { v: 1, settings: { hasBar: false, hasDip: false, restMain: 90, restCore: 60 }, levels: levels, sessions: [] };
 }
 
-function ladderOf(D, state, slot) {
+export function ladderOf(D, state, slot) {
   var L = state.levels[slot];
   var path = D.LADDERS[slot].paths[L.path] || D.LADDERS[slot].paths[D.LADDERS[slot].defaultPath];
   return path.levels;
 }
-function currentLevel(D, state, slot) {
+export function currentLevel(D, state, slot) {
   var lad = ladderOf(D, state, slot);
   var idx = Math.max(0, Math.min(lad.length - 1, state.levels[slot].idx));
   return lad[idx];
 }
-function isActive(D, state, slot) {
+export function isActive(D, state, slot) {
   if (D.SLOTS[slot].needsBar && !state.settings.hasBar) return false;
   if (D.SLOTS[slot].needsDip && !state.settings.hasDip) return false;
   return true;
 }
 
 /* Last session in which this exercise was done at this level, with at least one set. */
-function lastEntry(state, slot, levelId) {
+export function lastEntry(state, slot, levelId) {
   var best = null;
   for (var i = 0; i < state.sessions.length; i++) {
     var e = state.sessions[i].entries && state.sessions[i].entries[slot];
@@ -47,12 +47,12 @@ function lastEntry(state, slot, levelId) {
   return best;
 }
 
-function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+export function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
 /* Target for each of the 3 sets.
    First time at the level: everything at the minimum. After that: if all targets were hit, each set goes up one step
    (1 rep, or 5 s for holds); otherwise repeat what was done. Never goes past the top of the range. */
-function targetsFor(level, last) {
+export function targetsFor(level, last) {
   var n = 3, out = [], i;
   if (!last) { for (i = 0; i < n; i++) out.push(level.lo); return out; }
   var e = last.entry, clean = e.sets.length >= n;
@@ -66,20 +66,20 @@ function targetsFor(level, last) {
   return out;
 }
 
-function prescribe(D, state, slot) {
+export function prescribe(D, state, slot) {
   var level = currentLevel(D, state, slot);
   var last = lastEntry(state, slot, level.id);
   return { slot: slot, level: level, targets: targetsFor(level, last), first: !last, last: last };
 }
 
-function mastered(level, sets) {
+export function mastered(level, sets) {
   if (!sets || sets.length < 3) return false;
   for (var i = 0; i < sets.length; i++) if (sets[i] < level.hi) return false;
   return true;
 }
 
 /* Workout steps: the warmup is left out. Each group alternates its exercises, set by set. */
-function buildSteps(D, state) {
+export function buildSteps(D, state) {
   var steps = [];
   function group(slots, kind) {
     var act = slots.filter(function (s) { return isActive(D, state, s); });
@@ -90,11 +90,11 @@ function buildSteps(D, state) {
   return steps;
 }
 
-function restSeconds(D, state, slot) {
+export function restSeconds(D, state, slot) {
   return D.SLOTS[slot].core ? state.settings.restCore : state.settings.restMain;
 }
 
-function warmupItems(D, state) {
+export function warmupItems(D, state) {
   var alt = (state.settings && state.settings.warmAlt) || {};
   var items = D.WARMUP.map(function (w) {
     var a = (w.alts || []).filter(function (x) { return x.id === alt[w.id]; })[0];
@@ -116,7 +116,7 @@ function warmupItems(D, state) {
 
 /* Finishes the workout: builds the session, applies level promotions and returns both.
    W.logged[slot] = { levelId, path, sets, targets }. */
-function finishWorkout(D, state, W, date, durationSec) {
+export function finishWorkout(D, state, W, date, durationSec) {
   var entries = {}, promotions = [];
   Object.keys(W.logged).forEach(function (slot) {
     var l = W.logged[slot];
@@ -144,7 +144,7 @@ function finishWorkout(D, state, W, date, durationSec) {
   return { session: session, promotions: promotions };
 }
 
-function weeklyCounts(sessions, nWeeks, todayStr) {
+export function weeklyCounts(sessions, nWeeks, todayStr) {
   var start = weekStartISO(todayStr);
   var weeks = [];
   for (var i = nWeeks - 1; i >= 0; i--) {
@@ -159,7 +159,7 @@ function weeklyCounts(sessions, nWeeks, todayStr) {
 }
 
 /* Metric series per session for an exercise: total reps or seconds. */
-function seriesFor(state, slot) {
+export function seriesFor(state, slot) {
   var out = [];
   state.sessions.forEach(function (s) {
     var e = s.entries && s.entries[slot];
@@ -171,7 +171,7 @@ function seriesFor(state, slot) {
 }
 
 /* Day hint: follows Mon, Wed and Fri, with at least one day between workouts. */
-function scheduleHint(sessions, todayStr) {
+export function scheduleHint(sessions, todayStr) {
   var last = null;
   sessions.forEach(function (s) { if (!last || s.date > last) last = s.date; });
   var dow = (parseISO(todayStr).getUTCDay() + 6) % 7; /* seg = 0 */
@@ -184,7 +184,7 @@ function scheduleHint(sessions, todayStr) {
 
 /* Upcoming workouts (Monday, Wednesday and Friday) if you hit all targets. Simulates on a copy of the state, without touching the real one.
    If today is a workout day and it is not done yet, it is simulated first and does not appear in the list (it is already in "Today's workout"). */
-function projectWorkouts(D, state, todayStr, count) {
+export function projectWorkouts(D, state, todayStr, count) {
   var st = JSON.parse(JSON.stringify(state)), out = [], day = todayStr, guard = 0, k = 0;
   var doneToday = st.sessions.some(function (x) { return x.date === todayStr; });
   function dow(d) { return (parseISO(d).getUTCDay() + 6) % 7; }
@@ -210,16 +210,7 @@ function projectWorkouts(D, state, todayStr, count) {
   return out;
 }
 
-function sessionSummaryText(entry) {
+export function sessionSummaryText(entry) {
   var unit = entry.kind === 'hold' ? ' s' : '';
   return entry.sets.join(' · ') + unit;
 }
-
-if (typeof module !== 'undefined') module.exports = {
-  isoDate: isoDate, parseISO: parseISO, dayDiff: dayDiff, weekStartISO: weekStartISO,
-  defaultState: defaultState, ladderOf: ladderOf, currentLevel: currentLevel, isActive: isActive,
-  lastEntry: lastEntry, targetsFor: targetsFor, prescribe: prescribe, mastered: mastered,
-  buildSteps: buildSteps, restSeconds: restSeconds, warmupItems: warmupItems,
-  finishWorkout: finishWorkout, weeklyCounts: weeklyCounts, seriesFor: seriesFor,
-  scheduleHint: scheduleHint, projectWorkouts: projectWorkouts, sessionSummaryText: sessionSummaryText
-};

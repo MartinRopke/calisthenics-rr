@@ -4,22 +4,21 @@ Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guid
 
 ## Commands
 
-- `npm run build`: generates `index.html` by bundling `style.css`, `data.js`, `videos.js`, `logic.js` and `app.js`. `index.html` is committed. After editing any source file, run the build and commit `index.html` together with it.
 - `npm test`: logic tests, in Node, with no dependencies. Always run before committing.
 - `npm run guide`: regenerates `docs/rr-guide.md` from `data.js`. Run after changing ladders, cues or the warmup.
 - `npm run wiki`: guides Martin through saving the original guide pages into `reference/` (outside git). It opens each page in his browser and saves the copied text. Reddit blocks automatic downloads, so only he can run it.
-- `npm run test:e2e`: screen tests with Playwright in Python (`pip install playwright` and `playwright install chromium`). They run `index.html` with a fake db and save screenshots in `shots/`, which git ignores.
-- `npm start`: local server (`server.mjs`, no dependencies) at http://localhost:8000. It serves `index.html` and stores the history in `data/treino.json`, which git ignores. This is the way to use it on the Mac: videos play on localhost and the data lives in a file.
-- Opening `index.html` straight from disk works, but videos do not play (YouTube error 153). Videos play on localhost and on https.
+- `npm run test:e2e`: screen tests with Playwright in Python (`pip install playwright` and `playwright install chromium`). They start `server.mjs` on a free port with a temporary `DATA_DIR` and save screenshots in `shots/`, which git ignores.
+- `npm start`: local server (`server.mjs`, no dependencies) at http://localhost:8000. It serves the app files (a fixed whitelist in `server.mjs`: add any new module there) and stores the history in `data/treino.json` (override the folder with `DATA_DIR`), which git ignores. Videos play on localhost.
+- Opening `index.html` straight from disk does not work, because browsers block ES modules on `file://`. Use `npm start` (Mac) or `npm run home` (iPhone over Wi-Fi, see README).
 
 ## Structure
 
 - `data.js`: the 9 exercises (`SLOTS`), the progression ladders (`LADDERS`, with alternative paths), the workout order (`PAIRS`, `CORE`), the starting levels (`START_LEVELS`) and the warmup (`WARMUP`, `WARMUP_EXTRAS`).
 - `videos.js`: one YouTube video per level and per warmup item.
-- `logic.js`: pure functions, no DOM, exported with `module.exports` for the tests. Every progression rule lives here.
+- `logic.js`: pure functions, no DOM, ES module exports, also imported by the tests. Every progression rule lives here.
 - `app.js`: screens, storage and the guided workout. Clicks go through `data-act` and the `H` object of functions.
 - `style.css`: light and dark theme through `prefers-color-scheme`.
-- The files become global scripts, without modules, in build order.
+- Native ES modules, no bundler: `index.html` is hand-written and loads `app.js` with `<script type="module">`, which imports `data.js`, `videos.js` and `logic.js`. The style stays ES5-like (`var`, `function`) for now.
 - With `npm start`, the app detects `/api/state` and writes the history to `data/treino.json` (with a copy in `treino.bak.json`), in addition to `localStorage`. Without the server that address does not exist, so only `localStorage` applies (key `treinoRR.v1`, draft in `treinoRR.draft`). The code still has a path for the Claude artifacts `db`, which can be removed.
 
 ## Product rules (do not change without asking)

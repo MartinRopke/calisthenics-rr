@@ -1,4 +1,12 @@
-/* App: screens, guided workout and storage. Uses data.js and logic.js (globals). */
+/* App: screens, guided workout and storage. Imports data.js, videos.js and logic.js. */
+import { SLOTS, LADDERS, PAIRS, CORE, SLOT_ORDER, START_LEVELS, WARMUP, WARMUP_EXTRAS, WIKI_BASE, ytUrl } from './data.js';
+import { VIDEOS } from './videos.js';
+import {
+  isoDate, defaultState, ladderOf, currentLevel, isActive,
+  prescribe, buildSteps, restSeconds, warmupItems, finishWorkout, weeklyCounts,
+  seriesFor, scheduleHint, projectWorkouts, sessionSummaryText
+} from './logic.js';
+
 var D = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS };
 var LS_KEY = 'treinoRR.v1', DRAFT_KEY = 'treinoRR.draft';
 
@@ -333,7 +341,7 @@ function render() {
 /* ---------- Exercise sheet ---------- */
 /* Video: the box shows the thumbnail and only loads the player when tapped (saves data and avoids restarting on every screen). */
 function videoHtml(key, q) {
-  var v = (typeof VIDEOS !== 'undefined') && VIDEOS[key];
+  var v = VIDEOS[key];
   if (!v) return '<a class="vid-link" href="' + ytUrl(q) + '" target="_blank" rel="noopener">Search for a video on YouTube</a>';
   return '<div class="vid-box"><div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/' + v.id + '?rel=0&playsinline=1&modestbranding=1" title="' + esc(v.t) + '" loading="lazy" onload="this.classList.add(&quot;ok&quot;)" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>' +
     '<p class="vid-cap">' + esc(v.t) + ' · ' + esc(v.c) + '</p></div>';

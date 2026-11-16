@@ -1,8 +1,8 @@
 /* Exercise data: progression ladders of the Recommended Routine (r/bodyweightfitness).
    Execution cues paraphrased from the wiki pages; muscles are general information. */
 
-var WIKI_BASE = 'https://www.reddit.com/r/bodyweightfitness/wiki/exercises/';
-function ytUrl(q) { return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q); }
+export var WIKI_BASE = 'https://www.reddit.com/r/bodyweightfitness/wiki/exercises/';
+export function ytUrl(q) { return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q); }
 
 /* Rep ranges: strength 5 to 8, core 8 to 12, holds 10 to 30 s. */
 function mk(id, name, kind, opts) {
@@ -24,7 +24,7 @@ function mk(id, name, kind, opts) {
   return lvl;
 }
 
-var SLOTS = {
+export var SLOTS = {
   pullup: { label: 'Pull-up', group: 'Vertical pull', wiki: 'pullup', needsBar: true,
     muscles: 'Lats, biceps and upper back',
     general: ['Slightly hollow body, legs straight and uncrossed', 'Arms fully straight at the bottom, with no extra tricks', 'Aim to bring your chest to the bar at the top, building up to that range over time', 'Neutral neck, without stretching your chin to clear the bar'] },
@@ -61,7 +61,7 @@ var ROW_SETUP = [{ k: 'eq.row.table', label: 'Table' }, { k: 'eq.row.sheet', lab
 var BAR_SETUP = [{ label: 'Rings', q: 'rings' }];
 var DIP_SETUP = [{ label: 'Two chairs', q: 'two chairs' }, { label: 'Counter corner', q: 'counter corner' }];
 var EQ_COP = 'bench, couch, counter or sturdy chair';
-var LADDERS = {
+export var LADDERS = {
   pushup: { defaultPath: 'main', paths: { main: { label: 'Main ladder', levels: [
     mk('pushup.vert', 'Wall push-up', 'reps', { q: 'wall push up', cues: ['Stand facing a wall with your hands on it', 'Do the push-up keeping the body straight'] }),
     mk('pushup.inc', 'Incline push-up', 'reps', { q: 'incline push up', equip: 'table, bench or another sturdy surface', cues: ['Hands on a sturdy surface, like a table or bench', 'The lower the surface, the harder it gets'] }),
@@ -151,16 +151,16 @@ var LADDERS = {
 };
 
 /* Workout order: three strength pairs and the core trio. */
-var PAIRS = [['pullup', 'squat'], ['dip', 'hinge'], ['row', 'pushup']];
-var CORE = ['core_ae', 'core_ar', 'core_ex'];
-var SLOT_ORDER = [].concat.apply([], PAIRS).concat(CORE);
+export var PAIRS = [['pullup', 'squat'], ['dip', 'hinge'], ['row', 'pushup']];
+export var CORE = ['core_ae', 'core_ar', 'core_ex'];
+export var SLOT_ORDER = [].concat.apply([], PAIRS).concat(CORE);
 
 /* Starting level of each exercise (index in the default ladder), per the plan. */
-var START_LEVELS = { pushup: 3, row: 1, squat: 1, pullup: 0, dip: 0, hinge: 0, core_ae: 0, core_ar: 0, core_ex: 0 };
+export var START_LEVELS = { pushup: 3, row: 1, squat: 1, pullup: 0, dip: 0, hinge: 0, core_ae: 0, core_ar: 0, core_ex: 0 };
 
 /* Warmup from the guide, plus the extras that come in as you level up.
    n and unit form the target ("5 to 10" + "reps"); secs turns on a timer; how are the steps. */
-var WARMUP = [
+export var WARMUP = [
   { id: 'shoulder', name: 'Yuri\'s shoulder band warmup', n: '5 to 10', unit: 'reps', equip: 'resistance band or a t-shirt', q: 'Yuri shoulder band warmup',
     how: ['Hold the band, or a t-shirt, with straight arms and hands far apart', 'Take the band over your head to behind your body and come back the same way', 'Slowly and with straight elbows. If it gets stuck, widen your hands'],
     /* Swaps without equipment, outside the guide. The app shows them as "not from the guide". */
@@ -178,7 +178,7 @@ var WARMUP = [
     how: ['Lying down, arms straight up and knees bent in the air', 'Keep your lower back on the floor the whole time', 'Extend one arm and the opposite leg, come back and switch'] }
 ];
 /* Extras: appear when the exercise reaches the given index. prevLevel uses the level below the current one. */
-var WARMUP_EXTRAS = [
+export var WARMUP_EXTRAS = [
   { id: 'x_arch', slot: 'pullup', minIdx: 2, name: 'Arch hangs', n: '10', unit: 'reps', equip: EQ_BAR, q: 'arch hang pull up progression',
     how: ['Hanging from the bar with straight elbows', 'Push your chest away from the bar and bring the shoulder blades together, forming an arch', 'Release and repeat without bending the elbows'] },
   { id: 'x_sup', slot: 'dip', minIdx: 1, name: 'Support hold', n: '30', unit: 'seconds', secs: 30, equip: EQ_DIP, q: 'parallel bar support hold',
@@ -188,4 +188,3 @@ var WARMUP_EXTRAS = [
   { id: 'x_hinge', slot: 'hinge', minIdx: 3, prevLevel: true, name: 'Easier hinge progression', n: '10', unit: 'reps',
     how: ['This is the hinge exercise one level below today\'s', 'Do it with clean technique, without rushing'] }
 ];
-if (typeof module !== 'undefined') module.exports = { SLOTS: SLOTS, LADDERS: LADDERS, PAIRS: PAIRS, CORE: CORE, SLOT_ORDER: SLOT_ORDER, START_LEVELS: START_LEVELS, WARMUP: WARMUP, WARMUP_EXTRAS: WARMUP_EXTRAS, ytUrl: ytUrl, WIKI_BASE: WIKI_BASE };

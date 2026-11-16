@@ -1,57 +1,15 @@
 import json, sys
 from playwright.sync_api import sync_playwright
-import pathlib, os
-ROOT = pathlib.Path(__file__).resolve().parent
+import os
+from e2e_common import ROOT, LAUNCH, server
 os.chdir(ROOT)
 os.makedirs('shots', exist_ok=True)
-URL = (ROOT / 'index.html').as_uri()
-CHROME = '/usr/bin/google-chrome'
-LAUNCH = dict(executable_path=CHROME, args=['--no-sandbox']) if os.path.exists(CHROME) else {}
 
-
-STUB = """
-(() => {
-  const KEY='stubdb';
-  const load=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}}};
-  const save=o=>localStorage.setItem(KEY,JSON.stringify(o));
-  const mkSnap=(id,data)=>({id,exists:data!==undefined,data:()=>data,metadata:{}});
-  const colRef=(path)=>{
-    let q={order:null,dir:'asc',lim:1000};
-    const self={
-      path,
-      doc:(id)=>docRef(path+'/'+id),
-      orderBy:(f,d)=>{q.order=f;q.dir=d||'asc';return self},
-      limit:(n)=>{q.lim=n;return self},
-      get:async()=>{
-        const s=load(); const pre=path+'/';
-        let ids=Object.keys(s).filter(k=>k.startsWith(pre)&&!k.slice(pre.length).includes('/'));
-        let docs=ids.map(k=>mkSnap(k.slice(pre.length),s[k]));
-        if(q.order) docs.sort((a,b)=>a.data()[q.order]<b.data()[q.order]?-1:1);
-        docs=docs.slice(0,q.lim);
-        return {docs,size:docs.length,empty:!docs.length};
-      }
-    };return self;
-  };
-  const docRef=(path)=>({
-    id:path.split('/').pop(),path,
-    get:async()=>{const s=load();return mkSnap(path.split('/').pop(),s[path])},
-    set:async(d)=>{const s=load();s[path]=JSON.parse(JSON.stringify(d));save(s)},
-    delete:async()=>{const s=load();delete s[path];save(s)},
-    collection:(p)=>colRef(path+'/'+p)
-  });
-  window.claude={use:async(n)=>{
-    if(window.__nodb && n==='db') return null;
-    if(n==='user') return {id:async()=>'u_test',isOwner:async()=>true};
-    if(n==='db') return {doc:docRef,collection:colRef};
-    return null;}};
-})();
-"""
 
 errors=[]
-with sync_playwright() as p:
+with server() as URL, sync_playwright() as p:
     b = p.chromium.launch(**LAUNCH)
     ctx = b.new_context(viewport={'width':390,'height':844}, device_scale_factor=2, is_mobile=True, has_touch=True)
-    ctx.add_init_script(STUB)
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append('pageerror: '+str(e)))
     page.on('console', lambda m: errors.append('console.'+m.type+': '+m.text) if m.type in ('error',) and 'ERR_TUNNEL' not in m.text and 'ERR_NAME' not in m.text and 'ERR_INTERNET' not in m.text else None)
@@ -121,13 +79,13 @@ with sync_playwright() as p:
     page.click('[data-act=tab][data-tab=progress]')
     page.screenshot(path='shots/09-progress.png', full_page=True)
 
-    stub = page.evaluate("JSON.parse(localStorage.getItem('stubdb'))")
-    print('keys in db stub:', [k for k in stub.keys()])
-    # reload: does data persist?
+    saved = page.evaluate("fetch('/api/state').then(r => r.json())")
+    print('keys saved by the server:', sorted(saved.keys()))
+    # reload: does data persist (server file only)?
     page.evaluate("localStorage.removeItem('treinoRR.v1')")
     page.reload(); page.wait_for_timeout(600)
     page.click('[data-act=tab][data-tab=progress]')
-    print('after reload (db only):', page.locator('.page-head p').inner_text())
+    print('after reload (server only):', page.locator('.page-head p').inner_text())
     page.click('[data-act=tab][data-tab=today]')
     print('push-up level now:', page.locator('[data-act=open-ex][data-slot=pushup] .ex-name').inner_text(), '|', page.locator('[data-act=open-ex][data-slot=pushup] .ex-target').inner_text())
     b.close()

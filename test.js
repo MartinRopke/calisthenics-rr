@@ -1,7 +1,8 @@
-const { describe, it } = require('node:test');
-const assert = require('node:assert/strict');
-const D = require('./data.js');
-const L = require('./logic.js');
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import * as D from './data.js';
+import * as L from './logic.js';
+import { VIDEOS } from './videos.js';
 
 // sets: {slot: [reps...]}
 const mkW = (state, sets) => {
@@ -218,7 +219,7 @@ describe('content data', () => {
   });
 
   it('gives every level and warm-up item a valid video', () => {
-    const V = new Function(require('fs').readFileSync('./videos.js', 'utf8') + '; return VIDEOS;')();
+    const V = VIDEOS;
     Object.keys(D.LADDERS).forEach(s => Object.values(D.LADDERS[s].paths).forEach(p => p.levels.forEach(l => {
       assert.ok(V[l.id], 'missing video: ' + l.id);
     })));

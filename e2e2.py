@@ -1,23 +1,18 @@
 import re
 from playwright.sync_api import sync_playwright
-import pathlib, os
-ROOT = pathlib.Path(__file__).resolve().parent
+import os
+from e2e_common import ROOT, LAUNCH, server
 os.chdir(ROOT)
 os.makedirs('shots', exist_ok=True)
-URL = (ROOT / 'index.html').as_uri()
-CHROME = '/usr/bin/google-chrome'
-LAUNCH = dict(executable_path=CHROME, args=['--no-sandbox']) if os.path.exists(CHROME) else {}
-
-src = open('e2e.py').read()
-STUB = re.search(r'STUB = """(.*?)"""', src, re.S).group(1)
 errors = []; res = []
 def ok(name, cond): res.append(('ok  ' if cond else 'FAIL') + ' ' + name)
 
-with sync_playwright() as p:
+with server() as URL, sync_playwright() as p:
     b = p.chromium.launch(**LAUNCH)
     def newpage(nodb=False, dark=False):
         ctx = b.new_context(viewport={'width':390,'height':844}, device_scale_factor=2, is_mobile=True, has_touch=True, color_scheme='dark' if dark else 'light')
-        ctx.add_init_script(('window.__nodb=true;' if nodb else '') + STUB)
+        if nodb:  # no server state: the app falls back to localStorage
+            ctx.route('**/api/state', lambda r: r.fulfill(status=404, body='not found'))
         pg = ctx.new_page()
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
         pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' and 'ERR_TUNNEL' not in m.text and 'ERR_NAME' not in m.text and 'ERR_INTERNET' not in m.text else None)
@@ -86,7 +81,7 @@ with sync_playwright() as p:
     ok('backup has sessions', '"sessions":[{' in bk)
     ctx.close()
 
-    # 2) no account (null db): uses localStorage and imports backup
+    # 2) no server state (api/state 404): uses localStorage and imports backup
     ctx, pg = newpage(nodb=True)
     pg.click('[data-act=tab][data-tab=settings]')
     ok('local mode notice', 'in this browser' in pg.inner_text('.page-head'))
