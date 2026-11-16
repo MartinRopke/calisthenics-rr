@@ -74,6 +74,8 @@ ul { padding: 0; list-style: none; }
 .sec-title { font-stretch: 80%; font-weight: 700; font-size: 22px; margin: 26px 0 4px; }
 
 .ex-list { border-top: 2px solid var(--ink); }
+.grp { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 22px 0 6px; }
+.grp h3 { font-stretch: 85%; font-weight: 800; font-size: 18px; }
 .ex { display: block; width: 100%; padding: 14px 0 13px; border-bottom: 1px solid var(--line); }
 .ex-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .ex-name { font-weight: 700; font-size: 18px; }
