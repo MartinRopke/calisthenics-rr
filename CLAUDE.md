@@ -45,7 +45,7 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 - The key in `src/domain/videos.js` is the level id, or `w.<id>` for the warmup. The test requires a video for every level.
 - To replace a video: find the new one on YouTube, check that it allows embedding (the URL `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=ID&format=json` answers 200) and fill in `id`, `t` (title) and `c` (channel).
 - The execution cues are paraphrases of the r/bodyweightfitness wiki. Do not copy text, GIFs or images from the wiki into the repository, which is public.
-- `docs/rr-guide.md` is a personal reference for the RR guide in our own words, generated locally from `src/domain/data.js` and not versioned (git ignores it, along with `scripts/`). If it exists, check it before changing ladders or rules. Do not edit it by hand.
+- `reference/rr-guide.md` is a personal reference for the RR guide in our own words, in `reference/` (git ignores it, along with `scripts/`), generated locally from `src/domain/data.js`. If it exists, check it before changing ladders or rules. Do not edit it by hand.
 - `reference/` is the folder where Martin keeps the original pages he saved for personal use. Git ignores this folder. If it exists, you may read it to check details, but never copy its contents into versioned files.
 
 ## Conventions
