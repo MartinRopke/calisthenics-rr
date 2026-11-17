@@ -1,4 +1,4 @@
-// Servidor local, sem dependências: serve a pasta src/ em http://localhost:8000
+// Local server, no dependencies: serves the src/ folder at http://localhost:8000
 // e guarda o histórico em data/treino.json (a pasta data/ fica fora do git).
 import { createServer } from 'node:http';
 import {
@@ -88,7 +88,7 @@ createServer((req, res) => {
     const found = staticFile(path);
     if (found) return send(res, 200, found[1], req.method === 'HEAD' ? '' : readFileSync(found[0]));
   }
-  send(res, 404, 'text/plain', 'Não encontrado');
+  send(res, 404, 'text/plain', 'Not found');
 }).listen(port, host, () => {
   console.log('Treino RR running (data in data/treino.json)');
   console.log('  Local:   http://localhost:' + port);
