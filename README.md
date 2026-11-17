@@ -13,7 +13,7 @@ npm run lint       # ESLint
 npm run format     # Prettier, rewrites files
 npm run format:check
 npm run e2e:install # once, downloads Chromium for Playwright (user cache, not the repo)
-npm run test:e2e   # Playwright (Node) in e2e/, small UI check
+npm run test:e2e   # Playwright (Node) in test/e2e/, small UI check
 npm run guide      # regenerates docs/rr-guide.md from src/domain/data.js
 npm run wiki       # saves original guide pages into reference/
 ```
@@ -51,9 +51,9 @@ Notes:
 | `src/ui/views.js`                               | Builds HTML strings as pure functions.                                       |
 | `src/app.js`, `src/index.html`, `src/style.css` | Imperative shell: events, timer, guided workout. Wires the layers together.  |
 | `server.mjs`                                    | Serves `src/` and `/api/state`. Zero dependencies.                           |
-| `e2e/`                                          | Playwright scripts (Node, `*.e2e.js`).                                       |
+| `test/unit/`, `test/server/`, `test/e2e/`       | All tests: unit (mirrors `src/`), server and Playwright (`*.e2e.js`).        |
 
-Each module has its test next to it (`*.test.js`). `server.test.js` is at the root.
+`src/` holds only what ships to the browser. Tests live in `test/`, and `test/unit/` mirrors the `src/` folders (`*.test.js`).
 
 Dependency rule: dependencies point inward. `app.js` may use everything, `ui/` and `storage/` may use `domain/`, and `domain/` never touches the DOM or storage.
 
@@ -66,7 +66,7 @@ Dependency rule: dependencies point inward. `app.js` may use everything, `ui/` a
 
 ### TDD
 
-New logic and every bug fix start with a failing test. Tests use `node:test` with no test dependencies and live next to the module as `*.test.js`. The UI is covered only by the small Playwright e2e.
+New logic and every bug fix start with a failing test. Tests use `node:test` with no test dependencies and live in `test/`, mirroring `src/` (for example `test/unit/domain/logic.test.js`). The UI is covered only by the small Playwright e2e.
 
 ### Decisions
 
@@ -81,6 +81,7 @@ Each structural decision has an ADR in [docs/decisions](docs/decisions/README.md
 - [0007 Home server on the LAN](docs/decisions/0007-home-server-on-the-lan.md)
 - [0008 Source layout under src/](docs/decisions/0008-source-layout.md)
 - [0009 End-to-end tests with Playwright for Node](docs/decisions/0009-e2e-with-playwright-node.md)
+- [0010 Tests in a top-level test/ folder](docs/decisions/0010-tests-in-test-folder.md)
 
 ## Future ideas
 

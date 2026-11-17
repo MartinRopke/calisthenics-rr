@@ -10,8 +10,8 @@ Unit tests cannot catch broken module imports, 404s on served files or regressio
 
 - E2E tests use the `playwright` library from npm as a devDependency, pinned by `package-lock.json`.
 - The runner is the built-in `node:test` with `node:assert/strict`, consistent with ADR 0003. `@playwright/test` is not used.
-- Files are named `e2e/*.e2e.js`, so the default `node --test` glob of `npm test` does not pick them up. `npm run test:e2e` runs them one at a time.
-- `e2e/helpers.js` starts `server.mjs` on a free port with a temporary `DATA_DIR`, launches Chromium and collects console and page errors.
+- Files are named `test/e2e/*.e2e.js` (moved by ADR 0010), and `npm test` lists its folders explicitly, so it does not pick them up. `npm run test:e2e` runs them one at a time.
+- `test/e2e/helpers.js` starts `server.mjs` on a free port with a temporary `DATA_DIR`, launches Chromium and collects console and page errors.
 - The Chromium binary is installed once with `npm run e2e:install`. It lives in the user cache, not in the repo.
 
 ## Consequences

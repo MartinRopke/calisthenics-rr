@@ -10,7 +10,7 @@ The progression rules are the heart of the product, and a wrong rule silently gi
 
 - New logic and every bug fix start with a failing test.
 - Tests use the built-in `node:test` and `node:assert`. No test framework is installed.
-- Tests live next to the module as `*.test.js`.
+- Tests live next to the module as `*.test.js`. (Superseded by [0010](0010-tests-in-test-folder.md): tests now live in `test/`.)
 - The UI is covered only by a small Playwright e2e (`npm run test:e2e`), which is slow and kept minimal.
 
 ## Consequences

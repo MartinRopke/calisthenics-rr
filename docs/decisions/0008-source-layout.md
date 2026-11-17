@@ -8,9 +8,9 @@ All app files, tests, e2e scripts and configs sat together in the repository roo
 
 ## Decision
 
-Put the app in `src/` with one folder per layer: `domain/` (data, videos, logic), `storage/` (adapter) and `ui/` (views), plus `app.js`, `index.html` and `style.css` at the top of `src/`. Each test sits next to its module as `*.test.js`. The Playwright scripts move to `e2e/`. The server, scripts, docs and configs stay at the root.
+Put the app in `src/` with one folder per layer: `domain/` (data, videos, logic), `storage/` (adapter) and `ui/` (views), plus `app.js`, `index.html` and `style.css` at the top of `src/`. Each test sits next to its module as `*.test.js`. The Playwright scripts move to `e2e/`. (Superseded by [0010](0010-tests-in-test-folder.md): all tests now live in `test/`.) The server, scripts, docs and configs stay at the root.
 
-`server.mjs` serves files under `src/` only. It resolves each path and refuses anything outside `src/`, answers only GET and HEAD, never lists directories and returns 404 for `*.test.js`. `server.test.js` checks this.
+`server.mjs` serves files under `src/` only. It resolves each path and refuses anything outside `src/`, answers only GET and HEAD, never lists directories and returns 404 for `*.test.js` (rule removed by [0010](0010-tests-in-test-folder.md)). `server.test.js` checks this.
 
 ## Consequences
 
