@@ -8,7 +8,8 @@
     "start": "node server.mjs",
     "home": "caffeinate -i node server.mjs",
     "test": "node --test",
-    "test:e2e": "python3 e2e/e2e.py && python3 e2e/e2e2.py",
+    "e2e:install": "playwright install chromium",
+    "test:e2e": "node --test --test-concurrency=1 --test-timeout=180000 \"e2e/*.e2e.js\"",
     "guide": "node scripts/generate-guide.mjs",
     "wiki": "node scripts/fetch-wiki.mjs",
     "lint": "eslint .",
@@ -20,6 +21,7 @@
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.14.0",
+    "playwright": "^1.65.1",
     "prettier": "^3.10.1"
   }
 }

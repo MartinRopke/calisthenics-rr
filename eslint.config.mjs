@@ -22,5 +22,10 @@ export default [
     files: ['**/*.test.js', 'server.mjs', 'scripts/*.mjs', 'eslint.config.mjs'],
     languageOptions: { globals: globals.node },
   },
+  {
+    // e2e scripts run in Node, but their page.evaluate callbacks run in the browser.
+    files: ['e2e/*.js'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
   prettier,
 ];
