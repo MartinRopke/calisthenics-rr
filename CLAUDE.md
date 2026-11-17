@@ -11,7 +11,8 @@ Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guid
 - `npm run lint` and `npm run format`: ESLint and Prettier (`npm run format:check` only verifies). Run both before committing.
 - `npm run guide`: regenerates `docs/rr-guide.md` from `src/domain/data.js`. Run after changing ladders, cues or the warmup.
 - `npm run wiki`: guides Martin through saving the original guide pages into `reference/` (outside git). Reddit blocks automatic downloads, so only he can run it.
-- `npm run test:e2e`: screen tests in `e2e/` with Playwright in Python. They start `server.mjs` on a free port with a temporary `DATA_DIR` and save screenshots in `shots/`, which git ignores.
+- `npm run e2e:install`: once, downloads the Chromium binary for Playwright into the user cache (outside the repo).
+- `npm run test:e2e`: screen tests in `e2e/*.e2e.js` with Playwright for Node and `node:test`. They start `server.mjs` on a free port with a temporary `DATA_DIR` and save screenshots in `shots/`, which git ignores.
 - Opening `src/index.html` from disk does not work (browsers block ES modules on `file://`). Use `npm start`.
 
 ## Structure

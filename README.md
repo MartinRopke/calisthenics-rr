@@ -5,14 +5,15 @@ Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guid
 ## Commands
 
 ```
-npm install        # once, for ESLint and Prettier (dev only)
+npm install        # once, for ESLint, Prettier and Playwright (dev only)
 npm start          # local server at http://localhost:8000
 npm run home       # same, reachable from the iPhone, Mac stays awake
 npm test           # unit and server tests (node:test)
 npm run lint       # ESLint
 npm run format     # Prettier, rewrites files
 npm run format:check
-npm run test:e2e   # Playwright (Python) in e2e/, small UI check
+npm run e2e:install # once, downloads Chromium for Playwright (user cache, not the repo)
+npm run test:e2e   # Playwright (Node) in e2e/, small UI check
 npm run guide      # regenerates docs/rr-guide.md from src/domain/data.js
 npm run wiki       # saves original guide pages into reference/
 ```
@@ -50,7 +51,7 @@ Notes:
 | `src/ui/views.js`                               | Builds HTML strings as pure functions.                                       |
 | `src/app.js`, `src/index.html`, `src/style.css` | Imperative shell: events, timer, guided workout. Wires the layers together.  |
 | `server.mjs`                                    | Serves `src/` and `/api/state`. Zero dependencies.                           |
-| `e2e/`                                          | Playwright scripts (Python).                                                 |
+| `e2e/`                                          | Playwright scripts (Node, `*.e2e.js`).                                       |
 
 Each module has its test next to it (`*.test.js`). `server.test.js` is at the root.
 
@@ -78,6 +79,8 @@ Each structural decision has an ADR in [docs/decisions](docs/decisions/README.md
 - [0005 Native ES modules without a build](docs/decisions/0005-native-es-modules-no-build.md)
 - [0006 English-only repository](docs/decisions/0006-english-only.md)
 - [0007 Home server on the LAN](docs/decisions/0007-home-server-on-the-lan.md)
+- [0008 Source layout under src/](docs/decisions/0008-source-layout.md)
+- [0009 End-to-end tests with Playwright for Node](docs/decisions/0009-e2e-with-playwright-node.md)
 
 ## Future ideas
 
