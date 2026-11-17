@@ -1,4 +1,4 @@
-// Servidor local, sem dependências: serve o index.html em http://localhost:8000
+// Servidor local, sem dependências: serve a pasta src/ em http://localhost:8000
 // e guarda o histórico em data/treino.json (a pasta data/ fica fora do git).
 import { createServer } from 'node:http';
 import {
@@ -8,8 +8,9 @@ import {
   copyFileSync,
   mkdirSync,
   existsSync,
+  statSync,
 } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
 
@@ -21,18 +22,32 @@ const port = Number(process.env.PORT) || 8000;
 // Use HOST=127.0.0.1 for local-only access.
 const host = process.env.HOST || '0.0.0.0';
 
-// Static files the app needs. Anything else is a 404, so there is no listing and no path traversal.
-const STATIC = {
-  '/': ['index.html', 'text/html; charset=utf-8'],
-  '/index.html': ['index.html', 'text/html; charset=utf-8'],
-  '/style.css': ['style.css', 'text/css; charset=utf-8'],
-  '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
-  '/data.js': ['data.js', 'text/javascript; charset=utf-8'],
-  '/videos.js': ['videos.js', 'text/javascript; charset=utf-8'],
-  '/logic.js': ['logic.js', 'text/javascript; charset=utf-8'],
-  '/views.js': ['views.js', 'text/javascript; charset=utf-8'],
-  '/storage.js': ['storage.js', 'text/javascript; charset=utf-8'],
+// Only src/ is served. Everything else (data/, package.json, tests, node_modules) is a 404.
+const srcDir = join(root, 'src');
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json',
 };
+
+// Maps a URL path to a file inside src/, or returns null when there is none to serve.
+function staticFile(urlPath) {
+  let rel;
+  try {
+    rel = decodeURIComponent(urlPath);
+  } catch {
+    return null;
+  }
+  if (rel.includes('\0') || rel.includes('\\')) return null;
+  if (rel.endsWith('/')) rel += 'index.html';
+  const file = resolve(srcDir, '.' + rel);
+  if (!file.startsWith(srcDir + sep)) return null;
+  if (file.endsWith('.test.js')) return null;
+  const type = TYPES[extname(file)];
+  if (!type || !existsSync(file) || !statSync(file).isFile()) return null;
+  return [file, type];
+}
 
 const send = (res, code, type, body) => {
   res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
@@ -69,9 +84,9 @@ createServer((req, res) => {
     });
     return;
   }
-  if ((req.method === 'GET' || req.method === 'HEAD') && Object.hasOwn(STATIC, path)) {
-    const [file, type] = STATIC[path];
-    return send(res, 200, type, readFileSync(join(root, file)));
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    const found = staticFile(path);
+    if (found) return send(res, 200, found[1], req.method === 'HEAD' ? '' : readFileSync(found[0]));
   }
   send(res, 404, 'text/plain', 'Não encontrado');
 }).listen(port, host, () => {
