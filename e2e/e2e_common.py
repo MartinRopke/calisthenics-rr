@@ -1,7 +1,7 @@
 """Shared setup for the e2e tests: start server.mjs on a free port with a temp data dir."""
 import contextlib, os, pathlib, socket, subprocess, tempfile, time, urllib.request
 
-ROOT = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHROME = '/usr/bin/google-chrome'
 LAUNCH = dict(executable_path=CHROME, args=['--no-sandbox']) if os.path.exists(CHROME) else {}
 

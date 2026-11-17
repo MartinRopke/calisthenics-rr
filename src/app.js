@@ -10,8 +10,8 @@ import {
   WARMUP_EXTRAS,
   WIKI_BASE,
   ytUrl,
-} from './data.js';
-import { VIDEOS } from './videos.js';
+} from './domain/data.js';
+import { VIDEOS } from './domain/videos.js';
 import {
   ICON_EQUIP,
   esc,
@@ -21,7 +21,7 @@ import {
   viewProgress,
   viewSettings,
   tabbar,
-} from './views.js';
+} from './ui/views.js';
 import {
   isoDate,
   defaultState,
@@ -35,8 +35,8 @@ import {
   finishWorkout,
   seriesFor,
   sessionSummaryText,
-} from './logic.js';
-import { createStorage } from './storage.js';
+} from './domain/logic.js';
+import { createStorage } from './storage/storage.js';
 
 const D = {
   SLOTS: SLOTS,

@@ -15,11 +15,11 @@ export default [
   { rules, languageOptions: { sourceType: 'module' } },
   {
     // Browser modules. `claude` is the optional Claude artifacts runtime.
-    files: ['app.js', 'data.js', 'logic.js', 'videos.js', 'views.js', 'storage.js'],
+    files: ['src/**/*.js'],
     languageOptions: { globals: { ...globals.browser, claude: 'readonly' } },
   },
   {
-    files: ['*.test.js', 'test.js', 'server.mjs', 'scripts/*.mjs', 'eslint.config.mjs'],
+    files: ['**/*.test.js', 'server.mjs', 'scripts/*.mjs', 'eslint.config.mjs'],
     languageOptions: { globals: globals.node },
   },
   prettier,

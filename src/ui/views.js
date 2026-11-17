@@ -10,7 +10,7 @@ import {
   START_LEVELS,
   WARMUP,
   WARMUP_EXTRAS,
-} from './data.js';
+} from '../domain/data.js';
 import {
   ladderOf,
   currentLevel,
@@ -22,7 +22,7 @@ import {
   scheduleHint,
   projectWorkouts,
   sessionSummaryText,
-} from './logic.js';
+} from '../domain/logic.js';
 
 const D = { SLOTS, LADDERS, PAIRS, CORE, SLOT_ORDER, START_LEVELS, WARMUP, WARMUP_EXTRAS };
 
