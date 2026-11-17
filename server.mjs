@@ -1,5 +1,5 @@
 // Local server, no dependencies: serves the src/ folder at http://localhost:8000
-// e guarda o histórico em data/treino.json (a pasta data/ fica fora do git).
+// and keeps the history in data/treino.json (the data/ folder is git-ignored).
 import { createServer } from 'node:http';
 import {
   readFileSync,
