@@ -14,11 +14,16 @@ npm run format     # Prettier, rewrites files
 npm run format:check
 npm run e2e:install # once, downloads Chromium for Playwright (user cache, not the repo)
 npm run test:e2e   # Playwright (Node) in test/e2e/, small UI check
-npm run guide      # regenerates docs/rr-guide.md from src/domain/data.js
-npm run wiki       # saves original guide pages into reference/
 ```
 
 Opening `src/index.html` from disk does not work, because browsers block ES modules on `file://`. Use `npm start`.
+
+## Credits
+
+The training plan comes from the [Recommended Routine](https://www.reddit.com/r/bodyweightfitness/wiki/kb/recommended_routine/) of the
+r/bodyweightfitness wiki. I built this app to help me follow it
+because it matches my goals. This project is unofficial and not affiliated
+with r/bodyweightfitness or its authors.
 
 ## Progression rule
 

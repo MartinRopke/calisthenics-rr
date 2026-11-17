@@ -10,7 +10,7 @@ const rules = {
 };
 
 export default [
-  { ignores: ['.claude/', 'node_modules/', 'reference/', 'shots/', 'data/', 'docs/'] },
+  { ignores: ['.claude/', 'scripts/', 'node_modules/', 'reference/', 'shots/', 'data/', 'docs/'] },
   js.configs.recommended,
   { rules, languageOptions: { sourceType: 'module' } },
   {
@@ -19,13 +19,7 @@ export default [
     languageOptions: { globals: { ...globals.browser, claude: 'readonly' } },
   },
   {
-    files: [
-      'test/unit/**/*.js',
-      'test/server/*.js',
-      'server.mjs',
-      'scripts/*.mjs',
-      'eslint.config.mjs',
-    ],
+    files: ['test/unit/**/*.js', 'test/server/*.js', 'server.mjs', 'eslint.config.mjs'],
     languageOptions: { globals: globals.node },
   },
   {
