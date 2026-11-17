@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
-export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SHOTS = join(ROOT, 'shots');
 
 // Console errors that are noise: blocked network calls in sandboxes and Chromium internals.

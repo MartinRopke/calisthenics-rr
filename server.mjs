@@ -22,7 +22,7 @@ const port = Number(process.env.PORT) || 8000;
 // Use HOST=127.0.0.1 for local-only access.
 const host = process.env.HOST || '0.0.0.0';
 
-// Only src/ is served. Everything else (data/, package.json, tests, node_modules) is a 404.
+// Only src/ is served. Everything else (data/, package.json, test/, node_modules) is a 404.
 const srcDir = join(root, 'src');
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -43,7 +43,6 @@ function staticFile(urlPath) {
   if (rel.endsWith('/')) rel += 'index.html';
   const file = resolve(srcDir, '.' + rel);
   if (!file.startsWith(srcDir + sep)) return null;
-  if (file.endsWith('.test.js')) return null;
   const type = TYPES[extname(file)];
   if (!type || !existsSync(file) || !statSync(file).isFile()) return null;
   return [file, type];

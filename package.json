@@ -7,9 +7,9 @@
   "scripts": {
     "start": "node server.mjs",
     "home": "caffeinate -i node server.mjs",
-    "test": "node --test",
+    "test": "node --test \"test/unit/**/*.test.js\" \"test/server/*.test.js\"",
     "e2e:install": "playwright install chromium",
-    "test:e2e": "node --test --test-concurrency=1 --test-timeout=180000 \"e2e/*.e2e.js\"",
+    "test:e2e": "node --test --test-concurrency=1 --test-timeout=180000 \"test/e2e/*.e2e.js\"",
     "guide": "node scripts/generate-guide.mjs",
     "wiki": "node scripts/fetch-wiki.mjs",
     "lint": "eslint .",

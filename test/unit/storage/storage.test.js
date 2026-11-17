@@ -8,7 +8,7 @@ import {
   SCHEMA_VERSION,
   LS_KEY,
   DRAFT_KEY,
-} from './storage.js';
+} from '../../../src/storage/storage.js';
 
 const memoryStore = (initial = {}) => {
   const data = { ...initial };

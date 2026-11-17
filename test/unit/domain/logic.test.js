@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import * as D from './data.js';
-import * as L from './logic.js';
-import { VIDEOS } from './videos.js';
+import * as D from '../../../src/domain/data.js';
+import * as L from '../../../src/domain/logic.js';
+import { VIDEOS } from '../../../src/domain/videos.js';
 
 // sets: {slot: [reps...]}
 const mkW = (state, sets) => {

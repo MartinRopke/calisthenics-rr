@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import * as D from '../domain/data.js';
-import * as L from '../domain/logic.js';
-import * as V from './views.js';
+import * as D from '../../../src/domain/data.js';
+import * as L from '../../../src/domain/logic.js';
+import * as V from '../../../src/ui/views.js';
 
 const NOW = new Date('2026-03-04T10:00:00'); // a Wednesday
 const TODAY = '2026-03-04';

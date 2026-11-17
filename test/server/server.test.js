@@ -4,8 +4,11 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { request } from 'node:http';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const freePort = () =>
   new Promise((resolve) => {
@@ -43,6 +46,7 @@ describe('server', () => {
     port = await freePort();
     dataDir = mkdtempSync(join(tmpdir(), 'rr-server-'));
     proc = spawn('node', ['server.mjs'], {
+      cwd: ROOT,
       env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', DATA_DIR: dataDir },
       stdio: ['ignore', 'pipe', 'inherit'],
     });
@@ -117,15 +121,17 @@ describe('server', () => {
     }
   });
 
-  it('keeps repo files, data and tests out of reach', async () => {
+  it('keeps tests, repo files and data out of reach', async () => {
     for (const p of [
+      '/test/unit/domain/logic.test.js',
+      '/test/unit/storage/storage.test.js',
+      '/test/unit/ui/views.test.js',
+      '/test/server/server.test.js',
+      '/test/e2e/helpers.js',
       '/package.json',
       '/server.mjs',
       '/data/treino.json',
       '/src/app.js',
-      '/domain/logic.test.js',
-      '/storage/storage.test.js',
-      '/ui/views.test.js',
       '/node_modules/',
       '/.git/config',
     ]) {
