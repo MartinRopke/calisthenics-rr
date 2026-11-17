@@ -9,3 +9,4 @@ Architecture decision records (ADRs). Add a new file for every structural decisi
 - [0005 Native ES modules without a build](0005-native-es-modules-no-build.md)
 - [0006 English-only repository](0006-english-only.md)
 - [0007 Home server on the LAN](0007-home-server-on-the-lan.md)
+- [0008 Source layout under src/](0008-source-layout.md)

@@ -10,13 +10,13 @@ The app has real rules (progression, targets, schedule) and a lot of plumbing (s
 
 Use Gary Bernhardt's "Functional Core, Imperative Shell" together with ports and adapters:
 
-- `data.js` and `videos.js` are plain data.
-- `logic.js` is the pure functional core. No DOM, no storage, no clock reads.
-- `storage.js` is the storage adapter. It owns the persisted shape and `schemaVersion`.
-- `views.js` builds HTML as pure functions.
-- `app.js` is the imperative shell: events, timer, guided workout.
+- `src/domain/data.js` and `src/domain/videos.js` are plain data.
+- `src/domain/logic.js` is the pure functional core. No DOM, no storage, no clock reads.
+- `src/storage/storage.js` is the storage adapter. It owns the persisted shape and `schemaVersion`.
+- `src/ui/views.js` builds HTML as pure functions.
+- `src/app.js` is the imperative shell: events, timer, guided workout.
 
-Dependencies point inward. `logic.js` imports nothing from the shell.
+Dependencies point inward. `domain/` imports nothing from the shell.
 
 ## Consequences
 

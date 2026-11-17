@@ -8,16 +8,16 @@ Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guid
 npm install        # once, for ESLint and Prettier (dev only)
 npm start          # local server at http://localhost:8000
 npm run home       # same, reachable from the iPhone, Mac stays awake
-npm test           # logic tests (node:test)
+npm test           # unit and server tests (node:test)
 npm run lint       # ESLint
 npm run format     # Prettier, rewrites files
 npm run format:check
-npm run test:e2e   # Playwright (Python), small UI check
-npm run guide      # regenerates docs/rr-guide.md from data.js
+npm run test:e2e   # Playwright (Python) in e2e/, small UI check
+npm run guide      # regenerates docs/rr-guide.md from src/domain/data.js
 npm run wiki       # saves original guide pages into reference/
 ```
 
-Opening `index.html` from disk does not work, because browsers block ES modules on `file://`. Use `npm start`.
+Opening `src/index.html` from disk does not work, because browsers block ES modules on `file://`. Use `npm start`.
 
 ## Progression rule
 
@@ -42,27 +42,30 @@ Notes:
 
 ### Layers
 
-| File                   | Role                                                                         |
-| ---------------------- | ---------------------------------------------------------------------------- |
-| `data.js`, `videos.js` | Plain data: exercises, ladders, warmup, videos.                              |
-| `logic.js`             | Functional core. Pure functions, every progression rule. No DOM, no storage. |
-| `storage.js`           | Storage adapter: `localStorage` and `/api/state`, with a `schemaVersion`.    |
-| `views.js`             | Builds HTML strings as pure functions.                                       |
-| `app.js`               | Imperative shell: events, timer, guided workout. Wires the layers together.  |
-| `server.mjs`           | Serves the app files and `/api/state`. Zero dependencies.                    |
+| Path                                            | Role                                                                         |
+| ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| `src/domain/data.js`, `src/domain/videos.js`    | Plain data: exercises, ladders, warmup, videos.                              |
+| `src/domain/logic.js`                           | Functional core. Pure functions, every progression rule. No DOM, no storage. |
+| `src/storage/storage.js`                        | Storage adapter: `localStorage` and `/api/state`, with a `schemaVersion`.    |
+| `src/ui/views.js`                               | Builds HTML strings as pure functions.                                       |
+| `src/app.js`, `src/index.html`, `src/style.css` | Imperative shell: events, timer, guided workout. Wires the layers together.  |
+| `server.mjs`                                    | Serves `src/` and `/api/state`. Zero dependencies.                           |
+| `e2e/`                                          | Playwright scripts (Python).                                                 |
 
-Dependency rule: dependencies point inward. `app.js` may use everything, `views.js` and `storage.js` may use `logic.js` and data, and `logic.js` never touches the DOM or storage.
+Each module has its test next to it (`*.test.js`). `server.test.js` is at the root.
+
+Dependency rule: dependencies point inward. `app.js` may use everything, `ui/` and `storage/` may use `domain/`, and `domain/` never touches the DOM or storage.
 
 ### Code style
 
 - Modern JavaScript: `const` and `let`, arrow functions, native ES modules.
-- No bundler and no build step. `index.html` loads `app.js` as a module.
+- No bundler and no build step. `src/index.html` loads `src/app.js` as a module.
 - English only: code, comments, docs, commits and app text.
 - Formatted by Prettier, checked by ESLint. Both are devDependencies only.
 
 ### TDD
 
-New logic and every bug fix start with a failing test. Tests use `node:test` with no test dependencies and live next to the module as `*.test.js`, or in `test.js`. The UI is covered only by the small Playwright e2e.
+New logic and every bug fix start with a failing test. Tests use `node:test` with no test dependencies and live next to the module as `*.test.js`. The UI is covered only by the small Playwright e2e.
 
 ### Decisions
 
