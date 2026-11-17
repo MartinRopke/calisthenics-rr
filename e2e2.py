@@ -15,7 +15,7 @@ with server() as URL, sync_playwright() as p:
             ctx.route('**/api/state', lambda r: r.fulfill(status=404, body='not found'))
         pg = ctx.new_page()
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
-        pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' and 'ERR_TUNNEL' not in m.text and 'ERR_NAME' not in m.text and 'ERR_INTERNET' not in m.text else None)
+        pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' and 'ERR_TUNNEL' not in m.text and 'ERR_NAME' not in m.text and 'ERR_INTERNET' not in m.text and 'compute-pressure' not in m.text and 'status of 404' not in m.text else None)  # the 404 is the faked missing /api/state
         pg.goto(URL); pg.wait_for_timeout(500)
         return ctx, pg
 
@@ -38,7 +38,8 @@ with server() as URL, sync_playwright() as p:
     pg.click('.sheet [data-act=sheet-close] >> nth=-1')
     ok('level switch in workout', 'Split' in pg.inner_text('.w-name'))
     ok('por lado aparece', 'per side' in pg.inner_text('.w-body'))
-    pg.click('[data-act=w-log]')
+    pg.click('[data-act=w-log]')  # right side
+    pg.click('[data-act=w-log]')  # left side, which finishes the set
     # after logging, the level is locked
     pg.click('[data-act=w-rest-skip]')
     pg.click('[data-act=w-skip]')  # skip the next one (dip hold?) -> see which it is
@@ -52,17 +53,18 @@ with server() as URL, sync_playwright() as p:
     ok('resume returns to workout', pg.locator('.overlay').count() == 1)
     # timed hold
     for _ in range(40):
-        if pg.locator('[data-act=w-hold-start]').count(): break
+        if pg.locator('[data-act=w-hold-stop]').count(): break  # a hold starts its own timer on arrival
         if pg.locator('[data-act=w-log]').count(): pg.click('[data-act=w-log]')
         if pg.locator('[data-act=w-rest-skip]').count(): pg.click('[data-act=w-rest-skip]')
-    ok('reached a hold', pg.locator('[data-act=w-hold-start]').count() == 1)
+    ok('reached a hold', pg.locator('[data-act=w-hold-stop]').count() == 1)
     pg.screenshot(path='shots/11-hold.png')
-    pg.click('[data-act=w-hold-start]'); pg.wait_for_timeout(2300)
+    pg.wait_for_timeout(5300)  # 3 s lead-in plus about 2 s of hold
     ok('timer counts', re.match(r'\d+ s', pg.inner_text('#holdTime')) is not None)
     pg.click('[data-act=w-hold-stop]'); pg.wait_for_timeout(100)
+    ok('start timer button is back after stop', pg.locator('[data-act=w-hold-start]').count() == 1)
     v = pg.inner_text('#val')
     ok('stop records value (2 s)', v.strip() in ('2 s', '3 s'))
-    pg.click('[data-act=w-val][data-d="5"]'); pg.click('[data-act=w-log]')
+    pg.click('[data-act=w-val][data-d="20"]'); pg.click('[data-act=w-log]')
     # finish by saving
     pg.click('[data-act=w-exit]'); pg.click('[data-act=w-finish]'); pg.wait_for_timeout(200)
     ok('summary shows on save', 'Workout complete' in pg.inner_text('.overlay'))
@@ -71,7 +73,8 @@ with server() as URL, sync_playwright() as p:
     ok('draft is gone after finishing', pg.locator('[data-act=resume]').count() == 0)
     # progress: tapping a bar changes the caption
     pg.click('[data-act=tab][data-tab=progress]')
-    pg.click('.pcard .bar >> nth=0', force=True); ok('tapping a bar shows caption', pg.locator('.pcard .chart-cap').first.inner_text() != '')
+    pg.click('.gcard .bar >> nth=0', force=True); ok('tapping a bar shows caption', pg.locator('.gcard .chart-cap').first.inner_text() != '')
+    pg.click('[data-act=prog-tab][data-p=history]')
     ok('history lists the workout', pg.locator('details.sess').count() == 1)
     pg.click('details.sess summary')
     pg.screenshot(path='shots/13-history.png', full_page=True)
@@ -87,13 +90,15 @@ with server() as URL, sync_playwright() as p:
     ok('local mode notice', 'in this browser' in pg.inner_text('.page-head'))
     pg.fill('#bk', bk); pg.click('[data-act=import-bk]'); pg.wait_for_timeout(100)
     pg.click('[data-act=tab][data-tab=progress]')
+    pg.click('[data-act=prog-tab][data-p=history]')
     ok('import restores history', pg.locator('details.sess').count() == 1)
-    pg.reload(); pg.wait_for_timeout(400); pg.click('[data-act=tab][data-tab=progress]')
+    pg.reload(); pg.wait_for_timeout(400); pg.click('[data-act=tab][data-tab=progress]'); pg.click('[data-act=prog-tab][data-p=history]')
     ok('local mode persists after reload', pg.locator('details.sess').count() == 1)
     pg.click('[data-act=tab][data-tab=settings]'); pg.fill('#bk', 'junk'); pg.click('[data-act=import-bk]')
     ok('invalid backup warns', 'Invalid' in pg.inner_text('#toast'))
     pg.click('[data-act=reset-ask]'); pg.click('[data-act=reset-do]'); pg.wait_for_timeout(100)
     pg.click('[data-act=tab][data-tab=progress]')
+    pg.click('[data-act=prog-tab][data-p=history]')
     ok('clear all resets', pg.locator('details.sess').count() == 0)
     ctx.close()
 
