@@ -219,7 +219,7 @@ describe('viewToday', () => {
 });
 
 describe('viewProgress', () => {
-  it('shows stats, the weekly chart and a card per exercise', () => {
+  it('shows stats, the week calendar and a card per exercise', () => {
     const s = fresh();
     const html = progress(s);
     assertClean(html);
@@ -227,8 +227,8 @@ describe('viewProgress', () => {
     assert.ok(html.includes('data-act="prog-tab" data-p="overview" aria-pressed="true"'));
     assert.ok(html.includes('data-act="prog-tab" data-p="history" aria-pressed="false"'));
     assert.ok(html.includes('0</b><span>workouts'));
-    assert.ok(html.includes('Workouts per week'));
-    assert.ok(html.includes('goal 3'));
+    assert.ok(html.includes('This week'));
+    assert.ok(html.includes('Earlier weeks'));
     D.SLOT_ORDER.forEach((slot) => assert.ok(html.includes('id="pc-' + slot + '"'), slot));
     assert.ok(html.includes('No records yet.'));
     assert.ok(html.includes('Waiting for the equipment.'));
@@ -329,5 +329,140 @@ describe('viewSettings', () => {
 
   it('escapes the sync note', () => {
     assert.ok(settings(fresh(), { syncNote: '<b>x</b>' }).includes('<p>&lt;b&gt;x&lt;/b&gt;</p>'));
+  });
+});
+
+describe('video embed', () => {
+  it('embeds through the no-cookie domain with the video id', () => {
+    const url = V.videoEmbedUrl('abc123');
+    assert.ok(url.startsWith('https://www.youtube-nocookie.com/embed/abc123?'));
+  });
+
+  it('turns captions off by default', () => {
+    const params = new URL(V.videoEmbedUrl('abc123')).searchParams;
+    assert.equal(params.get('cc_load_policy'), '0');
+  });
+
+  it('keeps the player inline and free of related videos', () => {
+    const params = new URL(V.videoEmbedUrl('abc123')).searchParams;
+    assert.equal(params.get('playsinline'), '1');
+    assert.equal(params.get('rel'), '0');
+  });
+
+  it('lets the page talk to the player so captions can be switched off', () => {
+    const params = new URL(V.videoEmbedUrl('abc123')).searchParams;
+    assert.equal(params.get('enablejsapi'), '1');
+  });
+
+  it('builds the player command that unloads the captions module', () => {
+    assert.deepEqual(JSON.parse(V.videoCommand('unloadModule', ['captions'])), {
+      event: 'command',
+      func: 'unloadModule',
+      args: ['captions'],
+      id: 1,
+      channel: 'widget',
+    });
+  });
+
+  it('has a plain YouTube link to fall back on', () => {
+    assert.equal(V.videoWatchUrl('abc123'), 'https://www.youtube.com/watch?v=abc123');
+  });
+});
+
+describe('progress week calendar', () => {
+  it('draws 7 day cells for this week and 7 for each of the 7 earlier weeks', () => {
+    const html = progress(fresh());
+    assertClean(html);
+    assert.equal(html.match(/class="cal-day[ "]/g).length, 7 * 8);
+  });
+
+  it('marks the days with a workout and today', () => {
+    const s = fresh();
+    addSession(s, '2026-03-02', { pushup: [5, 5, 5] }); // Monday
+    addSession(s, '2026-03-04', { pushup: [5, 5, 5] }); // Wednesday, which is today
+    const html = progress(s);
+    assert.equal(html.match(/class="cal-day[^"]*\bdone\b/g).length, 2);
+    assert.equal(html.match(/class="cal-day[^"]*\btoday\b/g).length, 1);
+    assert.ok(html.includes('aria-label="Wed 04/03: workout done"'));
+    assert.ok(html.includes('aria-label="Fri 06/03: not yet"'));
+  });
+
+  it('says how many workouts are left to reach the weekly goal', () => {
+    const s = fresh();
+    addSession(s, '2026-03-02', { pushup: [5, 5, 5] });
+    assert.ok(progress(s).includes('2 more to reach the weekly goal'));
+  });
+
+  it('celebrates the weekly goal at 3 workouts', () => {
+    const s = fresh();
+    addSession(s, '2026-03-02', { pushup: [5, 5, 5] });
+    addSession(s, '2026-03-04', { pushup: [5, 5, 5] });
+    addSession(s, '2026-03-06', { pushup: [5, 5, 5] });
+    assert.ok(progress(s).includes('Weekly goal reached'));
+  });
+
+  it('shows the streak of weeks that met the goal', () => {
+    const s = fresh();
+    ['2026-02-23', '2026-02-25', '2026-02-27'].forEach((d) =>
+      addSession(s, d, { pushup: [5, 5, 5] })
+    );
+    const html = progress(s);
+    assert.ok(html.includes('1</b><span>week streak'));
+  });
+
+  it('marks earlier weeks that met the goal', () => {
+    const s = fresh();
+    ['2026-02-23', '2026-02-25', '2026-02-27'].forEach((d) =>
+      addSession(s, d, { pushup: [5, 5, 5] })
+    );
+    assert.equal(count(progress(s), 'cal-week met'), 1);
+  });
+});
+
+describe('preview of a future workout: what changed', () => {
+  const preview = (state, idx = 1) => today(state, { dayIdx: idx });
+
+  it('highlights exercises whose reps went up and says by how much', () => {
+    const html = preview(fresh());
+    assertClean(html);
+    assert.ok(html.includes('class="ex changed"'));
+    assert.ok(html.includes('<span class="chg">+1 rep</span>'));
+    assert.ok(html.includes('was 3 × 5'));
+  });
+
+  it('shows seconds for holds', () => {
+    const html = preview(fresh());
+    assert.ok(html.includes('<span class="chg">+5 s</span>'));
+    assert.ok(html.includes('was 3 × 10'));
+  });
+
+  it('marks a new level and names the one before', () => {
+    const s = fresh();
+    addSession(s, '2026-02-25', { pushup: [5, 5, 5] });
+    addSession(s, '2026-02-27', { pushup: [6, 6, 6] });
+    addSession(s, '2026-03-02', { pushup: [7, 7, 7] }); // today hits 8 and moves up
+    const html = preview(s);
+    assert.ok(html.includes('<span class="chg">New level</span>'));
+    assert.ok(html.includes('was: Diamond push-up'));
+  });
+
+  it("does not highlight anything on today's own screen", () => {
+    const html = preview(fresh(), 0);
+    assert.ok(!html.includes('class="ex changed"'));
+    assert.ok(!html.includes('class="chg"'));
+  });
+});
+
+describe('settings: sound check', () => {
+  it('has a Test sound button, so a silent browser can be told apart from a silent app', () => {
+    const html = settings(fresh());
+    assertClean(html);
+    assert.ok(html.includes('data-act="sound-test"'));
+    assert.ok(html.includes('Test sound'));
+  });
+
+  it('keeps every label in English', () => {
+    assert.ok(!settings(fresh()).includes('Apagar'));
+    assert.ok(settings(fresh()).includes('Delete everything'));
   });
 });

@@ -1,6 +1,6 @@
 # calisthenics-rr
 
-Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guides the day's workout, applies progression automatically and keeps the history. A single user (Martin), used on iPhone and Mac. The whole interface is in English, at Martin's request.
+Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guides the day's workout, applies progression automatically and keeps the history. A single user (Martin). For now it runs on the Mac, in the browser at any window size; iPhone support is a future effort. The whole interface is in English, at Martin's request.
 
 ## Commands
 
@@ -56,7 +56,7 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 - New logic and bug fixes start with a failing test (TDD), in a `*.test.js` under `test/unit/`, mirroring the module's path in `src/`.
 - Every visible text of the app (screens, buttons, execution cues, warnings) uses short sentences and imperative verbs on buttons ("Set done", "Skip"). Exercise names follow the guide's name (Pull-up, Hinge, Copenhagen plank).
 - An exercise that needs equipment shows "Needs: ..." with a dumbbell icon (Lucide, ISC license, inlined in `src/app.js` as `ICON_EQUIP`) and the options (the level's `equip` field, in `src/domain/data.js`). Without equipment, the field is empty and nothing shows.
-- Mobile first (390 px wide), touch targets of at least 44 px.
+- Works at any window size on the Mac, and still at 390 px wide with touch targets of at least 44 px. Layout regressions are covered by `test/e2e/layout.e2e.js`.
 - No external dependencies besides the Archivo font and the YouTube videos.
 - The full plan is in the document "Plano de treino RR" in Claude Docs. If you change ladders or starting levels, tell Martin to update the document.
 - Do not use dashes (`--`, em dash, en dash) to separate sentences in prose. Hyphens only in compound words.

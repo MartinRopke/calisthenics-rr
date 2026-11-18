@@ -12,6 +12,9 @@ import {
   ytUrl,
 } from './domain/data.js';
 import { VIDEOS } from './domain/videos.js';
+import { resumeTimers } from './domain/timer.js';
+import { createAudio } from './audio/audio.js';
+import { scheduleSfx } from './audio/schedule.js';
 import {
   ICON_EQUIP,
   esc,
@@ -21,6 +24,9 @@ import {
   viewProgress,
   viewSettings,
   tabbar,
+  videoEmbedUrl,
+  videoWatchUrl,
+  videoCommand,
 } from './ui/views.js';
 import {
   isoDate,
@@ -29,6 +35,8 @@ import {
   currentLevel,
   isActive,
   prescribe,
+  setResult,
+  SIDE_SWITCH_SECS,
   buildSteps,
   restSeconds,
   warmupItems,
@@ -60,8 +68,8 @@ let sheetCtx = null; /* {slot, ctx} of the open sheet */
 let sync = { mode: 'local', note: 'Loading…' };
 let dbRefs = null;
 let queue = Promise.resolve();
-let audioCtx = null,
-  wakeLock = null,
+const audio = createAudio(window.AudioContext || window.webkitAudioContext);
+let wakeLock = null,
   tickTimer = null,
   toastTimer = null;
 
@@ -291,11 +299,14 @@ function videoHtml(key, q) {
       '" target="_blank" rel="noopener">Search for a video on YouTube</a>'
     );
   return (
-    '<div class="vid-box"><div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/' +
-    v.id +
-    '?rel=0&playsinline=1&modestbranding=1" title="' +
+    '<div class="vid-box"><div class="vid"><iframe src="' +
+    videoEmbedUrl(v.id) +
+    '" title="' +
     esc(v.t) +
-    '" loading="lazy" onload="this.classList.add(&quot;ok&quot;)" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>' +
+    '" loading="lazy" onload="this.classList.add(&quot;ok&quot;)" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>' +
+    '<a class="vid-fallback" href="' +
+    videoWatchUrl(v.id) +
+    '" target="_blank" rel="noopener">Video not loading? Open on YouTube</a></div>' +
     '<p class="vid-cap">' +
     esc(v.t) +
     ' · ' +
@@ -303,6 +314,48 @@ function videoHtml(key, q) {
     '</p></div>'
   );
 }
+/* Switches the captions off in a YouTube player: after it loads (and again as it reports ready), tell it to
+   unload its captions module. cc_load_policy=0 in the URL is only a default. */
+const YT_ORIGIN = 'https://www.youtube-nocookie.com';
+function muteCaptions(frame) {
+  const send = () => {
+    try {
+      const w = frame.contentWindow;
+      w.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YT_ORIGIN);
+      w.postMessage(videoCommand('unloadModule', ['captions']), YT_ORIGIN);
+    } catch {
+      /* the frame is gone or not ready: the next try will do */
+    }
+  };
+  for (let ms = 0; ms <= 20000; ms += ms < 3000 ? 600 : 2000) setTimeout(send, ms);
+}
+document.addEventListener(
+  'load',
+  (e) => {
+    if (e.target && e.target.tagName === 'IFRAME' && e.target.closest('.vid'))
+      muteCaptions(e.target);
+  },
+  true
+);
+/* The player reports "onReady" once. Later messages (position updates, many per second) are ignored. */
+const readySeen = new WeakSet();
+window.addEventListener('message', (e) => {
+  if (e.origin !== YT_ORIGIN || typeof e.data !== 'string') return;
+  let msg;
+  try {
+    msg = JSON.parse(e.data);
+  } catch {
+    return;
+  }
+  if (!msg || msg.event !== 'onReady') return;
+  const frame = [...document.querySelectorAll('.vid iframe')].find(
+    (f) => f.contentWindow === e.source
+  );
+  if (frame && !readySeen.has(frame)) {
+    readySeen.add(frame);
+    muteCaptions(frame);
+  }
+});
 function warmSwap(it) {
   const base = D.WARMUP.filter(function (w) {
     return w.id === (it.base || it.id);
@@ -580,24 +633,22 @@ function confirmBox(title, text, buttons) {
 }
 
 /* ---------- Guided workout ---------- */
-/* Sounds go into a queue: a new sound waits for the previous one to finish, so they do not overlap. */
+/* Chimes go into a queue so they do not overlap. Countdown beeps (onTime) skip the queue and play on the second. */
 let sfxBase = 0,
   sfxBusy = 0;
-function sfx(len, fn) {
-  const now = audioCtx ? audioCtx.currentTime : 0;
-  sfxBase = Math.max(0, sfxBusy - now);
-  if (sfxBase > 1.2) {
-    sfxBase = 0;
-    return;
-  } /* too late: discard */
-  sfxBusy = now + sfxBase + len + 0.04;
+function sfx(len, fn, onTime) {
+  const now = audio.context ? audio.context.currentTime : 0;
+  const plan = scheduleSfx({ now: now, busyUntil: sfxBusy, len: len, onTime: onTime });
+  if (!plan) return; /* too late: discard */
+  sfxBusy = plan.busyUntil;
+  sfxBase = plan.offset;
   fn();
   sfxBase = 0;
 }
 function tone(freq, t, dur, vol) {
   try {
+    const audioCtx = audio.ensureRunning();
     if (!audioCtx) return;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
     const o = audioCtx.createOscillator(),
       g = audioCtx.createGain(),
       at = audioCtx.currentTime + sfxBase + t;
@@ -614,14 +665,22 @@ function tone(freq, t, dur, vol) {
   }
 }
 function tickBeep() {
-  sfx(0.14, function () {
-    tone(660, 0, 0.12);
-  });
+  sfx(
+    0.14,
+    function () {
+      tone(660, 0, 0.12);
+    },
+    true
+  );
 }
 function goBeep() {
-  sfx(0.47, function () {
-    tone(1175, 0, 0.45, 0.3);
-  });
+  sfx(
+    0.47,
+    function () {
+      tone(1175, 0, 0.45, 0.3);
+    },
+    true
+  );
   try {
     if (navigator.vibrate) navigator.vibrate(120);
   } catch {
@@ -643,12 +702,7 @@ function cue(key, n) {
   else goBeep();
 }
 function prepAudio() {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-  } catch {
-    /* optional feature, ignoring failure is fine */
-  }
+  audio.ensureRunning();
   try {
     if (navigator.wakeLock && navigator.wakeLock.request)
       navigator.wakeLock.request('screen').then(
@@ -713,6 +767,7 @@ function autoStartHold(lead) {
   lastCue = lead ? null : 'h' + W.i + ':go';
 }
 function goSet(idx, lead) {
+  W.pausedAt = null;
   W.i = idx;
   W.phase = 'set';
   setDefault();
@@ -735,7 +790,7 @@ function resumeWorkout() {
   }
   prepAudio();
   startTick();
-  if (W.phase === 'rest' && Date.now() >= W.restEnd) {
+  if (W.phase === 'rest' && clock() >= W.restEnd) {
     const n = nextIndex(W.i + 1);
     if (n >= 0) {
       goSet(n);
@@ -786,10 +841,23 @@ function lockAdj(act, on) {
   const bs = document.querySelectorAll('[data-act="' + act + '"]');
   for (let i = 0; i < bs.length; i++) bs[i].disabled = on;
 }
+/* While paused every timer reads the moment the pause began, so the clocks stay frozen. */
+function clock() {
+  return (W && W.pausedAt) || Date.now();
+}
+function pauseBtn() {
+  return (
+    '<button class="btn ghost" data-act="w-pause">' +
+    (W.pausedAt ? 'Resume' : 'Pause') +
+    '</button>'
+  );
+}
 function tick() {
-  if (!W) return;
+  if (!W || W.pausedAt) return;
+  /* The browser may suspend the audio mid-workout: wake it every second so the beeps are never lost. */
+  if (audio.context && audio.context.state !== 'running') audio.ensureRunning();
   if (W.phase === 'rest') {
-    const rem = (W.restEnd - Date.now()) / 1000,
+    const rem = (W.restEnd - clock()) / 1000,
       el = $('#restTime');
     if (el) el.textContent = fmtClock(rem);
     subUpdate(fmtClock(rem), 100 * (1 - rem / W.restTotal));
@@ -804,7 +872,7 @@ function tick() {
   } else if (W.phase === 'warmup' && W.warmEnd > 0) {
     const wit = warmupItems(D, state)[W.warmI || 0],
       wg = warmGoal(wit),
-      wel = wg - (W.warmEnd - Date.now()) / 1000,
+      wel = wg - (W.warmEnd - clock()) / 1000,
       we = $('#warmTime');
     if (wel < 0) {
       if (wel >= -3) cue('w' + W.warmI + ':' + Math.ceil(-wel), Math.ceil(-wel));
@@ -819,7 +887,7 @@ function tick() {
     }
   } else if (W.phase === 'set' && W.holdStart) {
     const el2 = $('#holdTime'),
-      hs = (Date.now() - W.holdStart) / 1000,
+      hs = (clock() - W.holdStart) / 1000,
       htg = holdGoal();
     if (hs < 0) {
       if (hs >= -3) cue('h' + W.i + ':' + Math.ceil(-hs), Math.ceil(-hs));
@@ -827,15 +895,14 @@ function tick() {
     else if (htg - hs <= 3 && htg - hs > 0 && htg > 6)
       cue('h' + W.i + ':e' + Math.ceil(htg - hs), 1);
     if (el2) el2.textContent = timerText(htg, hs);
-    lockAdj('w-hold-adj', hs < 0);
     if (hs >= htg) {
       lastCue = null;
-      H['w-hold-stop']();
       H['w-log']();
     }
   }
 }
 function warmGo(d) {
+  W.pausedAt = null;
   const n = warmupItems(D, state).length,
     i = (W.warmI || 0) + d;
   W.warmEnd = 0;
@@ -919,52 +986,44 @@ function renderWorkout() {
     const items = warmupItems(D, state),
       wi = Math.min(W.warmI || 0, items.length - 1),
       it = items[wi];
-    let timerBox = '',
-      main;
-    if (it.secs && W.warmEnd) {
-      const shown =
-        W.warmEnd < 0
-          ? '0 s'
-          : timerText(warmGoal(it), warmGoal(it) - (W.warmEnd - Date.now()) / 1000);
-      timerBox =
-        '<div class="big-stepper"><button data-act="w-warm-adj" data-d="-20" aria-label="Minus 20 seconds">−20</button><span class="val num" id="warmTime">' +
-        shown +
-        '</span><button data-act="w-warm-adj" data-d="20" aria-label="Plus 20 seconds">+20</button></div>';
-      main = '<button class="btn tape" data-act="w-warm-next">Done</button>';
-    } else if (it.secs) {
-      timerBox = '<div class="big-stepper"><span class="val num">' + it.secs + ' s</span></div>';
-      main =
-        '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-warm-timer">Start timer</button><button class="btn tape" data-act="w-warm-next">Done</button></div>';
-    } else {
-      main = '<button class="btn tape" data-act="w-warm-next">Done</button>';
-    }
+    const hero =
+      it.secs && W.warmEnd
+        ? '<div class="w-hero timer"><button data-act="w-warm-adj" data-d="-20" aria-label="Minus 20 seconds">−20</button><span class="num" id="warmTime">' +
+          (W.warmEnd < 0
+            ? '0 s'
+            : timerText(warmGoal(it), warmGoal(it) - (W.warmEnd - clock()) / 1000)) +
+          '</span><button data-act="w-warm-adj" data-d="20" aria-label="Plus 20 seconds">+20</button></div>'
+        : '<div class="w-hero"><span class="num">' +
+          esc(it.n) +
+          '</span><span class="unit">' +
+          esc(it.unit) +
+          '</span></div>';
+    const main =
+      it.secs && W.warmEnd
+        ? pauseBtn() + '<button class="btn tape" data-act="w-warm-next">Done</button>'
+        : it.secs
+          ? '<button class="btn ghost" data-act="w-warm-timer">Start timer</button><button class="btn tape" data-act="w-warm-next">Done</button>'
+          : '<button class="btn tape" data-act="w-warm-next">Done</button>';
     body =
       topFor('') +
-      '<div class="w-body"><p class="w-group">Warm-up</p><h1 class="w-name">' +
-      esc(it.name) +
-      '</h1>' +
-      '<p class="w-sub">Item ' +
+      '<div class="w-body"><div class="w-title"><p class="w-group">Warm-up · Item ' +
       (wi + 1) +
       ' of ' +
       items.length +
-      '</p><div class="w-target"><span class="num">' +
-      esc(it.n) +
-      '</span><span>' +
-      esc(it.unit) +
-      '</span></div>' +
-      it.how
-        .map(function (t) {
-          return '<p class="w-cue">' + esc(t) + '</p>';
-        })
-        .join('') +
-      timerBox +
-      main +
+      '</p><h1 class="w-name">' +
+      esc(it.name) +
+      '</h1></div>' +
+      hero +
+      '<p class="w-cue"><span>' +
+      esc(it.how.join(' · ')) +
+      '</span></p>' +
       warmSwap(it) +
-      (it.q
-        ? '<div class="vid-keep" style="margin-top:16px">' +
-          videoHtml('w.' + it.id, it.q) +
-          '</div>'
-        : '') +
+      '<div class="vid-keep">' +
+      (it.q ? videoHtml('w.' + it.id, it.q) : '') +
+      '</div>' +
+      '<div class="w-actions">' +
+      main +
+      '</div>' +
       '<div class="w-links">' +
       (wi > 0 ? '<button data-act="w-warm-back">Back</button>' : '') +
       '<button data-act="w-warm-skip" aria-label="Skip this item">Skip</button><button data-act="w-begin" aria-label="Skip warm-up">Skip all</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
@@ -976,89 +1035,92 @@ function renderWorkout() {
       tg = L.targets[st.set - 1];
     let unit = lvl.kind === 'hold' ? 'seconds' : 'reps';
     if (lvl.perSide) unit += ' per side';
-    const doneLabel = lvl.perSide ? (W.side ? 'Left side done' : 'Right side done') : 'Set done';
     const sidesHtml = lvl.perSide
       ? '<div class="sides" aria-label="Sides"><span class="' +
         (W.side ? 'done' : 'cur') +
         '">Right side</span><span class="' +
         (W.side ? 'cur' : '') +
-        '">Left side</span></div><p class="muted small">Do one side, then the other. Both sides count as one set.</p>'
+        '">Left side</span></div>'
       : '';
-    let input;
-    if (lvl.kind === 'hold') {
-      input = W.holdStart
-        ? '<div class="big-stepper"><button data-act="w-hold-adj" data-d="-20" aria-label="Minus 20 seconds">−20</button><span class="val num" id="holdTime">' +
-          timerText(holdGoal(), (Date.now() - W.holdStart) / 1000) +
-          '</span><button data-act="w-hold-adj" data-d="20" aria-label="Plus 20 seconds">+20</button></div><button class="btn tape" data-act="w-hold-stop">Stop</button>'
-        : '<div class="big-stepper"><button data-act="w-val" data-d="-20" aria-label="Minus 20 seconds">−20</button><span class="val num" id="val">' +
-          W.value +
-          ' s</span><button data-act="w-val" data-d="20" aria-label="Plus 20 seconds">+20</button></div>' +
-          '<div class="btn-row" style="margin-top:0"><button class="btn ghost" data-act="w-hold-start">Start timer</button><button class="btn tape" data-act="w-log">' +
-          doneLabel +
-          '</button></div>';
+    const hitBtn = '<button class="btn tape" data-act="w-log" data-hit="1">Hit target</button>',
+      missBtn = '<button class="btn ghost" data-act="w-log" data-hit="0">Missed</button>';
+    let hero, actions;
+    if (lvl.kind === 'hold' && W.holdStart) {
+      hero =
+        '<div class="w-hero"><span class="num" id="holdTime">' +
+        timerText(holdGoal(), (clock() - W.holdStart) / 1000) +
+        '</span></div>';
+      actions =
+        pauseBtn() +
+        '<button class="btn ghost" data-act="w-log" data-hit="0">Stop, missed</button>';
     } else {
-      input =
-        '<div class="big-stepper"><button data-act="w-val" data-d="-1" aria-label="Minus one rep">−1</button><span class="val num" id="val">' +
-        W.value +
-        '</span><button data-act="w-val" data-d="1" aria-label="Plus one rep">+1</button></div><button class="btn tape" data-act="w-log">' +
-        doneLabel +
-        '</button>';
+      hero =
+        '<div class="w-hero"><span class="num">' +
+        tg +
+        '</span><span class="unit">' +
+        unit +
+        ' target</span></div>';
+      actions =
+        lvl.kind === 'hold'
+          ? missBtn +
+            '<button class="btn ghost" data-act="w-hold-start">Start timer</button>' +
+            hitBtn
+          : missBtn + hitBtn;
     }
-    const ssub = '';
     body =
-      topFor(ssub) +
-      '<div class="w-body"><p class="w-group">' +
+      topFor('') +
+      '<div class="w-body"><div class="w-title"><p class="w-group">' +
       groupLabel(st) +
-      ' · ' +
-      esc(S.label) +
-      '</p><h1 class="w-name">' +
-      esc(lvl.name) +
-      '</h1><p class="w-sub">Set ' +
+      ' · Set ' +
       st.set +
-      ' of 3</p>' +
+      ' of 3</p><h1 class="w-name">' +
+      esc(lvl.name) +
+      '</h1></div>' +
+      hero +
       sidesHtml +
-      '<div class="w-target"><span class="num">' +
-      tg +
-      '</span><span>' +
-      unit +
-      ' target</span></div><p class="w-cue">' +
+      '<p class="w-cue"><span>' +
       esc(lvl.cues[0] || (S.general && S.general[0]) || '') +
-      '</p>' +
-      input +
-      '<div class="vid-keep" style="margin-top:16px">' +
+      '</span></p>' +
+      '<div class="vid-keep">' +
       vidBlock(lvl) +
+      '</div>' +
+      '<div class="w-actions">' +
+      actions +
       '</div>' +
       '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-info">How to</button><button data-act="w-skip" aria-label="Skip exercise">Skip</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'rest') {
     const n = nextIndex(W.i + 1);
-    let nextHtml = '';
+    let nextName = 'Rest',
+      nextMeta = '',
+      nextVid = '';
     if (n >= 0) {
       const ns = W.steps[n],
         nl = levelOfStep(ns),
         nt = W.logged[ns.slot].targets[ns.set - 1];
-      nextHtml =
-        '<div class="next-up"><span class="muted small">Up next</span><div class="n">' +
-        esc(nl.name) +
-        '</div><span class="muted">Set ' +
+      nextName = nl.name;
+      nextMeta =
+        'Set ' +
         ns.set +
         ' of 3 · target ' +
         nt +
         (nl.kind === 'hold' ? ' s' : ' reps') +
-        (nl.perSide ? ' per side' : '') +
-        '</span>' +
-        '<div class="vid-keep" style="margin-top:12px">' +
-        vidBlock(nl) +
-        '</div>' +
-        '</div>';
+        (nl.perSide ? ' per side' : '');
+      nextVid = vidBlock(nl);
     }
-    const rrem = (W.restEnd - Date.now()) / 1000;
+    const rrem = (W.restEnd - clock()) / 1000;
     body =
       topFor(subTime(fmtClock(rrem), 100 * (1 - rrem / W.restTotal))) +
-      '<div class="w-body"><p class="w-group">Rest</p><div class="rest-time num" id="restTime">' +
-      fmtClock((W.restEnd - Date.now()) / 1000) +
-      '</div>' +
-      '<div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Skip</button></div>' +
-      nextHtml +
+      '<div class="w-body"><div class="w-title"><p class="w-group">Rest · Up next</p><h1 class="w-name">' +
+      esc(nextName) +
+      '</h1></div><div class="w-hero"><span class="num" id="restTime">' +
+      fmtClock(rrem) +
+      '</span></div><p class="w-cue"><span>' +
+      esc(nextMeta) +
+      '</span></p><div class="vid-keep">' +
+      nextVid +
+      '</div><div class="w-actions">' +
+      pauseBtn() +
+      '<button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Skip</button></div>' +
       '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'summary') {
     const r = W.result,
@@ -1090,7 +1152,7 @@ function renderWorkout() {
       .join('');
     body =
       top('', 100) +
-      '<div class="w-body"><h1 class="w-name">Workout complete</h1><p class="w-sub">' +
+      '<div class="w-body scrolls"><div class="w-title"><h1 class="w-name">Workout complete</h1></div><p class="w-sub">' +
       mins +
       ' min · ' +
       Object.keys(r.session.entries).length +
@@ -1138,6 +1200,7 @@ function renderWorkout() {
   document.body.classList.add('no-scroll');
 }
 function logSet() {
+  W.pausedAt = null;
   const st = curStep(),
     L = W.logged[st.slot];
   L.sets[st.set - 1] = W.value;
@@ -1479,23 +1542,12 @@ const H = {
     const it = warmupItems(D, state)[W.warmI || 0],
       g = warmGoal(it),
       d = +el.dataset.d,
-      el2 = g - (W.warmEnd - Date.now()) / 1000;
+      el2 = g - (W.warmEnd - clock()) / 1000;
     if (el2 < 0) return;
     const ng = Math.max(5, g + d);
     if (ng <= el2 + 1) return;
     W.warmEnd += (ng - g) * 1000;
     W.warmTotal = ng;
-    saveDraft();
-    renderWorkout();
-  },
-  'w-hold-adj': function (el) {
-    const g = holdGoal(),
-      d = +el.dataset.d,
-      e = (Date.now() - W.holdStart) / 1000;
-    if (e < 0) return;
-    const ng = Math.max(5, g + d);
-    if (ng <= e + 1) return;
-    W.holdTotal = ng;
     saveDraft();
     renderWorkout();
   },
@@ -1507,15 +1559,8 @@ const H = {
     }
     goSet(n);
   },
-  'w-val': function (el) {
-    const st = curStep(),
-      lvl = levelOfStep(st),
-      d = +el.dataset.d;
-    W.value = Math.max(0, W.value + d);
-    saveDraft();
-    $('#val').textContent = W.value + (lvl.kind === 'hold' ? ' s' : '');
-  },
   'w-back': function () {
+    W.pausedAt = null;
     const from = W.phase === 'rest' ? W.i : W.i - 1;
     let p = -1;
     for (let k = from; k >= 0; k--)
@@ -1552,17 +1597,11 @@ const H = {
     saveDraft();
     renderWorkout();
   },
-  'w-hold-stop': function () {
-    const cap = holdGoal();
-    const el = (Date.now() - W.holdStart) / 1000;
-    if (el > 0) W.value = Math.min(cap, Math.max(1, Math.round(el)));
-    W.holdStart = null;
-    saveDraft();
-    renderWorkout();
-  },
-  'w-log': function () {
+  'w-log': function (el) {
     const st = curStep(),
-      lvl = levelOfStep(st);
+      lvl = levelOfStep(st),
+      hit = !(el && el.dataset && el.dataset.hit === '0');
+    W.value = setResult(lvl, W.logged[st.slot].targets[st.set - 1], hit);
     doneChime();
     if (lvl.perSide) {
       if (!W.side) {
@@ -1570,7 +1609,7 @@ const H = {
         W.side = 1;
         W.value = W.logged[st.slot].targets[st.set - 1];
         W.holdStart = null;
-        if (lvl.kind === 'hold') autoStartHold(5);
+        if (lvl.kind === 'hold') autoStartHold(SIDE_SWITCH_SECS);
         saveDraft();
         renderWorkout();
         return;
@@ -1578,6 +1617,34 @@ const H = {
       W.value = Math.min(W.right == null ? W.value : W.right, W.value);
     }
     logSet();
+  },
+  'sound-test': function () {
+    prepAudio();
+    doneChime();
+    const ctx = audio.context;
+    toast(
+      ctx
+        ? 'Sound is ' + ctx.state + '. You should hear a chime.'
+        : 'This browser has no sound support.'
+    );
+  },
+  'w-pause': function () {
+    if (W.pausedAt) {
+      const t = resumeTimers(
+        { restEnd: W.restEnd, warmEnd: W.warmEnd, holdStart: W.holdStart },
+        W.pausedAt,
+        Date.now()
+      );
+      W.restEnd = t.restEnd;
+      W.warmEnd = t.warmEnd;
+      W.holdStart = t.holdStart;
+      W.pausedAt = null;
+      lastCue = null;
+    } else {
+      W.pausedAt = Date.now();
+    }
+    saveDraft();
+    renderWorkout();
   },
   'w-rest-add': function () {
     W.restEnd += 15000;
@@ -1622,6 +1689,10 @@ document.addEventListener('keydown', function (e) {
     e.preventDefault();
     H.bar(e.target);
   }
+});
+/* iOS only lets a tap bring the sound back after the screen locked, so every tap during a workout checks it. */
+document.addEventListener('pointerdown', function () {
+  if (W) audio.ensureRunning();
 });
 document.addEventListener('visibilitychange', function () {
   if (!document.hidden && W) {

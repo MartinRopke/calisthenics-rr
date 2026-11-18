@@ -61,26 +61,20 @@ describe('full workout', () => {
     let shotRest = false;
     for (;;) {
       // If there are still sets
-      if ((await count('[data-act=w-log]')) === 0 && (await count('[data-act=w-hold-stop]')) === 0)
-        break;
-      const name = await text('.w-name');
-      // diamond push-up: raise to 8 on all sets to test promotion
-      if (name.startsWith('Diamond push-up')) {
-        for (let i = 0; i < 3; i++) await page.click('[data-act=w-val][data-d="1"]');
-      }
-      // a hold starts its own timer on arrival, so stop it first to get the Set done button
-      if (await count('[data-act=w-hold-stop]')) await page.click('[data-act=w-hold-stop]');
-      await page.click('[data-act=w-log]');
+      if ((await count('[data-act=w-log]')) === 0) break;
+      // reps: hit the target. A running hold only offers "Stop, missed", which also logs the set.
+      const hit = '[data-act=w-log][data-hit="1"]';
+      await page.click((await count(hit)) ? hit : '[data-act=w-log]');
       steps++;
       if (await count('#restTime')) {
         if (!shotRest) {
-          assert.equal(await count('.next-up .vid-box iframe'), 1); // next exercise video
+          assert.equal(await count('.vid-keep .vid-box iframe'), 1); // next exercise video
           await shot(page, '06-rest');
           shotRest = true;
-          const src = await page.locator('.next-up iframe').getAttribute('src');
+          const src = await page.locator('.vid-keep iframe').getAttribute('src');
           assert.ok(src.includes('youtube-nocookie.com/embed/'), src);
           await page.waitForTimeout(1300); // the timer keeps going and the player stays
-          assert.equal(await count('.next-up iframe'), 1);
+          assert.equal(await count('.vid-keep iframe'), 1);
           await shot(page, '06b-rest-video');
         }
         await page.click('[data-act=w-rest-skip]');
@@ -101,6 +95,10 @@ describe('full workout', () => {
     const saved = await page.evaluate(() => fetch('/api/state').then((r) => r.json()));
     console.log('keys saved by the server:', Object.keys(saved).sort());
     assert.ok(Object.keys(saved).length > 0, 'server saved no state');
+    // every rep set was a hit, so each one is stored as exactly its target
+    const repEntries = Object.values(saved.sessions[0].entries).filter((e) => e.kind === 'reps');
+    assert.ok(repEntries.length > 0);
+    for (const e of repEntries) assert.deepEqual(e.sets, e.targets);
     // reload: does data persist (server file only)?
     await page.evaluate(() => localStorage.removeItem('treinoRR.v1'));
     await page.reload();

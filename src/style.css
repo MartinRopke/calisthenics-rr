@@ -552,6 +552,9 @@ details.sess li span:last-child {
   font-size: 12px;
   font-weight: 700;
   margin-left: 6px;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
 }
 
 /* Settings */
@@ -865,16 +868,6 @@ textarea {
   background: var(--accent);
   transition: width 0.25s linear;
 }
-.next-up {
-  margin-top: 26px;
-  padding: 14px;
-  background: var(--surface);
-  border-left: 5px solid var(--accent);
-}
-.next-up .n {
-  font-weight: 700;
-  font-size: 20px;
-}
 .check {
   display: flex;
   align-items: center;
@@ -1103,6 +1096,30 @@ button:active {
 .vid iframe.ok {
   opacity: 1;
 }
+/* Shown only if the player has not loaded after 8 s (it hides again once the iframe is ok). */
+.vid-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: underline;
+  visibility: hidden;
+  animation: vid-fallback-show 0s 8s forwards;
+}
+.vid iframe.ok ~ .vid-fallback {
+  display: none;
+}
+@keyframes vid-fallback-show {
+  to {
+    visibility: visible;
+  }
+}
 @keyframes shimmer {
   from {
     background-position: 100% 0;
@@ -1149,7 +1166,9 @@ button:active {
   color: var(--ink);
 }
 
-/* Workout screen: everything on one page, no scrolling. The video takes the remaining space. */
+/* Workout screens. Every screen (warm-up, set, rest) has the same skeleton and fits one page, no scrolling:
+   title, big number, one line of cue, video (takes the space that is left), buttons, small links.
+   The primary buttons and links sit at the bottom, in the same place on every screen. */
 .w-bars {
   flex: 1;
   min-width: 0;
@@ -1166,108 +1185,181 @@ button:active {
   white-space: nowrap;
 }
 .w-body {
-  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  gap: 12px;
+  padding: 6px 20px calc(20px + env(safe-area-inset-bottom));
+  overflow: hidden;
 }
-.w-name {
-  font-size: clamp(30px, 9vw, 40px);
-  margin: 4px 0 2px;
+.w-body.scrolls {
+  overflow: auto;
 }
-.w-target {
-  margin: 8px 0 2px;
+.w-body > * {
+  margin: 0 !important;
+  flex: none;
 }
-.w-target .num {
-  font-size: clamp(48px, 15vw, 68px);
+.w-title .w-group {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
 }
-.w-cue {
-  margin: 6px 0 8px;
-  padding: 7px 12px;
-  font-size: 15px;
+.w-title .w-name {
+  margin: 4px 0 0;
+  font-size: clamp(32px, 8vw, 40px);
 }
-.big-stepper {
-  margin-bottom: 8px;
+.w-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 76px;
 }
-.big-stepper button {
+.w-hero .num,
+.rest-time {
+  font-size: 72px;
+  line-height: 1;
+  margin: 0;
+}
+.w-hero .unit {
+  color: var(--muted);
+  font-weight: 600;
+}
+.w-hero.timer {
+  align-items: center;
+  justify-content: space-between;
+}
+.w-hero.timer button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  text-align: center;
   width: 60px;
   height: 60px;
-  font-size: 30px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 var(--line);
+  font-weight: 700;
+  font-size: 18px;
 }
-.big-stepper .val {
-  font-size: 48px;
+.w-hero.timer button:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--line);
 }
 .sides {
-  margin: 8px 0 4px;
+  gap: 8px;
 }
-.swap {
-  margin-top: 8px;
+.sides span {
+  padding: 6px 0;
 }
-.swap .pathsel {
-  margin-top: 6px;
+.w-cue {
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--line);
+  color: var(--ink2);
+  font-size: 15px;
+  line-height: 1.35;
+}
+.w-cue span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.swap .muted {
+  display: none;
+}
+.swap .pathsel,
+.vid-keep .pathsel {
+  /* Room for the hover lift (2px up, 5px shadow) and the press (3px down): the scrolling row clips both sides. */
+  margin: 0;
+  padding: 3px 0 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 .swap .pathsel button,
 .vid-keep .pathsel button {
-  padding: 7px 10px;
+  flex: none;
+  padding: 0 12px;
   font-size: 14px;
+  min-height: 40px;
 }
-.w-body .vid-keep {
+.w-body > .vid-keep {
   flex: 1 1 0;
-  min-height: 100px;
+  min-height: 90px;
   display: flex;
   flex-direction: column;
-  margin-top: 8px !important;
+  gap: 8px;
 }
-.vid-keep .vid-wrap,
-.vid-keep .vid-slot,
+.vid-wrap,
+.vid-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vid-wrap {
+  flex: 1;
+  min-height: 0;
+}
+.vid-slot {
+  flex: 1;
+  min-height: 0;
+}
 .vid-keep .vid-box {
   flex: 1;
   min-height: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--line);
+  overflow: hidden;
 }
-.vid-keep .vid-box {
-  margin: 6px 0 0;
-}
-.vid-keep .vid {
+.vid-keep .vid-box .vid {
   flex: 1;
   min-height: 0;
   aspect-ratio: auto;
-  width: 100%;
-  max-height: min(56.25vw, 292px);
+  border-radius: 0;
 }
 .vid-keep .vid-cap {
-  margin-top: 4px;
+  flex: none;
+  margin: 0;
+  padding: 7px 12px;
+  border-top: 1px solid var(--line);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 13px;
+}
+.w-actions {
+  display: flex;
+  gap: 10px;
+}
+.w-actions .btn {
+  flex: 1;
+  min-height: 56px;
+  margin: 0;
 }
 .w-links {
-  margin-top: 8px;
   gap: 8px;
   flex-wrap: nowrap;
 }
 .w-links button {
   flex: 1 1 0;
   min-width: 0;
-  padding: 0 8px;
+  padding: 0 4px;
+  min-height: 44px;
   font-size: 15px;
 }
-.rest-time {
-  font-size: clamp(72px, 22vw, 104px);
-  margin: 8px 0 4px;
+.sides span {
+  box-shadow: 0 3px 0 var(--line);
 }
-.next-up {
-  margin-top: 12px;
-  padding: 10px 12px;
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-.next-up .vid-keep {
-  margin-top: 6px !important;
-}
-.big-stepper button {
-  font-size: 24px;
-  font-weight: 700;
+.sides .done,
+.sides .cur {
+  box-shadow: 0 3px 0 var(--accent-deep);
 }
 
 /* Today's workout already done, and recent workouts on the Today screen */
@@ -1837,4 +1929,128 @@ html.no-scroll {
 }
 .tabbar {
   border-top: 2px solid var(--line);
+}
+
+/* Progress: Duolingo-style week calendar */
+.cal-now {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 8px;
+}
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.cal-l {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cal-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  color: var(--accent-ink);
+  font-size: 18px;
+  line-height: 1;
+}
+.cal-day.done .cal-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.cal-day.today .cal-dot {
+  border-color: var(--accent);
+  border-width: 3px;
+}
+.cal-day.today .cal-l {
+  color: var(--ink);
+}
+.cal-day.future .cal-dot {
+  border-style: dashed;
+  opacity: 0.6;
+}
+.cal-goal-now {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: var(--muted);
+}
+.cal-goal-now b {
+  font-size: 22px;
+  color: var(--ink);
+}
+.cal-goal-now.met,
+.cal-goal-now.met b {
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+.cal-week {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+}
+.cal-week:first-of-type {
+  border-top: 0;
+}
+.cal-wk {
+  width: 44px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cal-days {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+}
+.cal-week .cal-dot {
+  width: 20px;
+  height: 20px;
+  border-width: 1.5px;
+  font-size: 11px;
+}
+.cal-week .cal-day.today .cal-dot {
+  border-width: 1.5px;
+}
+.cal-goal {
+  width: 44px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cal-week.met .cal-goal {
+  color: var(--accent-deep);
+}
+
+/* Preview of a future workout: what changed since the workout before */
+.ex.changed {
+  border-color: var(--accent);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.chg {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.chg-was {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--muted);
 }

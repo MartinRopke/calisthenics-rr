@@ -18,6 +18,8 @@ import {
   prescribe,
   warmupItems,
   weeklyCounts,
+  weekCalendar,
+  weekStreak,
   seriesFor,
   scheduleHint,
   projectWorkouts,
@@ -29,6 +31,26 @@ const D = { SLOTS, LADDERS, PAIRS, CORE, SLOT_ORDER, START_LEVELS, WARMUP, WARMU
 /* Dumbbell icon: Lucide "dumbbell" (ISC license), inlined to avoid external dependencies. */
 export const ICON_EQUIP =
   '<svg class="ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg>';
+/* YouTube embed. Captions are off by default (cc_load_policy=0). */
+export function videoEmbedUrl(id) {
+  return (
+    'https://www.youtube-nocookie.com/embed/' +
+    id +
+    '?rel=0&playsinline=1&modestbranding=1&cc_load_policy=0&iv_load_policy=3&hl=en&enablejsapi=1'
+  );
+}
+
+/* A message for the YouTube player (postMessage). Used to unload its captions module, because cc_load_policy=0
+   is only a default and YouTube still shows captions when the browser or account has them turned on. */
+export function videoCommand(func, args) {
+  return JSON.stringify({ event: 'command', func: func, args: args, id: 1, channel: 'widget' });
+}
+
+/* Plain YouTube page, used when the embedded player does not load. */
+export function videoWatchUrl(id) {
+  return 'https://www.youtube.com/watch?v=' + id;
+}
+
 export function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -40,6 +62,28 @@ export function shortDate(s) {
 }
 
 /* ---------- Small formatters ---------- */
+/* Plain-text version of a target, e.g. "3 × 5" or "7 · 6 · 5". */
+export function targetText(targets) {
+  return targets.every((t) => t === targets[0]) ? '3 × ' + targets[0] : targets.join(' · ');
+}
+
+/* The badge and the "was ..." line for an exercise that changed since the workout before. */
+export function changeHtml(level, it) {
+  if (!it.change || !it.prev) return { tag: '', was: '' };
+  if (it.change === 'level')
+    return {
+      tag: '<span class="chg">New level</span>',
+      was: '<div class="chg-was">was: ' + esc(it.prev.name) + '</div>',
+    };
+  const d = it.targets[0] - it.prev.targets[0];
+  const text =
+    d > 0 ? '+' + d + (level.kind === 'hold' ? ' s' : d === 1 ? ' rep' : ' reps') : 'Changed';
+  return {
+    tag: '<span class="chg">' + text + '</span>',
+    was: '<div class="chg-was">was ' + targetText(it.prev.targets) + '</div>',
+  };
+}
+
 export function targetHtml(level, targets) {
   const same = targets.every((t) => {
     return t === targets[0];
@@ -367,13 +411,17 @@ export function viewToday(state, o) {
       if (!it) return exRow(slot);
       const S = SLOTS[slot],
         lvl = ladderOf(D, state, slot)[it.levelIdx];
+      const chg = changeHtml(lvl, it);
       return (
-        '<button class="ex" data-act="open-ex" data-slot="' +
+        '<button class="ex' +
+        (it.change ? ' changed' : '') +
+        '" data-act="open-ex" data-slot="' +
         slot +
         '" data-lvl="' +
         esc(it.levelId) +
         '"><div class="ex-top"><div><div class="ex-name">' +
         esc(it.name) +
+        chg.tag +
         (it.promotedTo ? '<span class="up-tag">then: ' + esc(it.promotedTo) + '</span>' : '') +
         '</div><div class="ex-meta">' +
         esc(
@@ -384,6 +432,7 @@ export function viewToday(state, o) {
             ladderOf(D, state, slot).length
         ) +
         '</div>' +
+        chg.was +
         equipHtml(lvl) +
         '</div><div class="ex-target num">' +
         targetHtml(lvl, it.targets) +
@@ -451,10 +500,87 @@ export function viewToday(state, o) {
     '</div>'
   );
 }
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEK_GOAL = 3;
+
+function calDay(d, i, withLetter) {
+  const cls =
+    'cal-day' +
+    (d.state === 'today' ? ' today' : '') +
+    (d.trained ? ' done' : '') +
+    (d.state === 'future' ? ' future' : '');
+  const what = d.trained
+    ? 'workout done'
+    : d.state === 'future'
+      ? 'not yet'
+      : d.state === 'today'
+        ? 'no workout yet'
+        : 'no workout';
+  return (
+    '<span class="' +
+    cls +
+    '" role="img" aria-label="' +
+    DOW[i] +
+    ' ' +
+    shortDate(d.date) +
+    ': ' +
+    what +
+    '">' +
+    (withLetter ? '<i class="cal-l">' + DOW[i][0] + '</i>' : '') +
+    '<b class="cal-dot">' +
+    (d.trained ? '✓' : '') +
+    '</b></span>'
+  );
+}
+
+/* Duolingo-style calendar: this week with its 7 days and the weekly goal, then the earlier weeks, newest first. */
+export function weekCalendarHtml(weeks) {
+  const cur = weeks[weeks.length - 1],
+    met = cur.n >= WEEK_GOAL;
+  const goalTxt = met
+    ? 'Weekly goal reached'
+    : WEEK_GOAL - cur.n + ' more to reach the weekly goal';
+  const earlier = weeks
+    .slice(0, -1)
+    .reverse()
+    .map((w) => {
+      return (
+        '<div class="cal-week' +
+        (w.goalMet ? ' met' : '') +
+        '"><span class="cal-wk">' +
+        shortDate(w.start) +
+        '</span><div class="cal-days">' +
+        w.days.map((d, i) => calDay(d, i, false)).join('') +
+        '</div><span class="cal-goal">' +
+        w.n +
+        '/' +
+        WEEK_GOAL +
+        (w.goalMet ? ' ✓' : '') +
+        '</span></div>'
+      );
+    })
+    .join('');
+  return (
+    '<div class="gcard pad"><h3 class="card-title">This week</h3><div class="cal-now">' +
+    cur.days.map((d, i) => calDay(d, i, true)).join('') +
+    '</div><p class="cal-goal-now' +
+    (met ? ' met' : '') +
+    '"><b class="num">' +
+    cur.n +
+    '/' +
+    WEEK_GOAL +
+    '</b> ' +
+    goalTxt +
+    '</p></div><div class="gcard pad"><h3 class="card-title">Earlier weeks</h3>' +
+    earlier +
+    '</div>'
+  );
+}
+
 export function viewProgress(state, o) {
   const today = o.today,
     progTab = o.progTab,
-    weeks = weeklyCounts(state.sessions, 8, today),
+    weeks = weekCalendar(state.sessions, 8, today, WEEK_GOAL),
     n = state.sessions.length;
   let ups = 0;
   state.sessions.forEach((x) => {
@@ -484,13 +610,6 @@ export function viewProgress(state, o) {
     '</div>';
 
   if (progTab === 'overview') {
-    const wItems = weeks.map((w) => {
-      return {
-        v: w.n,
-        label: shortDate(w.start),
-        cap: 'Week of ' + shortDate(w.start) + ': ' + w.n + (w.n === 1 ? ' workout' : ' workouts'),
-      };
-    });
     out +=
       '<div class="stats">' +
       '<div class="stat"><b class="num">' +
@@ -499,24 +618,14 @@ export function viewProgress(state, o) {
       (n === 1 ? 'workout' : 'workouts') +
       '</span></div>' +
       '<div class="stat"><b class="num">' +
-      weeks[weeks.length - 1].n +
-      '/3</b><span>this week</span></div>' +
+      weekStreak(weeks) +
+      '</b><span>week streak</span></div>' +
       '<div class="stat"><b class="num">' +
       ups +
       '</b><span>' +
       (ups === 1 ? 'level up' : 'level ups') +
       '</span></div></div>';
-    out +=
-      '<div class="gcard pad"><h3 class="card-title">Workouts per week</h3>' +
-      barChart(wItems, {
-        goal: 3,
-        min: 3,
-        valueLabels: true,
-        aria: 'Workouts per week over the last 8 weeks',
-        defaultCap: 'Tap a bar to see the week.',
-        h: 100,
-      }) +
-      '</div>';
+    out += weekCalendarHtml(weeks);
     out +=
       '<h2 class="sec-title">Each exercise</h2><p class="muted small">Each bar is a workout: total reps (seconds on holds). Orange marks the workout where you moved up a level.</p>';
     SLOT_ORDER.forEach((slot) => {
@@ -676,6 +785,7 @@ export function viewSettings(state, o) {
     '<div class="set-row"><div><b>Rest for core</b><p>Between sets of the triplet</p></div>' +
     stepper('rest-core', 'rc', st.restCore, ' s') +
     '</div>' +
+    '<div class="set-row"><div><b>Sound</b><p>Beeps for the countdown and the end of each set</p></div><button class="btn small ghost" data-act="sound-test">Test sound</button></div>' +
     '<h2 class="sec-title">Core exercises</h2><p class="muted small">The default paths use only your body and a sturdy support. Switch if you have a band, rings or a bar.</p>' +
     pathRows +
     '<h2 class="sec-title">Backup</h2><p class="muted small">Copy the text below and keep it wherever you like. To restore, paste a backup into the box and tap Import.</p>' +
@@ -684,7 +794,7 @@ export function viewSettings(state, o) {
     '</textarea>' +
     '<div class="btn-row"><button class="btn small ghost" data-act="copy-bk">Copy</button><button class="btn small ghost" data-act="import-bk">Import</button></div>' +
     '<h2 class="sec-title">Start over</h2><p class="muted small">Deletes your workouts and sets the levels back to the plan\'s starting point.</p>' +
-    '<div class="btn-row"><button class="btn small ghost" data-act="reset-ask">Apagar tudo</button></div></div>'
+    '<div class="btn-row"><button class="btn small ghost" data-act="reset-ask">Delete everything</button></div></div>'
   );
 }
 const TAB_ICONS = {

@@ -60,8 +60,8 @@ describe('settings, draft and backup', () => {
     await pg.click('.sheet [data-act=sheet-close] >> nth=-1');
     ok((await text('.w-name')).includes('Split'), 'level switch in workout');
     ok((await text('.w-body')).includes('per side'), 'per side shows up');
-    await pg.click('[data-act=w-log]'); // right side
-    await pg.click('[data-act=w-log]'); // left side, which finishes the set
+    await pg.click('[data-act=w-log][data-hit="1"]'); // right side
+    await pg.click('[data-act=w-log][data-hit="1"]'); // left side, which finishes the set
     // after logging, the level is locked
     await pg.click('[data-act=w-rest-skip]');
     await pg.click('[data-act=w-skip]'); // skip the next one (dip hold?) -> see which it is
@@ -82,21 +82,21 @@ describe('settings, draft and backup', () => {
     ok((await count('.overlay')) === 1, 'resume returns to workout');
     // timed hold
     for (let i = 0; i < 40; i++) {
-      if (await count('[data-act=w-hold-stop]')) break; // a hold starts its own timer on arrival
-      if (await count('[data-act=w-log]')) await pg.click('[data-act=w-log]');
+      if (await count('#holdTime')) break; // a hold starts its own timer on arrival
+      if (await count('[data-act=w-log][data-hit="1"]'))
+        await pg.click('[data-act=w-log][data-hit="1"]');
       if (await count('[data-act=w-rest-skip]')) await pg.click('[data-act=w-rest-skip]');
     }
-    ok((await count('[data-act=w-hold-stop]')) === 1, 'reached a hold');
+    ok((await count('#holdTime')) === 1, 'reached a hold');
     await shot(pg, '11-hold');
     await pg.waitForTimeout(5300); // 3 s lead-in plus about 2 s of hold
     ok(/^\d+ s/.test(await text('#holdTime')), 'timer counts');
-    await pg.click('[data-act=w-hold-stop]');
+    await pg.click('[data-act=w-log][data-hit="0"]'); // "Stop, missed" logs the set and moves on
     await pg.waitForTimeout(100);
-    ok((await count('[data-act=w-hold-start]')) === 1, 'start timer button is back after stop');
-    const v = await text('#val');
-    ok(['2 s', '3 s'].includes(v.trim()), 'stop records value (2 s)');
-    await pg.click('[data-act=w-val][data-d="20"]');
-    await pg.click('[data-act=w-log]');
+    ok(
+      (await count('[data-act=w-rest-skip]')) === 1 || (await count('#holdTime')) === 1,
+      'moves on after a missed hold'
+    );
     // finish by saving
     await pg.click('[data-act=w-exit]');
     await pg.click('[data-act=w-finish]');
