@@ -115,6 +115,12 @@ describe('set result', () => {
   });
 });
 
+describe('side switch', () => {
+  it('gives 15 seconds to change position between the two sides', () => {
+    assert.equal(L.SIDE_SWITCH_SECS, 15);
+  });
+});
+
 describe('level promotion', () => {
   it('moves up a level at 3x8 and restarts at 3x5', () => {
     const s = L.defaultState(D);

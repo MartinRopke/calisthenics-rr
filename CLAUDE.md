@@ -21,6 +21,7 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 - `src/domain/logic.js`: pure functional core, no DOM, no storage. Every progression rule lives here.
 - `src/storage/storage.js`: storage adapter with `schemaVersion`.
 - `src/ui/views.js`: pure HTML builders.
+- `src/domain/timer.js`: pause and resume for the workout timers. `src/audio/audio.js`: audio adapter that keeps the `AudioContext` alive after the screen locks.
 - `src/app.js`: imperative shell with events, timer and the guided workout. Clicks go through `data-act` and the `H` object.
 - `src/index.html`, `src/style.css`: page and light and dark theme.
 - `server.mjs`: serves `src/` and `/api/state`.

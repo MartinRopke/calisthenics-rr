@@ -1,6 +1,9 @@
 /* Pure app logic: levels, targets, progression, workout order and counts.
    Nothing here touches the DOM, so it can be tested in Node. */
 
+/* Countdown before the second side of a one-sided hold, to change position. */
+export const SIDE_SWITCH_SECS = 15;
+
 export function pad2(n) {
   return n < 10 ? '0' + n : '' + n;
 }
