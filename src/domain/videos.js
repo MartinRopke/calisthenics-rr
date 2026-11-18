@@ -19,11 +19,7 @@ export const VIDEOS = {
     c: 'Colossus Fitness',
   },
   'pushup.ppu': { id: 'VJd_q5w-VeY', t: 'Pseudo Planche Push Ups Tutorial', c: 'Vitaly Pavlenko' },
-  'row.vert': {
-    id: '5W8F6MzZ8Rk',
-    t: 'Inverted Row Tutorial | With Progressions',
-    c: 'Andrew Alinda',
-  },
+  'row.vert': { id: 'FKKZRwBJDxE', t: 'Table Rows', c: 'Andrew Heming' },
   'row.inc': {
     id: '5W8F6MzZ8Rk',
     t: 'Inverted Row Tutorial | With Progressions',
@@ -221,9 +217,5 @@ export const VIDEOS = {
     t: 'Side Plank (modified - 1 knee down)',
     c: 'Restore Physical Therapy, LLC',
   },
-  'eq.cop': {
-    id: 'df8hjsKX16o',
-    t: 'Copenhagen Plank Exercise: At Home Adductor Exercise with NO Equipment for Strong Inner Thighs!',
-    c: 'FITBODY with Julie Lohre',
-  },
+  'eq.cop': { id: '4Gi4tFwe29o', t: 'Copenhagen Plank on Couch', c: 'Christian Kloot' },
 };
