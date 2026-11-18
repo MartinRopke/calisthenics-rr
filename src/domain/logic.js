@@ -233,6 +233,40 @@ export function weeklyCounts(sessions, nWeeks, todayStr) {
 }
 
 /* Metric series per session for an exercise: total reps or seconds. */
+/* Last `nWeeks` weeks, oldest first, each with its 7 days (Monday to Sunday). A day counts once however many
+   workouts it had. `goalMet` is true at `goal` workout days in the week. */
+export function weekCalendar(sessions, nWeeks, todayStr, goal) {
+  const trained = new Set(sessions.map((s) => s.date));
+  const thisWeek = weekStartISO(todayStr);
+  return weeklyCounts([], nWeeks, todayStr).map((w) => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const p = parseISO(w.start);
+      p.setUTCDate(p.getUTCDate() + i);
+      const date =
+        p.getUTCFullYear() + '-' + pad2(p.getUTCMonth() + 1) + '-' + pad2(p.getUTCDate());
+      days.push({
+        date: date,
+        trained: trained.has(date),
+        state: date < todayStr ? 'past' : date === todayStr ? 'today' : 'future',
+      });
+    }
+    const n = days.filter((d) => d.trained).length;
+    return { start: w.start, days: days, n: n, goalMet: n >= goal, current: w.start === thisWeek };
+  });
+}
+
+/* Weeks in a row that met the goal, counted back from the latest. The current week never breaks the streak
+   while it is unfinished, and adds to it once it meets the goal. */
+export function weekStreak(weeks) {
+  let streak = 0;
+  for (let i = weeks.length - 1; i >= 0; i--) {
+    if (weeks[i].goalMet) streak++;
+    else if (!weeks[i].current) break;
+  }
+  return streak;
+}
+
 export function seriesFor(state, slot) {
   const out = [];
   state.sessions.forEach(function (s) {
@@ -297,6 +331,14 @@ export function projectWorkouts(D, state, todayStr, count) {
     return p.getUTCFullYear() + '-' + pad2(p.getUTCMonth() + 1) + '-' + pad2(p.getUTCDate());
   }
   const todayPlanned = !doneToday && dow(todayStr) % 2 === 0 && dow(todayStr) <= 4;
+  /* What the workout before looked like, per exercise. Each projected item is compared with it. */
+  let before = {};
+  D.SLOT_ORDER.filter(function (sl) {
+    return isActive(D, st, sl);
+  }).forEach(function (sl) {
+    const p = prescribe(D, st, sl);
+    before[sl] = { levelId: p.level.id, name: p.level.name, targets: p.targets.slice() };
+  });
   while (out.length < count && guard++ < 60) {
     const isFirst = day === todayStr;
     if (!isFirst || todayPlanned) {
@@ -318,6 +360,20 @@ export function projectWorkouts(D, state, todayStr, count) {
             levelIdx: st.levels[sl].idx,
           });
         });
+        const now = {};
+        items.forEach(function (it) {
+          const pv = before[it.slot];
+          it.prev = pv ? { name: pv.name, targets: pv.targets.slice() } : null;
+          it.change = !pv
+            ? null
+            : pv.levelId !== it.levelId
+              ? 'level'
+              : pv.targets.join() !== it.targets.join()
+                ? 'targets'
+                : null;
+          now[it.slot] = { levelId: it.levelId, name: it.name, targets: it.targets.slice() };
+        });
+        before = now;
         const r = finishWorkout(D, st, { startedAt: ++k, logged: logged }, day, 0);
         r.promotions.forEach(function (pr) {
           items.forEach(function (it) {

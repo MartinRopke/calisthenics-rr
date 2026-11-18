@@ -326,3 +326,125 @@ describe('content data', () => {
     );
   });
 });
+
+describe('week calendar', () => {
+  // 2026-11-18 is a Wednesday, so the week runs from Monday 2026-11-16 to Sunday 2026-11-22.
+  const TODAY = '2026-11-18';
+  const sess = (...dates) => dates.map((date, i) => ({ id: 's' + i, date, entries: {} }));
+
+  it('lists weeks oldest first with the current week last, each with 7 days from Monday', () => {
+    const weeks = L.weekCalendar([], 3, TODAY, 3);
+    assert.equal(weeks.length, 3);
+    assert.equal(weeks[2].start, '2026-11-16');
+    assert.equal(weeks[0].start, '2026-11-02');
+    assert.deepEqual(
+      weeks[2].days.map((d) => d.date),
+      [
+        '2026-11-16',
+        '2026-11-17',
+        '2026-11-18',
+        '2026-11-19',
+        '2026-11-20',
+        '2026-11-21',
+        '2026-11-22',
+      ]
+    );
+  });
+
+  it('marks the days that had a workout', () => {
+    const weeks = L.weekCalendar(sess('2026-11-16', '2026-11-18'), 1, TODAY, 3);
+    assert.deepEqual(
+      weeks[0].days.map((d) => d.trained),
+      [true, false, true, false, false, false, false]
+    );
+    assert.equal(weeks[0].n, 2);
+  });
+
+  it('marks today and the days that have not happened yet', () => {
+    const [w] = L.weekCalendar([], 1, TODAY, 3);
+    assert.deepEqual(
+      w.days.map((d) => d.state),
+      ['past', 'past', 'today', 'future', 'future', 'future', 'future']
+    );
+  });
+
+  it('counts a day once even with two workouts on it', () => {
+    const [w] = L.weekCalendar(sess('2026-11-16', '2026-11-16'), 1, TODAY, 3);
+    assert.equal(w.n, 1);
+  });
+
+  it('meets the goal at 3 workout days in the week', () => {
+    const two = L.weekCalendar(sess('2026-11-16', '2026-11-18'), 1, TODAY, 3)[0];
+    const three = L.weekCalendar(sess('2026-11-16', '2026-11-18', '2026-11-20'), 1, TODAY, 3)[0];
+    assert.equal(two.goalMet, false);
+    assert.equal(three.goalMet, true);
+  });
+});
+
+describe('week streak', () => {
+  const week = (goalMet, current = false) => ({ goalMet, current });
+
+  it('counts consecutive weeks that met the goal, ending at the latest week', () => {
+    assert.equal(L.weekStreak([week(false), week(true), week(true), week(true)]), 3);
+  });
+
+  it('does not break on the current week while it is still unfinished', () => {
+    assert.equal(L.weekStreak([week(true), week(true), week(false, true)]), 2);
+  });
+
+  it('adds the current week once it meets the goal', () => {
+    assert.equal(L.weekStreak([week(true), week(true), week(true, true)]), 3);
+  });
+
+  it('stops at the first missed week', () => {
+    assert.equal(L.weekStreak([week(true), week(false), week(true)]), 1);
+  });
+
+  it('is zero with no weeks met', () => {
+    assert.equal(L.weekStreak([week(false), week(false, true)]), 0);
+  });
+});
+
+describe('projected workouts: what changed', () => {
+  const TODAY = '2026-11-18'; // Wednesday: today's workout is planned, the next one is Friday
+  const item = (out, slot) => out.find((i) => i.slot === slot);
+
+  it('flags raised targets against the workout before, and keeps the old ones', () => {
+    const s = L.defaultState(D);
+    const out = L.projectWorkouts(D, s, TODAY, 2);
+    const row = item(out[0].items, 'pushup');
+    assert.equal(row.change, 'targets');
+    assert.deepEqual(row.prev.targets, [5, 5, 5]);
+    assert.deepEqual(row.targets, [6, 6, 6]);
+  });
+
+  it('flags a new level and names the one it replaces', () => {
+    const s = L.defaultState(D);
+    L.finishWorkout(D, s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-09', 0);
+    L.finishWorkout(D, s, mkW(s, { pushup: [6, 6, 6] }), '2026-11-11', 0);
+    L.finishWorkout(D, s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-13', 0); // targets are now 8, 8, 8
+    const out = L.projectWorkouts(D, s, TODAY, 2); // today hits 8 and moves up
+    const row = item(out[0].items, 'pushup');
+    assert.equal(row.change, 'level');
+    assert.equal(row.prev.name, 'Diamond push-up');
+    assert.deepEqual(row.targets, [5, 5, 5]);
+  });
+
+  it('compares each projected workout with the one right before it', () => {
+    const s = L.defaultState(D);
+    const out = L.projectWorkouts(D, s, TODAY, 3);
+    assert.deepEqual(item(out[1].items, 'pushup').prev.targets, [6, 6, 6]);
+    assert.deepEqual(item(out[1].items, 'pushup').targets, [7, 7, 7]);
+  });
+
+  it('reports no change when nothing differs from the workout before', () => {
+    const s = L.defaultState(D);
+    s.levels.pushup.idx = 4; // last step of its ladder: it never promotes, so at 8 reps nothing moves
+    L.finishWorkout(D, s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-09', 0);
+    L.finishWorkout(D, s, mkW(s, { pushup: [6, 6, 6] }), '2026-11-11', 0);
+    L.finishWorkout(D, s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-13', 0);
+    L.finishWorkout(D, s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-14', 0);
+    const out = L.projectWorkouts(D, s, TODAY, 2);
+    assert.equal(item(out[0].items, 'pushup').change, null);
+  });
+});
