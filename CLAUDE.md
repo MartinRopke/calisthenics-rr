@@ -68,3 +68,17 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 - No backup or export of the history.
 - The rest beeps may not play with the screen locked. Time is computed by clock time, so the timer is not lost.
 - Never tested on a real iPhone.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as local markdown files under `.scratch/<feature>/`, which git ignores. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+A `Status:` line with three values (To do, In progress, Done) plus a `Triage:` line for the triage role. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context, with ADRs in `docs/decisions/`. See `docs/agents/domain.md`.
