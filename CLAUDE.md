@@ -35,7 +35,7 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 - Strength progression: starts at 3x5, adds 1 rep per set each workout up to 3x8, and then moves to the next level at 3x5. Core goes from 8 to 12 reps.
 - Isometrics go from 10 to 30 s, in steps of 5 s, and move up a level on reaching 30 s on all 3 sets. The dip page asks for 1 min, and we use 30 s.
 - Unilateral exercise: one side plus the other count as one set.
-- Target rule (`targetsFor` and `prescribe`): the first time at a level, all sets start at the minimum. If all sets hit the target, each goes up one step, capped at the maximum. Otherwise, repeat the last one.
+- Target rule (`targetsFor` and `prescribe`, ADR 0011): the first time at a level, all sets start at the minimum. If all sets hit the target, each target goes up one step, capped at the maximum. Otherwise the same targets repeat. What was done above or below a target never changes it. The workout screen only asks "Hit target" or "Missed" (`setResult`), with no stepper.
 - Pull-up only enters the workout with `settings.hasBar` on ("I have a pull-up bar" in Settings). Martin does not have the bar yet.
 - The warmup has one screen per item, with no choices. The extras come in on their own according to level.
 - The starting levels are in `START_LEVELS` and came from Martin's training plan. Changing them changes his workout, so agree first.

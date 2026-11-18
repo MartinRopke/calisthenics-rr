@@ -17,7 +17,7 @@ export function dayDiff(a, b) {
 }
 export function weekStartISO(s) {
   const d = parseISO(s);
-  const dow = (d.getUTCDay() + 6) % 7; /* segunda = 0 */
+  const dow = (d.getUTCDay() + 6) % 7; /* Monday = 0 */
   d.setUTCDate(d.getUTCDate() - dow);
   return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
 }
@@ -68,8 +68,10 @@ export function clamp(x, lo, hi) {
 }
 
 /* Target for each of the 3 sets.
-   First time at the level: everything at the minimum. After that: if all targets were hit, each set goes up one step
-   (1 rep, or 5 s for holds); otherwise repeat what was done. Never goes past the top of the range. */
+   First time at the level: everything at the minimum. After that the next target depends only on the previous
+   targets and on whether they were all hit: if so, each goes up one step (1 rep, or 5 s for holds), capped at the
+   top of the range; otherwise the same targets repeat. Doing more or less than a target never changes its value.
+   Old entries saved without targets fall back to what was done. */
 export function targetsFor(level, last) {
   const n = 3,
     out = [];
@@ -85,10 +87,16 @@ export function targetsFor(level, last) {
   }
   for (i = 0; i < n; i++) {
     const base =
-      i < e.sets.length ? e.sets[i] : e.targets && e.targets[i] != null ? e.targets[i] : level.lo;
+      e.targets && e.targets[i] != null ? e.targets[i] : i < e.sets.length ? e.sets[i] : level.lo;
     out.push(clamp(clean ? base + level.step : base, level.lo, level.hi));
   }
   return out;
+}
+
+/* What to store for one set. The workout only asks "did you hit the target?", so a hit stores the target and a
+   miss stores one step below it, which keeps `sets` numeric for the history and for the "all targets hit" check. */
+export function setResult(level, target, hit) {
+  return hit ? target : Math.max(0, target - level.step);
 }
 
 export function prescribe(D, state, slot) {

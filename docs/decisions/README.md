@@ -12,3 +12,4 @@ Architecture decision records (ADRs). Add a new file for every structural decisi
 - [0008 Source layout under src/](0008-source-layout.md)
 - [0009 End-to-end tests with Playwright for Node](0009-e2e-with-playwright-node.md)
 - [0010 Tests in a top-level test/ folder](0010-tests-in-test-folder.md)
+- [0011 Targets depend only on hitting them](0011-targets-depend-only-on-hitting-them.md)

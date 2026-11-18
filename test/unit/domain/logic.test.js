@@ -41,30 +41,44 @@ describe('target progression', () => {
     assert.deepEqual(L.prescribe(D, s, 'pushup').targets, [6, 6, 6]);
   });
 
-  it('raises each uneven set by one rep', () => {
+  it('ignores reps above the target: only hitting it matters', () => {
     const s = L.defaultState(D);
-    L.finishWorkout(D, s, mkW(s, { pushup: [7, 6, 5] }), '2026-11-16', 3000);
-    assert.deepEqual(L.prescribe(D, s, 'pushup').targets, [8, 7, 6]);
+    L.finishWorkout(D, s, mkW(s, { pushup: [7, 6, 5] }), '2026-11-16', 3000); // targets 5,5,5
+    assert.deepEqual(L.prescribe(D, s, 'pushup').targets, [6, 6, 6]);
   });
 
-  it('repeats what was done when a target was missed', () => {
+  it('ignores a big hold overshoot (30, 15, 15 against 10, 10, 10)', () => {
+    const s = L.defaultState(D);
+    L.finishWorkout(D, s, mkW(s, { dip: [30, 15, 15] }), '2026-11-16', 0);
+    assert.deepEqual(L.prescribe(D, s, 'dip').targets, [15, 15, 15]);
+  });
+
+  it('repeats the same targets when any target was missed', () => {
     const s = L.defaultState(D);
     L.finishWorkout(D, s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-16', 0);
     L.finishWorkout(D, s, mkW(s, { pushup: [6, 5, 4] }), '2026-11-18', 0); // targets 6,6,6, did 6,5,4
-    assert.deepEqual(L.prescribe(D, s, 'pushup').targets, [6, 5, 5]); // 4 becomes 5 (the minimum)
+    assert.deepEqual(L.prescribe(D, s, 'pushup').targets, [6, 6, 6]);
+  });
+
+  it('never lowers a target, even when a set was far below it', () => {
+    const s = L.defaultState(D);
+    L.finishWorkout(D, s, mkW(s, { dip: [10, 10, 10] }), '2026-11-16', 0);
+    L.finishWorkout(D, s, mkW(s, { dip: [15, 15, 15] }), '2026-11-18', 0);
+    L.finishWorkout(D, s, mkW(s, { dip: [5, 15, 15] }), '2026-11-20', 0); // targets 20,20,20
+    assert.deepEqual(L.prescribe(D, s, 'dip').targets, [20, 20, 20]);
   });
 
   it('never goes above 8 reps', () => {
-    const s = L.defaultState(D);
-    L.finishWorkout(D, s, mkW(s, { row: [7, 7, 7] }), '2026-11-16', 0);
-    assert.deepEqual(L.prescribe(D, s, 'row').targets, [8, 8, 8]);
+    const level = { lo: 5, hi: 8, step: 1 };
+    const last = { entry: { sets: [8, 8, 8], targets: [8, 8, 8] } };
+    assert.deepEqual(L.targetsFor(level, last), [8, 8, 8]);
   });
 
   it('does not promote or count as clean when a set is missing', () => {
     const s = L.defaultState(D);
     const r = L.finishWorkout(D, s, mkW(s, { pushup: [8, 8] }), '2026-11-16', 0);
     assert.equal(r.promotions.length, 0);
-    assert.deepEqual(L.prescribe(D, s, 'pushup').targets, [8, 8, 5]);
+    assert.deepEqual(L.prescribe(D, s, 'pushup').targets, [5, 5, 5]);
   });
 
   it('does not create an entry for an exercise with no sets', () => {
@@ -72,6 +86,32 @@ describe('target progression', () => {
     const r = L.finishWorkout(D, s, mkW(s, { pushup: [], row: [5, 5, 5] }), '2026-11-16', 0);
     assert.ok(!r.session.entries.pushup);
     assert.ok(r.session.entries.row);
+  });
+});
+
+describe('set result', () => {
+  const reps = { lo: 5, hi: 8, step: 1 };
+  const hold = { lo: 10, hi: 30, step: 5 };
+
+  it('records exactly the target when the set was hit', () => {
+    assert.equal(L.setResult(reps, 7, true), 7);
+    assert.equal(L.setResult(hold, 20, true), 20);
+  });
+
+  it('records one step below the target when the set was missed', () => {
+    assert.equal(L.setResult(reps, 7, false), 6);
+    assert.equal(L.setResult(hold, 20, false), 15);
+  });
+
+  it('never records a negative value', () => {
+    assert.equal(L.setResult({ lo: 0, hi: 8, step: 1 }, 0, false), 0);
+  });
+
+  it('a missed set stops the whole exercise from counting as clean', () => {
+    const s = L.defaultState(D);
+    const missed = L.setResult(reps, 5, false);
+    L.finishWorkout(D, s, mkW(s, { pushup: [5, missed, 5] }), '2026-11-16', 0);
+    assert.deepEqual(L.prescribe(D, s, 'pushup').targets, [5, 5, 5]);
   });
 });
 

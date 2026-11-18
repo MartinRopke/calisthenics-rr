@@ -87,6 +87,7 @@ Each structural decision has an ADR in [docs/decisions](docs/decisions/README.md
 - [0008 Source layout under src/](docs/decisions/0008-source-layout.md)
 - [0009 End-to-end tests with Playwright for Node](docs/decisions/0009-e2e-with-playwright-node.md)
 - [0010 Tests in a top-level test/ folder](docs/decisions/0010-tests-in-test-folder.md)
+- [0011 Targets depend only on hitting them](docs/decisions/0011-targets-depend-only-on-hitting-them.md)
 
 ## Future ideas
 
