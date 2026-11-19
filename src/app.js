@@ -2,8 +2,7 @@
 import { SLOTS, LADDERS, SLOT_ORDER, WARMUP, WIKI_BASE, ytUrl } from './domain/data.js';
 import { VIDEOS } from './domain/videos.js';
 import { start, advance, readout } from './domain/workout.js';
-import { createAudio } from './audio/audio.js';
-import { scheduleSfx } from './audio/schedule.js';
+import { createSounds } from './audio/sounds.js';
 import {
   ICON_EQUIP,
   esc,
@@ -39,7 +38,10 @@ let progTab = 'overview'; /* Progress screen tab: overview, exercises, history *
 let dayIdx = 0,
   previewWarm = null; /* day shown on the Today screen: 0 = today, 1..3 = upcoming */
 let sheetCtx = null; /* {slot, ctx} of the open sheet */
-const audio = createAudio(window.AudioContext || window.webkitAudioContext);
+const sounds = createSounds({
+  AudioContextClass: window.AudioContext || window.webkitAudioContext,
+  vibrate: navigator.vibrate ? (ms) => navigator.vibrate(ms) : null,
+});
 let wakeLock = null,
   tickTimer = null,
   toastTimer = null;
@@ -445,77 +447,12 @@ function confirmBox(title, text, buttons) {
 }
 
 /* ---------- Guided workout ---------- */
-/* Chimes go into a queue so they do not overlap. Countdown beeps (onTime) skip the queue and play on the second. */
-let sfxBase = 0,
-  sfxBusy = 0;
-function sfx(len, fn, onTime) {
-  const now = audio.context ? audio.context.currentTime : 0;
-  const plan = scheduleSfx({ now: now, busyUntil: sfxBusy, len: len, onTime: onTime });
-  if (!plan) return; /* too late: discard */
-  sfxBusy = plan.busyUntil;
-  sfxBase = plan.offset;
-  fn();
-  sfxBase = 0;
-}
-function tone(freq, t, dur, vol) {
-  try {
-    const audioCtx = audio.ensureRunning();
-    if (!audioCtx) return;
-    const o = audioCtx.createOscillator(),
-      g = audioCtx.createGain(),
-      at = audioCtx.currentTime + sfxBase + t;
-    o.frequency.value = freq;
-    o.connect(g);
-    g.connect(audioCtx.destination);
-    g.gain.setValueAtTime(0.0001, at);
-    g.gain.exponentialRampToValueAtTime(vol || 0.25, at + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-    o.start(at);
-    o.stop(at + dur + 0.02);
-  } catch {
-    /* optional feature, ignoring failure is fine */
-  }
-}
-function tickBeep() {
-  sfx(
-    0.14,
-    function () {
-      tone(660, 0, 0.12);
-    },
-    true
-  );
-}
-function goBeep() {
-  sfx(
-    0.47,
-    function () {
-      tone(1175, 0, 0.45, 0.3);
-    },
-    true
-  );
-  try {
-    if (navigator.vibrate) navigator.vibrate(120);
-  } catch {
-    /* optional feature, ignoring failure is fine */
-  }
-}
-function doneChime() {
-  sfx(0.56, function () {
-    tone(660, 0, 0.14, 0.2);
-    tone(880, 0.12, 0.14, 0.2);
-    tone(1320, 0.24, 0.3, 0.2);
-  });
-}
 /* Plays the sound cues the workout module returns. */
 function playSounds(names) {
-  names.forEach(function (n) {
-    if (n === 'tick') tickBeep();
-    else if (n === 'go') goBeep();
-    else if (n === 'chime') doneChime();
-  });
+  names.forEach(sounds.play);
 }
 function prepAudio() {
-  audio.ensureRunning();
+  sounds.wake();
   try {
     if (navigator.wakeLock && navigator.wakeLock.request)
       navigator.wakeLock.request('screen').then(
@@ -628,7 +565,7 @@ function pauseBtn() {
 function tick() {
   if (!W || W.phase === 'summary' || W.pausedAt) return;
   /* The browser may suspend the audio mid-workout: wake it every second so the beeps are never lost. */
-  if (audio.context && audio.context.state !== 'running') audio.ensureRunning();
+  if (sounds.state() && sounds.state() !== 'running') sounds.wake();
   send({ type: 'tick' }, true);
   if (!W || W.phase === 'summary') return;
   const ro = readout(W, Date.now());
@@ -1204,12 +1141,10 @@ const H = {
   },
   'sound-test': function () {
     prepAudio();
-    doneChime();
-    const ctx = audio.context;
+    sounds.play('chime');
+    const st = sounds.state();
     toast(
-      ctx
-        ? 'Sound is ' + ctx.state + '. You should hear a chime.'
-        : 'This browser has no sound support.'
+      st ? 'Sound is ' + st + '. You should hear a chime.' : 'This browser has no sound support.'
     );
   },
   'w-pause': function () {
@@ -1254,7 +1189,7 @@ document.addEventListener('keydown', function (e) {
 });
 /* iOS only lets a tap bring the sound back after the screen locked, so every tap during a workout checks it. */
 document.addEventListener('pointerdown', function () {
-  if (W) audio.ensureRunning();
+  if (W) sounds.wake();
 });
 document.addEventListener('visibilitychange', function () {
   if (!document.hidden && W) {

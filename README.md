@@ -48,17 +48,17 @@ Notes:
 
 ### Layers
 
-| Path                                            | Role                                                                                                          |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `src/domain/data.js`, `src/domain/videos.js`    | Plain data: exercises, ladders, warmup, videos.                                                               |
-| `src/domain/logic.js`                           | Functional core. Pure functions, every progression rule. Reads `data.js` directly. No DOM, no storage.        |
-| `src/storage/storage.js`                        | History store: the server file wins over the browser copy (ADR 0013), queued saves, sync status, draft.       |
-| `src/ui/views.js`                               | Builds HTML strings as pure functions.                                                                        |
-| `src/domain/workout.js`                         | The guided workout: `start`, `advance` (events in, next workout and sound cues out) and `readout` (ADR 0012). |
-| `src/audio/audio.js`                            | Audio adapter that survives screen locks (`AudioContext` is injected).                                        |
-| `src/app.js`, `src/index.html`, `src/style.css` | Imperative shell: maps clicks to events, runs the timer loop, renders. Wires the layers together.             |
-| `server.mjs`                                    | Serves `src/` and `/api/state`. Zero dependencies.                                                            |
-| `test/unit/`, `test/server/`, `test/e2e/`       | All tests: unit (mirrors `src/`), server and Playwright (`*.e2e.js`).                                         |
+| Path                                            | Role                                                                                                                                                             |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/domain/data.js`, `src/domain/videos.js`    | Plain data: exercises, ladders, warmup, videos.                                                                                                                  |
+| `src/domain/logic.js`                           | Functional core. Pure functions, every progression rule. Reads `data.js` directly. No DOM, no storage.                                                           |
+| `src/storage/storage.js`                        | History store: the server file wins over the browser copy (ADR 0013), queued saves, sync status, draft.                                                          |
+| `src/ui/views.js`                               | Builds HTML strings as pure functions.                                                                                                                           |
+| `src/domain/workout.js`                         | The guided workout: `start`, `advance` (events in, next workout and sound cues out) and `readout` (ADR 0012).                                                    |
+| `src/audio/sounds.js`                           | Sound module: `play(cue)`, `wake()`, `state()`. Keeps the `AudioContext` alive after screen locks, queues chimes, plays countdown beeps on time, vibrates on go. |
+| `src/app.js`, `src/index.html`, `src/style.css` | Imperative shell: maps clicks to events, runs the timer loop, renders. Wires the layers together.                                                                |
+| `server.mjs`                                    | Serves `src/` and `/api/state`. Zero dependencies.                                                                                                               |
+| `test/unit/`, `test/server/`, `test/e2e/`       | All tests: unit (mirrors `src/`), server and Playwright (`*.e2e.js`).                                                                                            |
 
 `src/` holds only what ships to the browser. Tests live in `test/`, and `test/unit/` mirrors the `src/` folders (`*.test.js`).
 
