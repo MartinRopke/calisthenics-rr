@@ -13,4 +13,5 @@ Architecture decision records (ADRs). Add a new file for every structural decisi
 - [0009 End-to-end tests with Playwright for Node](0009-e2e-with-playwright-node.md)
 - [0010 Tests in a top-level test/ folder](0010-tests-in-test-folder.md)
 - [0011 Targets depend only on hitting them](0011-targets-depend-only-on-hitting-them.md)
+- [0012 The guided workout is a pure module driven by events](0012-workout-is-a-pure-module-driven-by-events.md)
 - [0013 The server file is the source of truth for the history](0013-server-file-is-the-source-of-truth.md)

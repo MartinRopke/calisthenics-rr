@@ -4,6 +4,8 @@
    Pure parts (migrate, serializeState, parseState, mergeBackup) have no side effects.
    createHistoryStore takes its dependencies (fetch, localStorage, clock) so Node tests need no browser. */
 
+import { WORKOUT_VERSION } from '../domain/workout.js';
+
 export const SCHEMA_VERSION = 1;
 export const LS_KEY = 'treinoRR.v1';
 export const DRAFT_KEY = 'treinoRR.draft';
@@ -214,9 +216,16 @@ export function createHistoryStore({
   function loadDraft() {
     try {
       const d = JSON.parse(lsGet(DRAFT_KEY) || 'null');
-      if (d && d.startedAt && now() - d.startedAt < DRAFT_MAX_AGE_MS && d.steps) return d;
+      if (
+        d &&
+        d.v === WORKOUT_VERSION &&
+        d.startedAt &&
+        now() - d.startedAt < DRAFT_MAX_AGE_MS &&
+        d.steps
+      )
+        return d;
     } catch {
-      /* corrupt draft */
+      /* corrupt draft, or one saved by older code */
     }
     return null;
   }

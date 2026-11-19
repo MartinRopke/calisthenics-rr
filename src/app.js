@@ -1,7 +1,7 @@
-/* App: screens, guided workout and storage. Imports data.js, videos.js and logic.js. */
+/* App: the imperative shell. Renders the screens, maps clicks to workout events, runs the timer loop and plays sounds. */
 import { SLOTS, LADDERS, SLOT_ORDER, WARMUP, WIKI_BASE, ytUrl } from './domain/data.js';
 import { VIDEOS } from './domain/videos.js';
-import { resumeTimers } from './domain/timer.js';
+import { start, advance, readout } from './domain/workout.js';
 import { createAudio } from './audio/audio.js';
 import { scheduleSfx } from './audio/schedule.js';
 import {
@@ -21,15 +21,8 @@ import {
   isoDate,
   defaultState,
   ladderOf,
-  currentLevel,
-  isActive,
   prescribe,
-  setResult,
-  SIDE_SWITCH_SECS,
-  buildSteps,
-  restSeconds,
   warmupItems,
-  finishWorkout,
   applyFinish,
   seriesFor,
   sessionSummaryText,
@@ -40,7 +33,8 @@ const store = createHistoryStore();
 
 let state = defaultState();
 let tab = 'today';
-let W = null; /* workout in progress */
+let W = null; /* workout in progress, changed only through the workout module */
+let summary = null; /* result shown after the workout */
 let progTab = 'overview'; /* Progress screen tab: overview, exercises, history */
 let dayIdx = 0,
   previewWarm = null; /* day shown on the Today screen: 0 = today, 1..3 = upcoming */
@@ -512,12 +506,13 @@ function doneChime() {
     tone(1320, 0.24, 0.3, 0.2);
   });
 }
-let lastCue = null;
-function cue(key, n) {
-  if (lastCue === key) return;
-  lastCue = key;
-  if (n > 0) tickBeep();
-  else goBeep();
+/* Plays the sound cues the workout module returns. */
+function playSounds(names) {
+  names.forEach(function (n) {
+    if (n === 'tick') tickBeep();
+    else if (n === 'go') goBeep();
+    else if (n === 'chime') doneChime();
+  });
 }
 function prepAudio() {
   audio.ensureRunning();
@@ -533,68 +528,41 @@ function prepAudio() {
     /* optional feature, ignoring failure is fine */
   }
 }
-function newWorkout() {
-  const logged = {};
-  SLOT_ORDER.filter(function (s) {
-    return isActive(state, s);
-  }).forEach(function (slot) {
-    const p = prescribe(state, slot);
-    logged[slot] = { levelId: p.level.id, sets: [], targets: p.targets };
-  });
-  return {
-    startedAt: Date.now(),
-    phase: 'warmup',
-    warm: {},
-    warmI: 0,
-    warmEnd: 0,
-    steps: buildSteps(state),
-    i: 0,
-    logged: logged,
-    skipped: [],
-    value: null,
-    restEnd: 0,
-    restTotal: 0,
-    holdStart: null,
+/* What the screen shows: it changes when the workout moves, not on every tick. */
+function screenKey(w) {
+  return [w.phase, w.i, w.side, w.warmI, !!w.warmEnd, !!w.holdStart, !!w.pausedAt].join(':');
+}
+/* Every change to the workout goes through the workout module: the shell sends an event, plays the sounds,
+   saves the draft and renders. A quiet event (the timer tick) only saves and renders when something moved. */
+function send(event, quiet) {
+  const before = screenKey(W),
+    r = advance(W, event, Date.now());
+  W = r.workout;
+  playSounds(r.sounds);
+  if (r.finished) {
+    applyFinished(r.finished);
+    return;
+  }
+  const moved = screenKey(W) !== before;
+  if (!quiet || moved || r.sounds.length) saveDraft();
+  if (!quiet || moved) renderWorkout();
+}
+/* The finished result: applied to the state in one place, saved, then the summary. */
+function applyFinished(f) {
+  state = applyFinish(state, f);
+  if (f.session) save();
+  clearDraft();
+  stopTick();
+  summary = {
+    entries: f.session ? f.session.entries : {},
+    promotions: f.promotions,
+    durationSec: f.durationSec,
   };
-}
-function curStep() {
-  return W.steps[W.i];
-}
-function levelOfStep(step) {
-  const l = W.logged[step.slot];
-  const lad = ladderOf(state, step.slot);
-  for (let i = 0; i < lad.length; i++) if (lad[i].id === l.levelId) return lad[i];
-  return currentLevel(state, step.slot);
-}
-function nextIndex(from) {
-  for (let i = from; i < W.steps.length; i++) if (W.skipped.indexOf(W.steps[i].slot) < 0) return i;
-  return -1;
-}
-function setDefault() {
-  const st = curStep(),
-    t = W.logged[st.slot].targets[st.set - 1];
-  W.value = t;
-  W.holdStart = null;
-  W.side = 0;
-  W.right = null;
-}
-/* Holds start on their own: lead = seconds of countdown before (0 when the rest just counted 3, 2, 1). */
-function autoStartHold(lead) {
-  W.holdTotal = Math.max(1, W.value || 0);
-  W.holdStart = Date.now() + lead * 1000;
-  lastCue = lead ? null : 'h' + W.i + ':go';
-}
-function goSet(idx, lead) {
-  W.pausedAt = null;
-  W.i = idx;
-  W.phase = 'set';
-  setDefault();
-  if (levelOfStep(curStep()).kind === 'hold') autoStartHold(lead == null ? 3 : lead);
-  saveDraft();
   renderWorkout();
 }
 function startWorkout() {
-  W = newWorkout();
+  W = start(state, Date.now());
+  summary = null;
   prepAudio();
   startTick();
   saveDraft();
@@ -602,20 +570,16 @@ function startWorkout() {
 }
 function resumeWorkout() {
   W = loadDraft();
+  summary = null;
   if (!W) {
     render();
     return;
   }
   prepAudio();
   startTick();
-  if (W.phase === 'rest' && clock() >= W.restEnd) {
-    const n = nextIndex(W.i + 1);
-    if (n >= 0) {
-      goSet(n);
-      return;
-    }
-  }
   renderWorkout();
+  /* A rest that ran out while away moves on now. */
+  send({ type: 'tick' }, true);
 }
 function startTick() {
   clearInterval(tickTimer);
@@ -643,25 +607,15 @@ function subUpdate(label, pct) {
   if (b) b.style.width = Math.max(0, Math.min(100, pct)) + '%';
   if (l) l.textContent = label;
 }
-function warmGoal(it) {
-  return W.warmTotal || it.secs;
-}
-function holdGoal() {
-  const st = curStep();
-  return W.holdTotal || W.logged[st.slot].targets[st.set - 1];
-}
-function timerText(total, elapsed) {
-  if (elapsed < 0) return String(Math.ceil(-elapsed));
-  return Math.max(0, Math.ceil(total - elapsed)) + ' s';
+/* Hold and warmup timers: the 3, 2, 1 digit before the start, then the seconds left. */
+function timerText(ro) {
+  if (ro.countdown) return String(ro.countdown);
+  return Math.max(0, Math.ceil(ro.remaining)) + ' s';
 }
 /* During the 3, 2, 1 the adjust buttons are disabled. The time only changes after the count starts. */
 function lockAdj(act, on) {
   const bs = document.querySelectorAll('[data-act="' + act + '"]');
   for (let i = 0; i < bs.length; i++) bs[i].disabled = on;
-}
-/* While paused every timer reads the moment the pause began, so the clocks stay frozen. */
-function clock() {
-  return (W && W.pausedAt) || Date.now();
 }
 function pauseBtn() {
   return (
@@ -670,83 +624,26 @@ function pauseBtn() {
     '</button>'
   );
 }
+/* The timer loop: one tick event, the returned sounds, and the clocks on screen. */
 function tick() {
-  if (!W || W.pausedAt) return;
+  if (!W || W.phase === 'summary' || W.pausedAt) return;
   /* The browser may suspend the audio mid-workout: wake it every second so the beeps are never lost. */
   if (audio.context && audio.context.state !== 'running') audio.ensureRunning();
-  if (W.phase === 'rest') {
-    const rem = (W.restEnd - clock()) / 1000,
-      el = $('#restTime');
-    if (el) el.textContent = fmtClock(rem);
-    subUpdate(fmtClock(rem), 100 * (1 - rem / W.restTotal));
-    if (rem > 0 && rem <= 3) cue('r' + W.i + ':' + Math.ceil(rem), Math.ceil(rem));
-    if (rem <= 0) {
-      lastCue = null;
-      goBeep();
-      const n = nextIndex(W.i + 1);
-      if (n >= 0) goSet(n, 0);
-      else finishNow();
-    }
-  } else if (W.phase === 'warmup' && W.warmEnd > 0) {
-    const wit = warmupItems(state)[W.warmI || 0],
-      wg = warmGoal(wit),
-      wel = wg - (W.warmEnd - clock()) / 1000,
-      we = $('#warmTime');
-    if (wel < 0) {
-      if (wel >= -3) cue('w' + W.warmI + ':' + Math.ceil(-wel), Math.ceil(-wel));
-    } else if (wel < 1) cue('w' + W.warmI + ':go', 0);
-    else if (wg - wel <= 3 && wg - wel > 0 && wg > 6)
-      cue('w' + W.warmI + ':e' + Math.ceil(wg - wel), 1);
-    if (we) we.textContent = timerText(wg, wel);
-    lockAdj('w-warm-adj', wel < 0);
-    if (wel >= wg) {
-      lastCue = null;
-      H['w-warm-next']();
-    }
-  } else if (W.phase === 'set' && W.holdStart) {
-    const el2 = $('#holdTime'),
-      hs = (clock() - W.holdStart) / 1000,
-      htg = holdGoal();
-    if (hs < 0) {
-      if (hs >= -3) cue('h' + W.i + ':' + Math.ceil(-hs), Math.ceil(-hs));
-    } else if (hs < 1) cue('h' + W.i + ':go', 0);
-    else if (htg - hs <= 3 && htg - hs > 0 && htg > 6)
-      cue('h' + W.i + ':e' + Math.ceil(htg - hs), 1);
-    if (el2) el2.textContent = timerText(htg, hs);
-    if (hs >= htg) {
-      lastCue = null;
-      H['w-log']();
-    }
+  send({ type: 'tick' }, true);
+  if (!W || W.phase === 'summary') return;
+  const ro = readout(W, Date.now());
+  if (ro.phase === 'rest') {
+    const el = $('#restTime');
+    if (el) el.textContent = fmtClock(ro.remaining);
+    subUpdate(fmtClock(ro.remaining), 100 * (1 - ro.remaining / ro.total));
+  } else if (ro.phase === 'warmup' && ro.remaining != null) {
+    const we = $('#warmTime');
+    if (we) we.textContent = timerText(ro);
+    lockAdj('w-warm-adj', ro.countdown > 0);
+  } else if (ro.phase === 'set' && ro.remaining != null) {
+    const el2 = $('#holdTime');
+    if (el2) el2.textContent = timerText(ro);
   }
-}
-function warmGo(d) {
-  W.pausedAt = null;
-  const n = warmupItems(state).length,
-    i = (W.warmI || 0) + d;
-  W.warmEnd = 0;
-  if (i >= n) {
-    H['w-begin']();
-    return;
-  }
-  W.warmI = Math.max(0, i);
-  const nx = warmupItems(state)[W.warmI];
-  if (d > 0 && nx && nx.secs) {
-    W.warmEnd = Date.now() + (nx.secs + 3) * 1000;
-    W.warmTotal = nx.secs;
-    lastCue = null;
-  }
-  saveDraft();
-  renderWorkout();
-}
-/* One unit per warmup item and one per workout set. */
-function progressInfo() {
-  const wn = warmupItems(state).length,
-    total = wn + W.steps.length;
-  let d;
-  if (W.phase === 'summary') d = total;
-  else if (W.phase === 'warmup') d = Math.min(W.warmI || 0, wn);
-  else d = wn + W.i + (W.phase === 'rest' ? 1 : 0);
-  return { done: d, total: total };
 }
 function groupLabel(step) {
   if (step.group === 'core') return 'Core';
@@ -760,8 +657,9 @@ function renderWorkout() {
     document.body.classList.remove('no-scroll');
     return;
   }
+  const ro = readout(W, Date.now());
   const segs = function () {
-    const p = progressInfo();
+    const p = ro.progress;
     let h = '';
     for (let q = 0; q < p.total; q++)
       h += '<i class="' + (q < p.done ? 'done' : q === p.done ? 'cur' : '') + '"></i>';
@@ -787,7 +685,7 @@ function renderWorkout() {
     );
   };
   const topFor = function (sub) {
-    const p = progressInfo();
+    const p = ro.progress;
     return top(Math.min(p.done + 1, p.total) + '/' + p.total, (100 * p.done) / p.total, sub);
   };
   const subTime = function (label, pct) {
@@ -801,16 +699,18 @@ function renderWorkout() {
   };
   let body = '';
   if (W.phase === 'warmup') {
-    const items = warmupItems(state),
-      wi = Math.min(W.warmI || 0, items.length - 1),
+    const items = W.warmup,
+      wi = Math.min(W.warmI, items.length - 1),
       it = items[wi];
     const hero =
       it.secs && W.warmEnd
-        ? '<div class="w-hero timer"><button data-act="w-warm-adj" data-d="-20" aria-label="Minus 20 seconds">−20</button><span class="num" id="warmTime">' +
-          (W.warmEnd < 0
-            ? '0 s'
-            : timerText(warmGoal(it), warmGoal(it) - (W.warmEnd - clock()) / 1000)) +
-          '</span><button data-act="w-warm-adj" data-d="20" aria-label="Plus 20 seconds">+20</button></div>'
+        ? '<div class="w-hero timer"><button data-act="w-warm-adj" data-d="-20" aria-label="Minus 20 seconds"' +
+          (ro.countdown ? ' disabled' : '') +
+          '>−20</button><span class="num" id="warmTime">' +
+          timerText(ro) +
+          '</span><button data-act="w-warm-adj" data-d="20" aria-label="Plus 20 seconds"' +
+          (ro.countdown ? ' disabled' : '') +
+          '>+20</button></div>'
         : '<div class="w-hero"><span class="num">' +
           esc(it.n) +
           '</span><span class="unit">' +
@@ -846,8 +746,8 @@ function renderWorkout() {
       (wi > 0 ? '<button data-act="w-warm-back">Back</button>' : '') +
       '<button data-act="w-warm-skip" aria-label="Skip this item">Skip</button><button data-act="w-begin" aria-label="Skip warm-up">Skip all</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'set') {
-    const st = curStep(),
-      lvl = levelOfStep(st),
+    const st = W.steps[W.i],
+      lvl = W.logged[st.slot].level,
       S = SLOTS[st.slot],
       L = W.logged[st.slot],
       tg = L.targets[st.set - 1];
@@ -865,9 +765,7 @@ function renderWorkout() {
     let hero, actions;
     if (lvl.kind === 'hold' && W.holdStart) {
       hero =
-        '<div class="w-hero"><span class="num" id="holdTime">' +
-        timerText(holdGoal(), (clock() - W.holdStart) / 1000) +
-        '</span></div>';
+        '<div class="w-hero"><span class="num" id="holdTime">' + timerText(ro) + '</span></div>';
       actions =
         pauseBtn() +
         '<button class="btn ghost" data-act="w-log" data-hit="0">Stop, missed</button>';
@@ -907,13 +805,13 @@ function renderWorkout() {
       '</div>' +
       '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-info">How to</button><button data-act="w-skip" aria-label="Skip exercise">Skip</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'rest') {
-    const n = nextIndex(W.i + 1);
+    const n = ro.next;
     let nextName = 'Rest',
       nextMeta = '',
       nextVid = '';
     if (n >= 0) {
       const ns = W.steps[n],
-        nl = levelOfStep(ns),
+        nl = W.logged[ns.slot].level,
         nt = W.logged[ns.slot].targets[ns.set - 1];
       nextName = nl.name;
       nextMeta =
@@ -925,9 +823,9 @@ function renderWorkout() {
         (nl.perSide ? ' per side' : '');
       nextVid = vidBlock(nl);
     }
-    const rrem = (W.restEnd - clock()) / 1000;
+    const rrem = ro.remaining;
     body =
-      topFor(subTime(fmtClock(rrem), 100 * (1 - rrem / W.restTotal))) +
+      topFor(subTime(fmtClock(rrem), 100 * (1 - rrem / ro.total))) +
       '<div class="w-body"><div class="w-title"><p class="w-group">Rest · Up next</p><h1 class="w-name">' +
       esc(nextName) +
       '</h1></div><div class="w-hero"><span class="num" id="restTime">' +
@@ -941,7 +839,7 @@ function renderWorkout() {
       '<button class="btn ghost" data-act="w-rest-add">+ 15 s</button><button class="btn tape" data-act="w-rest-skip">Skip</button></div>' +
       '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'summary') {
-    const r = W.result,
+    const r = summary,
       mins = Math.max(1, Math.round(r.durationSec / 60));
     const rows = SLOT_ORDER.filter(function (k) {
       return r.entries[k];
@@ -1017,45 +915,9 @@ function renderWorkout() {
   lastKey = key;
   document.body.classList.add('no-scroll');
 }
-function logSet() {
-  W.pausedAt = null;
-  const st = curStep(),
-    L = W.logged[st.slot];
-  L.sets[st.set - 1] = W.value;
-  const n = nextIndex(W.i + 1);
-  if (n < 0) {
-    finishNow();
-    return;
-  }
-  const secs = restSeconds(state, st.slot);
-  W.phase = 'rest';
-  W.restTotal = secs;
-  W.restEnd = Date.now() + secs * 1000;
-  W.holdStart = null;
-  saveDraft();
-  renderWorkout();
-}
-function finishNow() {
-  const warmDone = Object.keys(W.warm).filter(function (k) {
-    return W.warm[k];
-  }).length;
-  W.warmDone = warmDone;
-  const dur = Math.round((Date.now() - W.startedAt) / 1000);
-  const res = finishWorkout(state, W, isoDate(), dur);
-  state = applyFinish(state, res);
-  if (res.session) save();
-  clearDraft();
-  stopTick();
-  W.phase = 'summary';
-  W.result = {
-    entries: res.session ? res.session.entries : {},
-    promotions: res.promotions,
-    durationSec: dur,
-  };
-  renderWorkout();
-}
 function closeWorkout() {
   W = null;
+  summary = null;
   stopTick();
   $('#overlay').innerHTML = '';
   document.body.classList.remove('no-scroll');
@@ -1109,7 +971,7 @@ const H = {
     if (el.dataset.alt) m[el.dataset.base] = el.dataset.alt;
     else delete m[el.dataset.base];
     save();
-    renderWorkout();
+    if (W) send({ type: 'warmSwap', warmup: warmupItems(state) });
   },
   'sheet-close': function () {
     closeSheet();
@@ -1121,10 +983,12 @@ const H = {
     save();
     if (W && sheetCtx && sheetCtx.ctx === 'workout') {
       const p = prescribe(state, slot);
-      W.logged[slot] = { levelId: p.level.id, sets: [], targets: p.targets };
-      if (W.phase === 'set' && curStep().slot === slot) setDefault();
-      saveDraft();
-      renderWorkout();
+      send({
+        type: 'changeLevel',
+        slot: slot,
+        idx: i,
+        prescription: { level: p.level, targets: p.targets },
+      });
     } else render();
     renderSheet();
   },
@@ -1307,108 +1171,36 @@ const H = {
   },
   'w-finish': function () {
     closeSheet();
-    finishNow();
+    send({ type: 'finish' });
   },
   'w-warm-next': function () {
-    const it = warmupItems(state)[W.warmI || 0];
-    if (it) W.warm[it.id] = true;
-    doneChime();
-    warmGo(1);
+    send({ type: 'warmNext' });
   },
   'w-warm-skip': function () {
-    warmGo(1);
+    send({ type: 'warmSkip' });
   },
   'w-warm-back': function () {
-    warmGo(-1);
+    send({ type: 'warmBack' });
   },
   'w-warm-timer': function () {
     prepAudio();
-    const it = warmupItems(state)[W.warmI || 0];
-    W.warmEnd = Date.now() + (it.secs + 3) * 1000;
-    W.warmTotal = it.secs;
-    lastCue = null;
-    saveDraft();
-    renderWorkout();
+    send({ type: 'warmTimer' });
   },
   'w-warm-adj': function (el) {
-    const it = warmupItems(state)[W.warmI || 0],
-      g = warmGoal(it),
-      d = +el.dataset.d,
-      el2 = g - (W.warmEnd - clock()) / 1000;
-    if (el2 < 0) return;
-    const ng = Math.max(5, g + d);
-    if (ng <= el2 + 1) return;
-    W.warmEnd += (ng - g) * 1000;
-    W.warmTotal = ng;
-    saveDraft();
-    renderWorkout();
+    send({ type: 'warmAdjust', d: +el.dataset.d });
   },
   'w-begin': function () {
-    const n = nextIndex(0);
-    if (n < 0) {
-      finishNow();
-      return;
-    }
-    goSet(n);
+    send({ type: 'begin' });
   },
   'w-back': function () {
-    W.pausedAt = null;
-    const from = W.phase === 'rest' ? W.i : W.i - 1;
-    let p = -1;
-    for (let k = from; k >= 0; k--)
-      if (W.skipped.indexOf(W.steps[k].slot) < 0) {
-        p = k;
-        break;
-      }
-    if (p < 0) {
-      const wi = warmupItems(state).length - 1;
-      W.phase = 'warmup';
-      W.warmI = Math.max(0, wi);
-      W.warmEnd = 0;
-      W.holdStart = null;
-      saveDraft();
-      renderWorkout();
-      return;
-    }
-    const ps = W.steps[p],
-      L = W.logged[ps.slot],
-      prev = L.sets[ps.set - 1];
-    L.sets.length = Math.min(L.sets.length, ps.set - 1);
-    W.i = p;
-    W.phase = 'set';
-    setDefault();
-    if (prev != null) W.value = prev;
-    saveDraft();
-    renderWorkout();
+    send({ type: 'back' });
   },
   'w-hold-start': function () {
     prepAudio();
-    W.holdTotal = Math.max(1, W.value || 0);
-    W.holdStart = Date.now() + 3000;
-    lastCue = null;
-    saveDraft();
-    renderWorkout();
+    send({ type: 'holdStart' });
   },
   'w-log': function (el) {
-    const st = curStep(),
-      lvl = levelOfStep(st),
-      hit = !(el && el.dataset && el.dataset.hit === '0');
-    W.value = setResult(lvl, W.logged[st.slot].targets[st.set - 1], hit);
-    doneChime();
-    if (lvl.perSide) {
-      if (!W.side) {
-        W.right = W.value;
-        W.side = 1;
-        W.value = W.logged[st.slot].targets[st.set - 1];
-        W.holdStart = null;
-        if (lvl.kind === 'hold') autoStartHold(SIDE_SWITCH_SECS);
-        saveDraft();
-        renderWorkout();
-        return;
-      }
-      W.value = Math.min(W.right == null ? W.value : W.right, W.value);
-    }
-    logSet();
+    send({ type: el && el.dataset && el.dataset.hit === '0' ? 'miss' : 'hit' });
   },
   'sound-test': function () {
     prepAudio();
@@ -1421,44 +1213,22 @@ const H = {
     );
   },
   'w-pause': function () {
-    if (W.pausedAt) {
-      const t = resumeTimers(
-        { restEnd: W.restEnd, warmEnd: W.warmEnd, holdStart: W.holdStart },
-        W.pausedAt,
-        Date.now()
-      );
-      W.restEnd = t.restEnd;
-      W.warmEnd = t.warmEnd;
-      W.holdStart = t.holdStart;
-      W.pausedAt = null;
-      lastCue = null;
-    } else {
-      W.pausedAt = Date.now();
-    }
-    saveDraft();
-    renderWorkout();
+    send({ type: 'pause' });
   },
   'w-rest-add': function () {
-    W.restEnd += 15000;
-    W.restTotal += 15;
+    send({ type: 'restAdd' }, true);
     saveDraft();
   },
   'w-rest-skip': function () {
-    const n = nextIndex(W.i + 1);
-    if (n >= 0) goSet(n);
-    else finishNow();
+    send({ type: 'restSkip' });
   },
   'w-info': function () {
-    openSheet(curStep().slot, 'workout');
+    openSheet(W.steps[W.i].slot, 'workout');
   },
   'w-skip': function () {
-    const st = curStep();
-    W.skipped.push(st.slot);
-    const n = nextIndex(W.i + 1);
-    if (n >= 0) {
-      toast(SLOTS[st.slot].label + ' skipped today');
-      goSet(n);
-    } else finishNow();
+    const slot = W.steps[W.i].slot;
+    send({ type: 'skip' });
+    if (W && W.phase !== 'summary') toast(SLOTS[slot].label + ' skipped today');
   },
   'w-close': function () {
     closeWorkout();

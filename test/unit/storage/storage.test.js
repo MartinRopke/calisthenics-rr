@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { WORKOUT_VERSION } from '../../../src/domain/workout.js';
 import {
   createHistoryStore,
   mergeBackup,
@@ -336,7 +337,13 @@ describe('backup import', () => {
 });
 
 describe('draft', () => {
-  const draft = (over = {}) => ({ startedAt: 1000, steps: [1], phase: 'work', ...over });
+  const draft = (over = {}) => ({
+    v: WORKOUT_VERSION,
+    startedAt: 1000,
+    steps: [1],
+    phase: 'set',
+    ...over,
+  });
 
   it('saves, loads and clears under treinoRR.draft', () => {
     const ls = memoryStore();
@@ -369,5 +376,15 @@ describe('draft', () => {
     const s2 = createHistoryStore({ fetch: null, localStorage: ls, now: () => 2000 });
     ls.data[DRAFT_KEY] = JSON.stringify({ startedAt: 1000 });
     assert.equal(s2.loadDraft(), null);
+  });
+});
+
+describe('old drafts', () => {
+  it('rejects a draft saved by the old workout code', () => {
+    const ls = memoryStore({
+      [DRAFT_KEY]: JSON.stringify({ startedAt: 1000, steps: [1], phase: 'rest', warm: {} }),
+    });
+    const s = createHistoryStore({ fetch: null, localStorage: ls, now: () => 2000 });
+    assert.equal(s.loadDraft(), null);
   });
 });

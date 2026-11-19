@@ -15,14 +15,14 @@ Workout web app for the Recommended Routine (RR) of r/bodyweightfitness. It guid
 
 ## Structure
 
-Read README.md "Architecture and conventions" and `docs/decisions/` before structural changes. Record structural decisions as a new ADR in `docs/decisions/`.
+Domain terms are in `GLOSSARY.md`. Read README.md "Architecture and conventions" and `docs/decisions/` before structural changes. Record structural decisions as a new ADR in `docs/decisions/`.
 
 - `src/domain/data.js`, `src/domain/videos.js`: plain data. `data.js` has the 9 exercises (`SLOTS`), ladders (`LADDERS`, with alternative paths), workout order (`PAIRS`, `CORE`), `START_LEVELS` and the warmup (`WARMUP`, `WARMUP_EXTRAS`). `videos.js` has one YouTube video per level and per warmup item.
 - `src/domain/logic.js`: pure functional core, no DOM, no storage. Every progression rule lives here.
 - `src/storage/storage.js`: history store (`load`, `save`, `status`, `onStatus`, draft calls, `mergeBackup`) with `schemaVersion`.
 - `src/ui/views.js`: pure HTML builders.
-- `src/domain/timer.js`: pause and resume for the workout timers. `src/audio/audio.js`: audio adapter that keeps the `AudioContext` alive after the screen locks.
-- `src/app.js`: imperative shell with events, timer and the guided workout. Clicks go through `data-act` and the `H` object.
+- `src/domain/workout.js`: the guided workout as a pure module (ADR 0012). `start(state, now)`, `advance(workout, event, now)` returning `{ workout, sounds, finished }`, and `readout(workout, now)`. It owns every change to the workout in progress. `src/audio/audio.js`: audio adapter that keeps the `AudioContext` alive after the screen locks.
+- `src/app.js`: imperative shell. Clicks go through `data-act` and the `H` object, which send events to the workout module. The timer loop sends `tick`, plays the returned sounds and formats the readout. No workout rule lives here.
 - `src/index.html`, `src/style.css`: page and light and dark theme.
 - `server.mjs`: serves `src/` and `/api/state`.
 - `test/`: all tests, none inside `src/`. `test/unit/` mirrors `src/` (`domain/`, `storage/`, `ui/`), `test/server/` tests `server.mjs`, `test/e2e/` holds the Playwright scripts. ADR 0008 explains the layout and ADR 0010 the test folder.
