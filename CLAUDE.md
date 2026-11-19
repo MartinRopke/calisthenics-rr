@@ -19,7 +19,7 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 
 - `src/domain/data.js`, `src/domain/videos.js`: plain data. `data.js` has the 9 exercises (`SLOTS`), ladders (`LADDERS`, with alternative paths), workout order (`PAIRS`, `CORE`), `START_LEVELS` and the warmup (`WARMUP`, `WARMUP_EXTRAS`). `videos.js` has one YouTube video per level and per warmup item.
 - `src/domain/logic.js`: pure functional core, no DOM, no storage. Every progression rule lives here.
-- `src/storage/storage.js`: storage adapter with `schemaVersion`.
+- `src/storage/storage.js`: history store (`load`, `save`, `status`, `onStatus`, draft calls, `mergeBackup`) with `schemaVersion`.
 - `src/ui/views.js`: pure HTML builders.
 - `src/domain/timer.js`: pause and resume for the workout timers. `src/audio/audio.js`: audio adapter that keeps the `AudioContext` alive after the screen locks.
 - `src/app.js`: imperative shell with events, timer and the guided workout. Clicks go through `data-act` and the `H` object.
@@ -27,7 +27,7 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 - `server.mjs`: serves `src/` and `/api/state`.
 - `test/`: all tests, none inside `src/`. `test/unit/` mirrors `src/` (`domain/`, `storage/`, `ui/`), `test/server/` tests `server.mjs`, `test/e2e/` holds the Playwright scripts. ADR 0008 explains the layout and ADR 0010 the test folder.
 - Dependencies point inward. `domain/` never touches the DOM or storage.
-- With `npm start`, the app uses `/api/state` (history in `data/treino.json`, with a copy in `treino.bak.json`) plus `localStorage` (key `treinoRR.v1`, draft in `treinoRR.draft`).
+- With `npm start`, the app uses `/api/state` (history in `data/treino.json`, with a copy in `treino.bak.json`) plus `localStorage` (key `treinoRR.v1`, draft in `treinoRR.draft`). The server file is the source of truth whenever it answers. The browser copy only wins while `treinoRR.unsynced` is set (its last save to the file failed), and it is then sent to the file (ADR 0013).
 
 ## Product rules (do not change without asking)
 

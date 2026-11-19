@@ -22,8 +22,7 @@ const addSession = (state, date, sets) => {
 const today = (state, o) =>
   V.viewToday(state, { today: TODAY, now: NOW, draft: null, dayIdx: 0, ...o });
 const progress = (state, o) => V.viewProgress(state, { today: TODAY, progTab: 'overview', ...o });
-const settings = (state, o) =>
-  V.viewSettings(state, { syncNote: 'Saved to the file data/treino.json on this computer.', ...o });
+const settings = (state, o) => V.viewSettings(state, { sync: 'file', ...o });
 
 const assertClean = (html) => {
   assert.ok(!html.includes('undefined'), 'output contains "undefined"');
@@ -330,8 +329,16 @@ describe('viewSettings', () => {
     );
   });
 
-  it('escapes the sync note', () => {
-    assert.ok(settings(fresh(), { syncNote: '<b>x</b>' }).includes('<p>&lt;b&gt;x&lt;/b&gt;</p>'));
+  it('words each sync status code', () => {
+    const note = (sync) =>
+      settings(fresh(), { sync }).match(/<h1>Settings<\/h1><p>([^<]*)<\/p>/)[1];
+    assert.equal(note('loading'), 'Loading…');
+    assert.equal(note('file'), 'Saved to the file data/treino.json on this computer.');
+    assert.equal(
+      note('file-error'),
+      'Could not save to the file. Your data stays in this browser.'
+    );
+    assert.equal(note('local'), 'No server file here: your data stays only in this browser.');
   });
 });
 

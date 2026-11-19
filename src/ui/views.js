@@ -1,5 +1,5 @@
 /* Views: pure functions, data in and HTML string out. No DOM, no clock, no storage.
-   Everything a view needs (state, today, draft, tab, settings note) comes in as arguments.
+   Everything a view needs (state, today, draft, tab, sync status) comes in as arguments.
    Imports data.js and logic.js only. */
 import { SLOTS, LADDERS, PAIRS, CORE, SLOT_ORDER } from '../domain/data.js';
 import {
@@ -723,6 +723,13 @@ export function stepper(act, id, val, unit) {
     '" data-d="1" aria-label="Increase">+</button></div>'
   );
 }
+/* Sentence for each sync status code of the history store. */
+const SYNC_NOTES = {
+  loading: 'Loading…',
+  file: 'Saved to the file data/treino.json on this computer.',
+  'file-error': 'Could not save to the file. Your data stays in this browser.',
+  local: 'No server file here: your data stays only in this browser.',
+};
 export function viewSettings(state, o) {
   const st = state.settings;
   const pathRows = ['core_ae', 'core_ar', 'core_ex']
@@ -760,7 +767,7 @@ export function viewSettings(state, o) {
   });
   return (
     '<div class="wrap"><div class="page-head"><h1>Settings</h1><p>' +
-    esc(o.syncNote) +
+    esc(SYNC_NOTES[o.sync] || SYNC_NOTES.loading) +
     '</p></div>' +
     '<div class="set-row"><div><b>I have a pull-up bar</b><p>Adds the pull-up and the full Pair 1 to your workout.</p></div><button class="switch" role="switch" aria-checked="' +
     !!st.hasBar +

@@ -33,9 +33,9 @@ import {
   seriesFor,
   sessionSummaryText,
 } from './domain/logic.js';
-import { createStorage } from './storage/storage.js';
+import { createHistoryStore, mergeBackup } from './storage/storage.js';
 
-const store = createStorage();
+const store = createHistoryStore();
 
 let state = defaultState();
 let tab = 'today';
@@ -44,7 +44,6 @@ let progTab = 'overview'; /* Progress screen tab: overview, exercises, history *
 let dayIdx = 0,
   previewWarm = null; /* day shown on the Today screen: 0 = today, 1..3 = upcoming */
 let sheetCtx = null; /* {slot, ctx} of the open sheet */
-let sync = { mode: 'local', note: 'Loading…' };
 const audio = createAudio(window.AudioContext || window.webkitAudioContext);
 let wakeLock = null,
   tickTimer = null,
@@ -55,84 +54,13 @@ function $(s) {
 }
 
 /* ---------- Storage ---------- */
-let fileMode = false,
-  fileQueue = Promise.resolve();
-const FILE_NOTE = 'Saved to the file data/treino.json on this computer.';
-function filePush() {
-  if (!fileMode) return;
-  const snap = JSON.parse(JSON.stringify(state));
-  fileQueue = fileQueue
-    .then(function () {
-      return store.pushServer(snap);
-    })
-    .then(function (r) {
-      if (!r.ok) throw new Error('http');
-      sync.err = false;
-      sync.note = FILE_NOTE;
-    })
-    .catch(function () {
-      sync.err = true;
-      sync.note = 'Could not save to the file. Your data stays in this browser.';
-      if (tab === 'settings') render();
-    });
+/* Every change goes through the history store, which writes the browser copy and queues the file. */
+function save() {
+  store.save(state);
 }
-async function fileInit() {
-  try {
-    const srv = await store.loadServer();
-    if (!srv) return false;
-    mergeLoaded(srv, null);
-    fileMode = true;
-    sync = { mode: 'file', note: FILE_NOTE };
-    filePush();
-    return true;
-  } catch {
-    return false;
-  }
-}
-function localSave() {
-  store.saveLocal(state);
-  filePush();
-}
-function localLoad() {
-  mergeLoaded(store.loadLocal(), null);
-}
-function mergeLoaded(obj, only) {
-  if (!obj) return;
-  if (obj.settings)
-    Object.keys(obj.settings).forEach(function (k) {
-      state.settings[k] = obj.settings[k];
-    });
-  if (obj.levels)
-    Object.keys(obj.levels).forEach(function (k) {
-      if (state.levels[k] && obj.levels[k]) state.levels[k] = obj.levels[k];
-    });
-  if (obj.sessions && only !== 'profile') {
-    const ids = {};
-    state.sessions.forEach(function (s) {
-      ids[s.id] = 1;
-    });
-    obj.sessions.forEach(function (s) {
-      if (s && s.id && !ids[s.id]) {
-        state.sessions.push(s);
-        ids[s.id] = 1;
-      }
-    });
-    state.sessions.sort(function (a, b) {
-      return a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1;
-    });
-  }
-}
-function persistProfile() {
-  localSave();
-}
-async function initStorage() {
-  localLoad();
-  if (await fileInit()) {
-    localSave();
-    return;
-  }
-  sync = { mode: 'local', note: 'No server file here: your data stays only in this browser.' };
-}
+store.onStatus(function () {
+  if (tab === 'settings') render();
+});
 
 /* ---------- Workout draft ---------- */
 function saveDraft() {
@@ -171,7 +99,7 @@ function render() {
       dayIdx: dayIdx,
     });
   } else if (tab === 'progress') v = viewProgress(state, { today: isoDate(), progTab: progTab });
-  else v = viewSettings(state, { syncNote: sync.note });
+  else v = viewSettings(state, { sync: store.status() });
   $('#app').innerHTML =
     '<div class="' + (tab !== lastTab ? 'view-enter' : '') + '">' + v + '</div>' + tabbar(tab);
   lastTab = tab;
@@ -1117,7 +1045,7 @@ function finishNow() {
   });
   const res = finishWorkout(state, W, isoDate(), dur);
   if (anySets) {
-    persistProfile();
+    save();
   } else {
     state.sessions = state.sessions.filter(function (s) {
       return s.id !== res.session.id;
@@ -1183,7 +1111,7 @@ const H = {
     const m = state.settings.warmAlt || (state.settings.warmAlt = {});
     if (el.dataset.alt) m[el.dataset.base] = el.dataset.alt;
     else delete m[el.dataset.base];
-    persistProfile();
+    save();
     renderWorkout();
   },
   'sheet-close': function () {
@@ -1193,7 +1121,7 @@ const H = {
     const slot = el.dataset.slot,
       i = +el.dataset.i;
     state.levels[slot].idx = i;
-    persistProfile();
+    save();
     if (W && sheetCtx && sheetCtx.ctx === 'workout') {
       const p = prescribe(state, slot);
       W.logged[slot] = { levelId: p.level.id, sets: [], targets: p.targets };
@@ -1208,20 +1136,20 @@ const H = {
       path = el.dataset.path;
     if (state.levels[slot].path !== path) {
       state.levels[slot] = { path: path, idx: 0 };
-      persistProfile();
+      save();
     }
     render();
     renderSheet();
   },
   'toggle-dip': function () {
     state.settings.hasDip = !state.settings.hasDip;
-    persistProfile();
+    save();
     render();
     toast(state.settings.hasDip ? 'Dip added to your workout' : 'Dip left out of your workout');
   },
   'toggle-bar': function () {
     state.settings.hasBar = !state.settings.hasBar;
-    persistProfile();
+    save();
     render();
     toast(
       state.settings.hasBar ? 'Pull-up added to your workout' : 'Pull-up left out of your workout'
@@ -1232,7 +1160,7 @@ const H = {
       30,
       Math.min(300, state.settings.restMain + 15 * +el.dataset.d)
     );
-    persistProfile();
+    save();
     $('#rm').textContent = state.settings.restMain + ' s';
   },
   'rest-core': function (el) {
@@ -1240,7 +1168,7 @@ const H = {
       30,
       Math.min(300, state.settings.restCore + 15 * +el.dataset.d)
     );
-    persistProfile();
+    save();
     $('#rc').textContent = state.settings.restCore + ' s';
   },
   'copy-bk': function () {
@@ -1270,8 +1198,8 @@ const H = {
       const o = JSON.parse($('#bk').value);
       if (!o || !o.sessions || !o.levels) throw new Error('formato');
       const before = state.sessions.length;
-      mergeLoaded(o, null);
-      persistProfile();
+      state = mergeBackup(state, o);
+      save();
       render();
       toast(state.sessions.length - before + ' workouts imported');
     } catch {
@@ -1302,7 +1230,7 @@ const H = {
     state.sessions = state.sessions.filter(function (x) {
       return x.id !== el.dataset.id;
     });
-    persistProfile();
+    save();
     closeSheet();
     render();
     toast('Workout deleted');
@@ -1323,7 +1251,7 @@ const H = {
     state = defaultState();
     state.settings.hasBar = keepBar;
     state.settings.hasDip = keepDip;
-    persistProfile();
+    save();
     closeSheet();
     render();
     toast('Everything deleted');
@@ -1570,6 +1498,6 @@ document.addEventListener('visibilitychange', function () {
 
 (async function boot() {
   render();
-  await initStorage();
+  state = await store.load(defaultState());
   render();
 })();
