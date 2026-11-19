@@ -95,7 +95,7 @@ function autoStartHold(w, now, lead) {
   w.cue = lead ? null : 'h' + w.i + ':go';
 }
 
-function goSet(w, out, now, idx, lead = COUNTDOWN_SECS) {
+function goSet(w, now, idx, lead = COUNTDOWN_SECS) {
   w.pausedAt = null;
   w.i = idx;
   w.phase = 'set';
@@ -122,14 +122,14 @@ function finish(w, out, now) {
 
 function goNextSet(w, out, now, lead) {
   const n = nextIndex(w, w.i + 1);
-  if (n >= 0) goSet(w, out, now, n, lead);
+  if (n >= 0) goSet(w, now, n, lead);
   else finish(w, out, now);
 }
 
 function begin(w, out, now) {
   const n = nextIndex(w, 0);
   if (n < 0) finish(w, out, now);
-  else goSet(w, out, now, n);
+  else goSet(w, now, n);
 }
 
 function logSet(w, out, now) {
@@ -207,8 +207,8 @@ function warmGo(w, out, now, d) {
     return;
   }
   w.warmI = Math.max(0, i);
-  const nx = w.warmup[w.warmI];
-  if (d > 0 && nx && nx.secs) startWarmTimer(w, now, nx);
+  const next = w.warmup[w.warmI];
+  if (d > 0 && next && next.secs) startWarmTimer(w, now, next);
 }
 
 function warmNext(w, out, now) {
@@ -223,13 +223,13 @@ const warmGoal = (w) => w.warmTotal || w.warmup[w.warmI].secs;
 /* The time only changes after the 3, 2, 1, and never to a goal below what has already passed. */
 function warmAdjust(w, now, d) {
   if (!w.warmEnd) return;
-  const g = warmGoal(w),
-    el = g - (w.warmEnd - clockOf(w, now)) / 1000;
-  if (el < 0) return;
-  const ng = Math.max(5, g + d);
-  if (ng <= el + 1) return;
-  w.warmEnd += (ng - g) * 1000;
-  w.warmTotal = ng;
+  const goal = warmGoal(w),
+    elapsed = goal - (w.warmEnd - clockOf(w, now)) / 1000;
+  if (elapsed < 0) return;
+  const newGoal = Math.max(5, goal + d);
+  if (newGoal <= elapsed + 1) return;
+  w.warmEnd += (newGoal - goal) * 1000;
+  w.warmTotal = newGoal;
 }
 
 function pause(w, now) {

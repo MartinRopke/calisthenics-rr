@@ -5,6 +5,7 @@
    createHistoryStore takes its dependencies (fetch, localStorage, clock) so Node tests need no browser. */
 
 import { WORKOUT_VERSION } from '../domain/workout.js';
+import { sortSessions } from '../domain/logic.js';
 
 export const SCHEMA_VERSION = 1;
 export const LS_KEY = 'treinoRR.v1';
@@ -56,19 +57,20 @@ function withTimeout(promise, ms) {
   });
 }
 
-const sortSessions = (sessions) =>
-  sessions.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1));
+/* Levels of the exercises `levels` already knows, taken from `from`. Returns a new object. */
+function knownLevels(levels, from) {
+  const out = { ...levels };
+  for (const k of Object.keys(from || {})) if (out[k] && from[k]) out[k] = from[k];
+  return out;
+}
 
 /* The full state: missing keys come from the defaults, levels only for exercises the defaults know. */
 function withDefaults(loaded, defaults) {
   const base = loaded || {};
-  const levels = { ...defaults.levels };
-  for (const k of Object.keys(base.levels || {}))
-    if (levels[k] && base.levels[k]) levels[k] = base.levels[k];
   return {
     ...defaults,
     settings: { ...defaults.settings, ...(base.settings || {}) },
-    levels,
+    levels: knownLevels(defaults.levels, base.levels),
     sessions: Array.isArray(base.sessions) ? base.sessions.filter((x) => x && x.id) : [],
   };
 }
@@ -77,9 +79,7 @@ function withDefaults(loaded, defaults) {
    levels of known exercises come from the backup. Returns a new state, never mutates its inputs. */
 export function mergeBackup(state, backup) {
   const settings = { ...state.settings, ...(backup.settings || {}) };
-  const levels = { ...state.levels };
-  for (const k of Object.keys(backup.levels || {}))
-    if (levels[k] && backup.levels[k]) levels[k] = backup.levels[k];
+  const levels = knownLevels(state.levels, backup.levels);
   const seen = new Set(state.sessions.map((x) => x.id));
   const sessions = state.sessions.slice();
   for (const x of backup.sessions || [])

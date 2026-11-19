@@ -502,3 +502,14 @@ describe('finishing a workout', () => {
     assert.deepEqual(L.applyFinish(s, { session: null, levels: s.levels }).sessions, []);
   });
 });
+
+describe('applying a finished workout to a state that changed meanwhile', () => {
+  it('keeps level changes made after the workout started and applies only the promotions', () => {
+    const s = L.defaultState();
+    const r = L.finishWorkout(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-16', 0);
+    const changed = { ...s, levels: { ...s.levels, squat: { ...s.levels.squat, idx: 4 } } };
+    const after = L.applyFinish(changed, r);
+    assert.equal(after.levels.squat.idx, 4);
+    assert.equal(after.levels.pushup.idx, s.levels.pushup.idx + 1);
+  });
+});

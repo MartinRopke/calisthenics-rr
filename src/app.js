@@ -55,7 +55,7 @@ function $(s) {
 function save() {
   store.save(state);
 }
-store.onStatus(function () {
+store.onStatus(() => {
   if (tab === 'settings') render();
 });
 
@@ -448,9 +448,7 @@ function confirmBox(title, text, buttons) {
 
 /* ---------- Guided workout ---------- */
 /* Plays the sound cues the workout module returns. */
-function playSounds(names) {
-  names.forEach(sounds.play);
-}
+const playSounds = (names) => names.forEach(sounds.play);
 function prepAudio() {
   sounds.wake();
   try {
@@ -1151,8 +1149,7 @@ const H = {
     send({ type: 'pause' });
   },
   'w-rest-add': function () {
-    send({ type: 'restAdd' }, true);
-    saveDraft();
+    send({ type: 'restAdd' });
   },
   'w-rest-skip': function () {
     send({ type: 'restSkip' });

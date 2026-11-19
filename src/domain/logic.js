@@ -214,13 +214,22 @@ export function finishWorkout(state, W, date, durationSec) {
   return { session, levels, promotions };
 }
 
-/* The state after a finished workout: the session added in date order and the new levels. */
+/* Sessions in date order, then by id. Sorts in place and returns the array. */
+export function sortSessions(sessions) {
+  return sessions.sort((a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1
+  );
+}
+
+/* The state after a finished workout: the session added in date order and the promotions applied. Only the
+   promoted exercises take the result's level, so a level changed after the workout started is kept. */
 export function applyFinish(state, result) {
   const sessions = result.session
     ? state.sessions.concat([result.session])
     : state.sessions.slice();
-  sessions.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1));
-  return { ...state, levels: result.levels, sessions };
+  const levels = { ...state.levels };
+  for (const p of result.promotions || []) levels[p.slot] = result.levels[p.slot];
+  return { ...state, levels, sessions: sortSessions(sessions) };
 }
 
 export function weeklyCounts(sessions, nWeeks, todayStr) {
