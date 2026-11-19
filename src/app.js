@@ -30,6 +30,7 @@ import {
   restSeconds,
   warmupItems,
   finishWorkout,
+  applyFinish,
   seriesFor,
   sessionSummaryText,
 } from './domain/logic.js';
@@ -941,12 +942,12 @@ function renderWorkout() {
       '<div class="w-links"><button data-act="w-back">Back</button><button data-act="w-finish-ask" aria-label="Finish workout">Finish</button></div></div>';
   } else if (W.phase === 'summary') {
     const r = W.result,
-      mins = Math.max(1, Math.round(r.session.durationSec / 60));
+      mins = Math.max(1, Math.round(r.durationSec / 60));
     const rows = SLOT_ORDER.filter(function (k) {
-      return r.session.entries[k];
+      return r.entries[k];
     })
       .map(function (k) {
-        const e = r.session.entries[k];
+        const e = r.entries[k];
         return (
           '<div class="res"><span>' +
           esc(e.name) +
@@ -972,7 +973,7 @@ function renderWorkout() {
       '<div class="w-body scrolls"><div class="w-title"><h1 class="w-name">Workout complete</h1></div><p class="w-sub">' +
       mins +
       ' min · ' +
-      Object.keys(r.session.entries).length +
+      Object.keys(r.entries).length +
       ' exercises</p>' +
       ups +
       '<div style="margin-top:14px;border-top:2px solid var(--ink)">' +
@@ -1040,21 +1041,17 @@ function finishNow() {
   }).length;
   W.warmDone = warmDone;
   const dur = Math.round((Date.now() - W.startedAt) / 1000);
-  const anySets = Object.keys(W.logged).some(function (k) {
-    return W.logged[k].sets.length;
-  });
   const res = finishWorkout(state, W, isoDate(), dur);
-  if (anySets) {
-    save();
-  } else {
-    state.sessions = state.sessions.filter(function (s) {
-      return s.id !== res.session.id;
-    });
-  }
+  state = applyFinish(state, res);
+  if (res.session) save();
   clearDraft();
   stopTick();
   W.phase = 'summary';
-  W.result = res;
+  W.result = {
+    entries: res.session ? res.session.entries : {},
+    promotions: res.promotions,
+    durationSec: dur,
+  };
   renderWorkout();
 }
 function closeWorkout() {

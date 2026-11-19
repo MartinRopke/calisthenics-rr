@@ -13,6 +13,12 @@ const mkW = (state, sets) => {
   });
   return { startedAt: 1, logged, warmDone: 4 };
 };
+// Finishes a workout and applies the result to `state` in place, as the shell does. Returns the result.
+const finish = (state, W, date, dur) => {
+  const r = L.finishWorkout(state, W, date, dur);
+  Object.assign(state, L.applyFinish(state, r));
+  return r;
+};
 
 describe('starting state', () => {
   it('matches the training plan', () => {
@@ -37,34 +43,34 @@ describe('starting state', () => {
 describe('target progression', () => {
   it('adds one rep per set when every set hit its target', () => {
     const s = L.defaultState();
-    L.finishWorkout(s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-16', 3000);
+    finish(s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-16', 3000);
     assert.deepEqual(L.prescribe(s, 'pushup').targets, [6, 6, 6]);
   });
 
   it('ignores reps above the target: only hitting it matters', () => {
     const s = L.defaultState();
-    L.finishWorkout(s, mkW(s, { pushup: [7, 6, 5] }), '2026-11-16', 3000); // targets 5,5,5
+    finish(s, mkW(s, { pushup: [7, 6, 5] }), '2026-11-16', 3000); // targets 5,5,5
     assert.deepEqual(L.prescribe(s, 'pushup').targets, [6, 6, 6]);
   });
 
   it('ignores a big hold overshoot (30, 15, 15 against 10, 10, 10)', () => {
     const s = L.defaultState();
-    L.finishWorkout(s, mkW(s, { dip: [30, 15, 15] }), '2026-11-16', 0);
+    finish(s, mkW(s, { dip: [30, 15, 15] }), '2026-11-16', 0);
     assert.deepEqual(L.prescribe(s, 'dip').targets, [15, 15, 15]);
   });
 
   it('repeats the same targets when any target was missed', () => {
     const s = L.defaultState();
-    L.finishWorkout(s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-16', 0);
-    L.finishWorkout(s, mkW(s, { pushup: [6, 5, 4] }), '2026-11-18', 0); // targets 6,6,6, did 6,5,4
+    finish(s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-16', 0);
+    finish(s, mkW(s, { pushup: [6, 5, 4] }), '2026-11-18', 0); // targets 6,6,6, did 6,5,4
     assert.deepEqual(L.prescribe(s, 'pushup').targets, [6, 6, 6]);
   });
 
   it('never lowers a target, even when a set was far below it', () => {
     const s = L.defaultState();
-    L.finishWorkout(s, mkW(s, { dip: [10, 10, 10] }), '2026-11-16', 0);
-    L.finishWorkout(s, mkW(s, { dip: [15, 15, 15] }), '2026-11-18', 0);
-    L.finishWorkout(s, mkW(s, { dip: [5, 15, 15] }), '2026-11-20', 0); // targets 20,20,20
+    finish(s, mkW(s, { dip: [10, 10, 10] }), '2026-11-16', 0);
+    finish(s, mkW(s, { dip: [15, 15, 15] }), '2026-11-18', 0);
+    finish(s, mkW(s, { dip: [5, 15, 15] }), '2026-11-20', 0); // targets 20,20,20
     assert.deepEqual(L.prescribe(s, 'dip').targets, [20, 20, 20]);
   });
 
@@ -76,14 +82,14 @@ describe('target progression', () => {
 
   it('does not promote or count as clean when a set is missing', () => {
     const s = L.defaultState();
-    const r = L.finishWorkout(s, mkW(s, { pushup: [8, 8] }), '2026-11-16', 0);
+    const r = finish(s, mkW(s, { pushup: [8, 8] }), '2026-11-16', 0);
     assert.equal(r.promotions.length, 0);
     assert.deepEqual(L.prescribe(s, 'pushup').targets, [5, 5, 5]);
   });
 
   it('does not create an entry for an exercise with no sets', () => {
     const s = L.defaultState();
-    const r = L.finishWorkout(s, mkW(s, { pushup: [], row: [5, 5, 5] }), '2026-11-16', 0);
+    const r = finish(s, mkW(s, { pushup: [], row: [5, 5, 5] }), '2026-11-16', 0);
     assert.ok(!r.session.entries.pushup);
     assert.ok(r.session.entries.row);
   });
@@ -110,7 +116,7 @@ describe('set result', () => {
   it('a missed set stops the whole exercise from counting as clean', () => {
     const s = L.defaultState();
     const missed = L.setResult(reps, 5, false);
-    L.finishWorkout(s, mkW(s, { pushup: [5, missed, 5] }), '2026-11-16', 0);
+    finish(s, mkW(s, { pushup: [5, missed, 5] }), '2026-11-16', 0);
     assert.deepEqual(L.prescribe(s, 'pushup').targets, [5, 5, 5]);
   });
 });
@@ -124,7 +130,7 @@ describe('side switch', () => {
 describe('level promotion', () => {
   it('moves up a level at 3x8 and restarts at 3x5', () => {
     const s = L.defaultState();
-    const r = L.finishWorkout(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-16', 0);
+    const r = finish(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-16', 0);
     assert.equal(r.promotions.length, 1);
     assert.equal(L.currentLevel(s, 'pushup').name, 'Pseudo planche push-up');
     assert.deepEqual(L.prescribe(s, 'pushup').targets, [5, 5, 5]);
@@ -134,20 +140,20 @@ describe('level promotion', () => {
   it('does not promote past the last step of a ladder', () => {
     const s = L.defaultState();
     s.levels.pushup.idx = 4;
-    const r = L.finishWorkout(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-16', 0);
+    const r = finish(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-16', 0);
     assert.equal(r.promotions.length, 0);
     assert.equal(s.levels.pushup.idx, 4);
   });
 
   it('progresses holds from 10 s in 5 s steps and promotes at 30 s', () => {
     const s = L.defaultState();
-    L.finishWorkout(s, mkW(s, { dip: [10, 10, 10] }), '2026-11-16', 0);
+    finish(s, mkW(s, { dip: [10, 10, 10] }), '2026-11-16', 0);
     assert.deepEqual(L.prescribe(s, 'dip').targets, [15, 15, 15]);
-    L.finishWorkout(s, mkW(s, { dip: [15, 15, 15] }), '2026-11-18', 0);
-    L.finishWorkout(s, mkW(s, { dip: [20, 20, 20] }), '2026-11-20', 0);
-    L.finishWorkout(s, mkW(s, { dip: [25, 25, 25] }), '2026-11-23', 0);
+    finish(s, mkW(s, { dip: [15, 15, 15] }), '2026-11-18', 0);
+    finish(s, mkW(s, { dip: [20, 20, 20] }), '2026-11-20', 0);
+    finish(s, mkW(s, { dip: [25, 25, 25] }), '2026-11-23', 0);
     assert.deepEqual(L.prescribe(s, 'dip').targets, [30, 30, 30]);
-    const r = L.finishWorkout(s, mkW(s, { dip: [30, 30, 30] }), '2026-11-25', 0);
+    const r = finish(s, mkW(s, { dip: [30, 30, 30] }), '2026-11-25', 0);
     assert.equal(L.currentLevel(s, 'dip').name, 'Negative dips');
     assert.equal(r.promotions.length, 1);
   });
@@ -155,7 +161,7 @@ describe('level promotion', () => {
   it('uses a rep range of 8 to 12 for core and promotes at 12', () => {
     const s = L.defaultState();
     s.levels.core_ex.idx = 0;
-    L.finishWorkout(s, mkW(s, { core_ex: [12, 12, 12] }), '2026-11-16', 0);
+    finish(s, mkW(s, { core_ex: [12, 12, 12] }), '2026-11-16', 0);
     assert.equal(L.currentLevel(s, 'core_ex').name, 'Arch body hold');
   });
 });
@@ -276,7 +282,7 @@ describe('schedule', () => {
 
   it('flags a level up in the projection and restarts at 3x5', () => {
     const s = L.defaultState();
-    L.finishWorkout(s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-14', 0);
+    finish(s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-14', 0);
     const p = L.projectWorkouts(s, '2026-11-16', 2);
     assert.equal(p[0].items.find((i) => i.slot === 'pushup').promotedTo, undefined);
     const pp = L.projectWorkouts(s, '2026-11-17', 3);
@@ -420,9 +426,9 @@ describe('projected workouts: what changed', () => {
 
   it('flags a new level and names the one it replaces', () => {
     const s = L.defaultState();
-    L.finishWorkout(s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-09', 0);
-    L.finishWorkout(s, mkW(s, { pushup: [6, 6, 6] }), '2026-11-11', 0);
-    L.finishWorkout(s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-13', 0); // targets are now 8, 8, 8
+    finish(s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-09', 0);
+    finish(s, mkW(s, { pushup: [6, 6, 6] }), '2026-11-11', 0);
+    finish(s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-13', 0); // targets are now 8, 8, 8
     const out = L.projectWorkouts(s, TODAY, 2); // today hits 8 and moves up
     const row = item(out[0].items, 'pushup');
     assert.equal(row.change, 'level');
@@ -440,11 +446,59 @@ describe('projected workouts: what changed', () => {
   it('reports no change when nothing differs from the workout before', () => {
     const s = L.defaultState();
     s.levels.pushup.idx = 4; // last step of its ladder: it never promotes, so at 8 reps nothing moves
-    L.finishWorkout(s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-09', 0);
-    L.finishWorkout(s, mkW(s, { pushup: [6, 6, 6] }), '2026-11-11', 0);
-    L.finishWorkout(s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-13', 0);
-    L.finishWorkout(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-14', 0);
+    finish(s, mkW(s, { pushup: [5, 5, 5] }), '2026-11-09', 0);
+    finish(s, mkW(s, { pushup: [6, 6, 6] }), '2026-11-11', 0);
+    finish(s, mkW(s, { pushup: [7, 7, 7] }), '2026-11-13', 0);
+    finish(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-14', 0);
     const out = L.projectWorkouts(s, TODAY, 2);
     assert.equal(item(out[0].items, 'pushup').change, null);
+  });
+});
+
+describe('finishing a workout', () => {
+  it('returns the session, the levels and the promotions without touching the state', () => {
+    const s = L.defaultState();
+    const before = JSON.stringify(s);
+    const r = L.finishWorkout(s, mkW(s, { pushup: [8, 8, 8], row: [5, 5, 5] }), '2026-11-16', 60);
+    assert.equal(JSON.stringify(s), before);
+    assert.equal(r.session.date, '2026-11-16');
+    assert.equal(r.session.durationSec, 60);
+    assert.deepEqual(Object.keys(r.session.entries).sort(), ['pushup', 'row']);
+    assert.equal(r.levels.pushup.idx, s.levels.pushup.idx + 1);
+    assert.equal(r.levels.row.idx, s.levels.row.idx);
+    assert.deepEqual(r.promotions, [
+      { slot: 'pushup', from: 'Diamond push-up', to: 'Pseudo planche push-up' },
+    ]);
+  });
+
+  it('returns no session when no set was logged', () => {
+    const s = L.defaultState();
+    const r = L.finishWorkout(s, mkW(s, { pushup: [], row: [] }), '2026-11-16', 60);
+    assert.equal(r.session, null);
+    assert.deepEqual(r.promotions, []);
+    assert.deepEqual(r.levels, s.levels);
+  });
+
+  it('gives no promotion at the top of a ladder', () => {
+    const s = L.defaultState();
+    s.levels.pushup.idx = L.ladderOf(s, 'pushup').length - 1;
+    const r = L.finishWorkout(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-16', 0);
+    assert.deepEqual(r.promotions, []);
+    assert.equal(r.levels.pushup.idx, s.levels.pushup.idx);
+  });
+
+  it('applying the result adds the session in date order and takes the levels', () => {
+    const s = L.defaultState();
+    const later = L.finishWorkout(s, mkW(s, { pushup: [8, 8, 8] }), '2026-11-18', 0);
+    const s2 = L.applyFinish(s, later);
+    const earlier = L.finishWorkout(s2, mkW(s2, { row: [5, 5, 5] }), '2026-11-16', 0);
+    const s3 = L.applyFinish(s2, earlier);
+    assert.deepEqual(
+      s3.sessions.map((x) => x.date),
+      ['2026-11-16', '2026-11-18']
+    );
+    assert.equal(s3.levels.pushup.idx, s.levels.pushup.idx + 1);
+    assert.equal(s.sessions.length, 0);
+    assert.deepEqual(L.applyFinish(s, { session: null, levels: s.levels }).sessions, []);
   });
 });

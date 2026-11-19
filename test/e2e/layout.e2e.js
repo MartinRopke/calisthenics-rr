@@ -182,7 +182,10 @@ describe('layout on a desktop window', () => {
       const logged = {
         hinge: { levelId: p.level.id, sets: [reps, reps, reps], targets: p.targets },
       };
-      L.finishWorkout(s, { startedAt: 1, logged, warmDone: 4 }, date, 0);
+      Object.assign(
+        s,
+        L.applyFinish(s, L.finishWorkout(s, { startedAt: 1, logged, warmDone: 4 }, date, 0))
+      );
     }
     await fetch(server.url + 'api/state', { method: 'PUT', body: JSON.stringify(s) });
     const ctx = await browser.newContext({

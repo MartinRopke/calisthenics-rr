@@ -173,18 +173,19 @@ export function warmupItems(state) {
   return items;
 }
 
-/* Finishes the workout: builds the session, applies level promotions and returns both.
-   W.logged[slot] = { levelId, path, sets, targets }. */
+/* Finishes the workout without touching the state. Returns the session (null when no set was logged), the
+   levels after any promotion and the promotions. W.logged[slot] = { levelId, sets, targets }. */
 export function finishWorkout(state, W, date, durationSec) {
   const entries = {},
-    promotions = [];
-  Object.keys(W.logged).forEach(function (slot) {
+    promotions = [],
+    levels = {};
+  for (const slot of Object.keys(state.levels)) levels[slot] = { ...state.levels[slot] };
+  for (const slot of Object.keys(W.logged)) {
     const l = W.logged[slot];
-    if (!l.sets || !l.sets.length) return;
+    if (!l.sets || !l.sets.length) continue;
     const lad = ladderOf(state, slot);
-    let idx = -1;
-    for (let i = 0; i < lad.length; i++) if (lad[i].id === l.levelId) idx = i;
-    if (idx < 0) return;
+    const idx = lad.findIndex((x) => x.id === l.levelId);
+    if (idx < 0) continue;
     const level = lad[idx];
     const e = {
       levelId: level.id,
@@ -196,23 +197,30 @@ export function finishWorkout(state, W, date, durationSec) {
     };
     if (mastered(level, e.sets) && idx < lad.length - 1) {
       e.promotedTo = lad[idx + 1].name;
-      state.levels[slot].idx = idx + 1;
-      promotions.push({ slot: slot, from: level.name, to: lad[idx + 1].name });
+      levels[slot].idx = idx + 1;
+      promotions.push({ slot, from: level.name, to: lad[idx + 1].name });
     }
     entries[slot] = e;
-  });
-  const session = {
-    id: 's' + date + '-' + (W.startedAt || Date.now()),
-    date: date,
-    durationSec: durationSec || 0,
-    entries: entries,
-    warmup: W.warmDone || 0,
-  };
-  state.sessions.push(session);
-  state.sessions.sort(function (a, b) {
-    return a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1;
-  });
-  return { session: session, promotions: promotions };
+  }
+  const session = Object.keys(entries).length
+    ? {
+        id: 's' + date + '-' + (W.startedAt || Date.now()),
+        date,
+        durationSec: durationSec || 0,
+        entries,
+        warmup: W.warmDone || 0,
+      }
+    : null;
+  return { session, levels, promotions };
+}
+
+/* The state after a finished workout: the session added in date order and the new levels. */
+export function applyFinish(state, result) {
+  const sessions = result.session
+    ? state.sessions.concat([result.session])
+    : state.sessions.slice();
+  sessions.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1));
+  return { ...state, levels: result.levels, sessions };
 }
 
 export function weeklyCounts(sessions, nWeeks, todayStr) {
@@ -376,6 +384,7 @@ export function projectWorkouts(state, todayStr, count) {
         });
         before = now;
         const r = finishWorkout(st, { startedAt: ++k, logged: logged }, day, 0);
+        Object.assign(st, applyFinish(st, r));
         r.promotions.forEach(function (pr) {
           items.forEach(function (it) {
             if (it.slot === pr.slot) it.promotedTo = pr.to;

@@ -16,7 +16,10 @@ const addSession = (state, date, sets) => {
     const p = L.prescribe(state, slot);
     logged[slot] = { levelId: p.level.id, sets: sets[slot], targets: p.targets };
   });
-  L.finishWorkout(state, { startedAt: 1, logged, warmDone: 4 }, date, 1800);
+  Object.assign(
+    state,
+    L.applyFinish(state, L.finishWorkout(state, { startedAt: 1, logged, warmDone: 4 }, date, 1800))
+  );
 };
 
 const today = (state, o) =>
