@@ -1,16 +1,7 @@
 /* Views: pure functions, data in and HTML string out. No DOM, no clock, no storage.
    Everything a view needs (state, today, draft, tab, settings note) comes in as arguments.
    Imports data.js and logic.js only. */
-import {
-  SLOTS,
-  LADDERS,
-  PAIRS,
-  CORE,
-  SLOT_ORDER,
-  START_LEVELS,
-  WARMUP,
-  WARMUP_EXTRAS,
-} from '../domain/data.js';
+import { SLOTS, LADDERS, PAIRS, CORE, SLOT_ORDER } from '../domain/data.js';
 import {
   ladderOf,
   currentLevel,
@@ -25,8 +16,6 @@ import {
   projectWorkouts,
   sessionSummaryText,
 } from '../domain/logic.js';
-
-const D = { SLOTS, LADDERS, PAIRS, CORE, SLOT_ORDER, START_LEVELS, WARMUP, WARMUP_EXTRAS };
 
 /* Dumbbell icon: Lucide "dumbbell" (ISC license), inlined to avoid external dependencies. */
 export const ICON_EQUIP =
@@ -95,7 +84,7 @@ export function targetHtml(level, targets) {
     : targets.join(' · ') + '<small>' + u + '</small>';
 }
 export function levelText(state, slot) {
-  return 'Level ' + (state.levels[slot].idx + 1) + ' of ' + ladderOf(D, state, slot).length;
+  return 'Level ' + (state.levels[slot].idx + 1) + ' of ' + ladderOf(state, slot).length;
 }
 export function metaLine(state, S, lvl, slot) {
   const parts = [];
@@ -109,7 +98,7 @@ export function equipHtml(lvl) {
     : '';
 }
 export function rungsHtml(state, slot) {
-  const lad = ladderOf(D, state, slot),
+  const lad = ladderOf(state, slot),
     cur = state.levels[slot].idx;
   return (
     '<div class="rungs" aria-hidden="true">' +
@@ -249,7 +238,7 @@ export function todayProjection(state, today) {
       return s.date === today;
     })
     .pop();
-  let proj = projectWorkouts(D, state, today, doneToday ? 4 : 3);
+  let proj = projectWorkouts(state, today, doneToday ? 4 : 3);
   if (doneToday) proj = proj.slice(1);
   return { doneToday: doneToday, proj: proj };
 }
@@ -271,12 +260,12 @@ export function viewToday(state, o) {
     })
     .join('');
   const act = SLOT_ORDER.filter((s) => {
-    return isActive(D, state, s);
+    return isActive(state, s);
   }).length;
   function exRow(slot) {
     const S = SLOTS[slot],
-      lvl = currentLevel(D, state, slot);
-    if (!isActive(D, state, slot)) {
+      lvl = currentLevel(state, slot);
+    if (!isActive(state, slot)) {
       return (
         '<button class="ex off" data-act="open-ex" data-slot="' +
         slot +
@@ -287,7 +276,7 @@ export function viewToday(state, o) {
         '</button>'
       );
     }
-    const p = prescribe(D, state, slot);
+    const p = prescribe(state, slot);
     return (
       '<button class="ex" data-act="open-ex" data-slot="' +
       slot +
@@ -315,7 +304,7 @@ export function viewToday(state, o) {
       '</div></section>'
     );
   }
-  const warm = warmupItems(D, state);
+  const warm = warmupItems(state);
   const warmRows = warm
     .map((it) => {
       return (
@@ -410,7 +399,7 @@ export function viewToday(state, o) {
       const it = byslot[slot];
       if (!it) return exRow(slot);
       const S = SLOTS[slot],
-        lvl = ladderOf(D, state, slot)[it.levelIdx];
+        lvl = ladderOf(state, slot)[it.levelIdx];
       const chg = changeHtml(lvl, it);
       return (
         '<button class="ex' +
@@ -429,7 +418,7 @@ export function viewToday(state, o) {
             'Level ' +
             (it.levelIdx + 1) +
             ' of ' +
-            ladderOf(D, state, slot).length
+            ladderOf(state, slot).length
         ) +
         '</div>' +
         chg.was +
@@ -630,9 +619,9 @@ export function viewProgress(state, o) {
       '<h2 class="sec-title">Each exercise</h2><p class="muted small">Each bar is a workout: total reps (seconds on holds). Orange marks the workout where you moved up a level.</p>';
     SLOT_ORDER.forEach((slot) => {
       const S = SLOTS[slot],
-        lvl = currentLevel(D, state, slot),
+        lvl = currentLevel(state, slot),
         ser = seriesFor(state, slot).slice(-12);
-      const inactive = !isActive(D, state, slot);
+      const inactive = !isActive(state, slot);
       out +=
         '<div class="gcard pad" id="pc-' +
         slot +

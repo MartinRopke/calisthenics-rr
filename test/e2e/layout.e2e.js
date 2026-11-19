@@ -2,7 +2,6 @@
 // yellow "then: ..." label must not break across lines.
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
-import * as D from '../../src/domain/data.js';
 import * as L from '../../src/domain/logic.js';
 import { launchBrowser, startServer } from './helpers.js';
 
@@ -174,16 +173,16 @@ describe('layout on a desktop window', () => {
 
   it('keeps the yellow "then: ..." label and the "+1 rep" chip in one piece', async () => {
     // Wednesday 2026-03-04: Romanian deadlift targets are 3 x 7 today and 3 x 8 on Friday, when it levels up.
-    const s = L.defaultState(D);
+    const s = L.defaultState();
     for (const [date, reps] of [
       ['2026-02-25', 5],
       ['2026-02-27', 6],
     ]) {
-      const p = L.prescribe(D, s, 'hinge');
+      const p = L.prescribe(s, 'hinge');
       const logged = {
         hinge: { levelId: p.level.id, sets: [reps, reps, reps], targets: p.targets },
       };
-      L.finishWorkout(D, s, { startedAt: 1, logged, warmDone: 4 }, date, 0);
+      L.finishWorkout(s, { startedAt: 1, logged, warmDone: 4 }, date, 0);
     }
     await fetch(server.url + 'api/state', { method: 'PUT', body: JSON.stringify(s) });
     const ctx = await browser.newContext({

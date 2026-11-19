@@ -1,5 +1,6 @@
 /* Pure app logic: levels, targets, progression, workout order and counts.
-   Nothing here touches the DOM, so it can be tested in Node. */
+   Nothing here touches the DOM, so it can be tested in Node. The rules read the exercise data directly. */
+import * as D from './data.js';
 
 /* Countdown before the second side of a one-sided hold, to change position. */
 export const SIDE_SWITCH_SECS = 15;
@@ -25,7 +26,7 @@ export function weekStartISO(s) {
   return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
 }
 
-export function defaultState(D) {
+export function defaultState() {
   const levels = {};
   Object.keys(D.LADDERS).forEach(function (slot) {
     levels[slot] = { path: D.LADDERS[slot].defaultPath, idx: D.START_LEVELS[slot] || 0 };
@@ -38,17 +39,17 @@ export function defaultState(D) {
   };
 }
 
-export function ladderOf(D, state, slot) {
+export function ladderOf(state, slot) {
   const L = state.levels[slot];
   const path = D.LADDERS[slot].paths[L.path] || D.LADDERS[slot].paths[D.LADDERS[slot].defaultPath];
   return path.levels;
 }
-export function currentLevel(D, state, slot) {
-  const lad = ladderOf(D, state, slot);
+export function currentLevel(state, slot) {
+  const lad = ladderOf(state, slot);
   const idx = Math.max(0, Math.min(lad.length - 1, state.levels[slot].idx));
   return lad[idx];
 }
-export function isActive(D, state, slot) {
+export function isActive(state, slot) {
   if (D.SLOTS[slot].needsBar && !state.settings.hasBar) return false;
   if (D.SLOTS[slot].needsDip && !state.settings.hasDip) return false;
   return true;
@@ -102,8 +103,8 @@ export function setResult(level, target, hit) {
   return hit ? target : Math.max(0, target - level.step);
 }
 
-export function prescribe(D, state, slot) {
-  const level = currentLevel(D, state, slot);
+export function prescribe(state, slot) {
+  const level = currentLevel(state, slot);
   const last = lastEntry(state, slot, level.id);
   return { slot: slot, level: level, targets: targetsFor(level, last), first: !last, last: last };
 }
@@ -115,11 +116,11 @@ export function mastered(level, sets) {
 }
 
 /* Workout steps: the warmup is left out. Each group alternates its exercises, set by set. */
-export function buildSteps(D, state) {
+export function buildSteps(state) {
   const steps = [];
   function group(slots, kind) {
     const act = slots.filter(function (s) {
-      return isActive(D, state, s);
+      return isActive(state, s);
     });
     for (let set = 1; set <= 3; set++)
       act.forEach(function (s) {
@@ -133,11 +134,11 @@ export function buildSteps(D, state) {
   return steps;
 }
 
-export function restSeconds(D, state, slot) {
+export function restSeconds(state, slot) {
   return D.SLOTS[slot].core ? state.settings.restCore : state.settings.restMain;
 }
 
-export function warmupItems(D, state) {
+export function warmupItems(state) {
   const alt = (state.settings && state.settings.warmAlt) || {};
   const items = D.WARMUP.map(function (w) {
     const a = (w.alts || []).filter(function (x) {
@@ -153,12 +154,12 @@ export function warmupItems(D, state) {
     return y;
   });
   D.WARMUP_EXTRAS.forEach(function (x) {
-    if (!(isActive(D, state, x.slot) && state.levels[x.slot].idx >= x.minIdx)) return;
+    if (!(isActive(state, x.slot) && state.levels[x.slot].idx >= x.minIdx)) return;
     if (!x.prevLevel) {
       items.push(x);
       return;
     }
-    const p = ladderOf(D, state, x.slot)[state.levels[x.slot].idx - 1];
+    const p = ladderOf(state, x.slot)[state.levels[x.slot].idx - 1];
     if (!p) return;
     const y = {};
     Object.keys(x).forEach(function (k) {
@@ -174,13 +175,13 @@ export function warmupItems(D, state) {
 
 /* Finishes the workout: builds the session, applies level promotions and returns both.
    W.logged[slot] = { levelId, path, sets, targets }. */
-export function finishWorkout(D, state, W, date, durationSec) {
+export function finishWorkout(state, W, date, durationSec) {
   const entries = {},
     promotions = [];
   Object.keys(W.logged).forEach(function (slot) {
     const l = W.logged[slot];
     if (!l.sets || !l.sets.length) return;
-    const lad = ladderOf(D, state, slot);
+    const lad = ladderOf(state, slot);
     let idx = -1;
     for (let i = 0; i < lad.length; i++) if (lad[i].id === l.levelId) idx = i;
     if (idx < 0) return;
@@ -313,7 +314,7 @@ export function scheduleHint(sessions, todayStr) {
 
 /* Upcoming workouts (Monday, Wednesday and Friday) if you hit all targets. Simulates on a copy of the state, without touching the real one.
    If today is a workout day and it is not done yet, it is simulated first and does not appear in the list (it is already in "Today's workout"). */
-export function projectWorkouts(D, state, todayStr, count) {
+export function projectWorkouts(state, todayStr, count) {
   const st = JSON.parse(JSON.stringify(state)),
     out = [];
   let day = todayStr,
@@ -334,9 +335,9 @@ export function projectWorkouts(D, state, todayStr, count) {
   /* What the workout before looked like, per exercise. Each projected item is compared with it. */
   let before = {};
   D.SLOT_ORDER.filter(function (sl) {
-    return isActive(D, st, sl);
+    return isActive(st, sl);
   }).forEach(function (sl) {
-    const p = prescribe(D, st, sl);
+    const p = prescribe(st, sl);
     before[sl] = { levelId: p.level.id, name: p.level.name, targets: p.targets.slice() };
   });
   while (out.length < count && guard++ < 60) {
@@ -345,11 +346,11 @@ export function projectWorkouts(D, state, todayStr, count) {
       if (dow(day) % 2 === 0 && dow(day) <= 4) {
         const items = [],
           logged = {},
-          warm = warmupItems(D, st);
+          warm = warmupItems(st);
         D.SLOT_ORDER.filter(function (sl) {
-          return isActive(D, st, sl);
+          return isActive(st, sl);
         }).forEach(function (sl) {
-          const p = prescribe(D, st, sl);
+          const p = prescribe(st, sl);
           logged[sl] = { levelId: p.level.id, sets: p.targets.slice(), targets: p.targets.slice() };
           items.push({
             slot: sl,
@@ -374,7 +375,7 @@ export function projectWorkouts(D, state, todayStr, count) {
           now[it.slot] = { levelId: it.levelId, name: it.name, targets: it.targets.slice() };
         });
         before = now;
-        const r = finishWorkout(D, st, { startedAt: ++k, logged: logged }, day, 0);
+        const r = finishWorkout(st, { startedAt: ++k, logged: logged }, day, 0);
         r.promotions.forEach(function (pr) {
           items.forEach(function (it) {
             if (it.slot === pr.slot) it.promotedTo = pr.to;

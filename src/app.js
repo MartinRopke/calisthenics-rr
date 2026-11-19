@@ -1,16 +1,5 @@
 /* App: screens, guided workout and storage. Imports data.js, videos.js and logic.js. */
-import {
-  SLOTS,
-  LADDERS,
-  PAIRS,
-  CORE,
-  SLOT_ORDER,
-  START_LEVELS,
-  WARMUP,
-  WARMUP_EXTRAS,
-  WIKI_BASE,
-  ytUrl,
-} from './domain/data.js';
+import { SLOTS, LADDERS, SLOT_ORDER, WARMUP, WIKI_BASE, ytUrl } from './domain/data.js';
 import { VIDEOS } from './domain/videos.js';
 import { resumeTimers } from './domain/timer.js';
 import { createAudio } from './audio/audio.js';
@@ -46,19 +35,9 @@ import {
 } from './domain/logic.js';
 import { createStorage } from './storage/storage.js';
 
-const D = {
-  SLOTS: SLOTS,
-  LADDERS: LADDERS,
-  PAIRS: PAIRS,
-  CORE: CORE,
-  SLOT_ORDER: SLOT_ORDER,
-  START_LEVELS: START_LEVELS,
-  WARMUP: WARMUP,
-  WARMUP_EXTRAS: WARMUP_EXTRAS,
-};
 const store = createStorage();
 
-let state = defaultState(D);
+let state = defaultState();
 let tab = 'today';
 let W = null; /* workout in progress */
 let progTab = 'overview'; /* Progress screen tab: overview, exercises, history */
@@ -357,7 +336,7 @@ window.addEventListener('message', (e) => {
   }
 });
 function warmSwap(it) {
-  const base = D.WARMUP.filter(function (w) {
+  const base = WARMUP.filter(function (w) {
     return w.id === (it.base || it.id);
   })[0];
   if (!base || !base.alts) return '';
@@ -453,7 +432,7 @@ function renderSheet() {
   lockPage(true);
   const slot = sheetCtx.slot,
     S = SLOTS[slot],
-    lad = ladderOf(D, state, slot);
+    lad = ladderOf(state, slot);
   let cur = state.levels[slot].idx,
     lvl = lad[cur];
   const preview = !!sheetCtx.lvlId;
@@ -578,7 +557,7 @@ function renderSheet() {
 }
 
 function openWarm(id) {
-  const it = (dayIdx > 0 && previewWarm ? previewWarm : warmupItems(D, state)).filter(function (x) {
+  const it = (dayIdx > 0 && previewWarm ? previewWarm : warmupItems(state)).filter(function (x) {
     return x.id === id;
   })[0];
   if (!it) return;
@@ -718,9 +697,9 @@ function prepAudio() {
 function newWorkout() {
   const logged = {};
   SLOT_ORDER.filter(function (s) {
-    return isActive(D, state, s);
+    return isActive(state, s);
   }).forEach(function (slot) {
-    const p = prescribe(D, state, slot);
+    const p = prescribe(state, slot);
     logged[slot] = { levelId: p.level.id, sets: [], targets: p.targets };
   });
   return {
@@ -729,7 +708,7 @@ function newWorkout() {
     warm: {},
     warmI: 0,
     warmEnd: 0,
-    steps: buildSteps(D, state),
+    steps: buildSteps(state),
     i: 0,
     logged: logged,
     skipped: [],
@@ -744,9 +723,9 @@ function curStep() {
 }
 function levelOfStep(step) {
   const l = W.logged[step.slot];
-  const lad = ladderOf(D, state, step.slot);
+  const lad = ladderOf(state, step.slot);
   for (let i = 0; i < lad.length; i++) if (lad[i].id === l.levelId) return lad[i];
-  return currentLevel(D, state, step.slot);
+  return currentLevel(state, step.slot);
 }
 function nextIndex(from) {
   for (let i = from; i < W.steps.length; i++) if (W.skipped.indexOf(W.steps[i].slot) < 0) return i;
@@ -870,7 +849,7 @@ function tick() {
       else finishNow();
     }
   } else if (W.phase === 'warmup' && W.warmEnd > 0) {
-    const wit = warmupItems(D, state)[W.warmI || 0],
+    const wit = warmupItems(state)[W.warmI || 0],
       wg = warmGoal(wit),
       wel = wg - (W.warmEnd - clock()) / 1000,
       we = $('#warmTime');
@@ -903,7 +882,7 @@ function tick() {
 }
 function warmGo(d) {
   W.pausedAt = null;
-  const n = warmupItems(D, state).length,
+  const n = warmupItems(state).length,
     i = (W.warmI || 0) + d;
   W.warmEnd = 0;
   if (i >= n) {
@@ -911,7 +890,7 @@ function warmGo(d) {
     return;
   }
   W.warmI = Math.max(0, i);
-  const nx = warmupItems(D, state)[W.warmI];
+  const nx = warmupItems(state)[W.warmI];
   if (d > 0 && nx && nx.secs) {
     W.warmEnd = Date.now() + (nx.secs + 3) * 1000;
     W.warmTotal = nx.secs;
@@ -922,7 +901,7 @@ function warmGo(d) {
 }
 /* One unit per warmup item and one per workout set. */
 function progressInfo() {
-  const wn = warmupItems(D, state).length,
+  const wn = warmupItems(state).length,
     total = wn + W.steps.length;
   let d;
   if (W.phase === 'summary') d = total;
@@ -983,7 +962,7 @@ function renderWorkout() {
   };
   let body = '';
   if (W.phase === 'warmup') {
-    const items = warmupItems(D, state),
+    const items = warmupItems(state),
       wi = Math.min(W.warmI || 0, items.length - 1),
       it = items[wi];
     const hero =
@@ -1209,7 +1188,7 @@ function logSet() {
     finishNow();
     return;
   }
-  const secs = restSeconds(D, state, st.slot);
+  const secs = restSeconds(state, st.slot);
   W.phase = 'rest';
   W.restTotal = secs;
   W.restEnd = Date.now() + secs * 1000;
@@ -1226,7 +1205,7 @@ function finishNow() {
   const anySets = Object.keys(W.logged).some(function (k) {
     return W.logged[k].sets.length;
   });
-  const res = finishWorkout(D, state, W, isoDate(), dur);
+  const res = finishWorkout(state, W, isoDate(), dur);
   if (anySets) {
     persistSession(res.session);
     persistProfile();
@@ -1307,7 +1286,7 @@ const H = {
     state.levels[slot].idx = i;
     persistProfile();
     if (W && sheetCtx && sheetCtx.ctx === 'workout') {
-      const p = prescribe(D, state, slot);
+      const p = prescribe(state, slot);
       W.logged[slot] = { levelId: p.level.id, sets: [], targets: p.targets };
       if (W.phase === 'set' && curStep().slot === slot) setDefault();
       saveDraft();
@@ -1439,7 +1418,7 @@ const H = {
   'reset-do': function () {
     const keepBar = state.settings.hasBar,
       keepDip = state.settings.hasDip;
-    state = defaultState(D);
+    state = defaultState();
     state.settings.hasBar = keepBar;
     state.settings.hasDip = keepDip;
     persistProfile();
@@ -1518,7 +1497,7 @@ const H = {
     finishNow();
   },
   'w-warm-next': function () {
-    const it = warmupItems(D, state)[W.warmI || 0];
+    const it = warmupItems(state)[W.warmI || 0];
     if (it) W.warm[it.id] = true;
     doneChime();
     warmGo(1);
@@ -1531,7 +1510,7 @@ const H = {
   },
   'w-warm-timer': function () {
     prepAudio();
-    const it = warmupItems(D, state)[W.warmI || 0];
+    const it = warmupItems(state)[W.warmI || 0];
     W.warmEnd = Date.now() + (it.secs + 3) * 1000;
     W.warmTotal = it.secs;
     lastCue = null;
@@ -1539,7 +1518,7 @@ const H = {
     renderWorkout();
   },
   'w-warm-adj': function (el) {
-    const it = warmupItems(D, state)[W.warmI || 0],
+    const it = warmupItems(state)[W.warmI || 0],
       g = warmGoal(it),
       d = +el.dataset.d,
       el2 = g - (W.warmEnd - clock()) / 1000;
@@ -1569,7 +1548,7 @@ const H = {
         break;
       }
     if (p < 0) {
-      const wi = warmupItems(D, state).length - 1;
+      const wi = warmupItems(state).length - 1;
       W.phase = 'warmup';
       W.warmI = Math.max(0, wi);
       W.warmEnd = 0;

@@ -48,17 +48,17 @@ Notes:
 
 ### Layers
 
-| Path                                            | Role                                                                         |
-| ----------------------------------------------- | ---------------------------------------------------------------------------- |
-| `src/domain/data.js`, `src/domain/videos.js`    | Plain data: exercises, ladders, warmup, videos.                              |
-| `src/domain/logic.js`                           | Functional core. Pure functions, every progression rule. No DOM, no storage. |
-| `src/storage/storage.js`                        | Storage adapter: `localStorage` and `/api/state`, with a `schemaVersion`.    |
-| `src/ui/views.js`                               | Builds HTML strings as pure functions.                                       |
-| `src/domain/timer.js`                           | Pure pause and resume for the workout timers.                                |
-| `src/audio/audio.js`                            | Audio adapter that survives screen locks (`AudioContext` is injected).       |
-| `src/app.js`, `src/index.html`, `src/style.css` | Imperative shell: events, timer, guided workout. Wires the layers together.  |
-| `server.mjs`                                    | Serves `src/` and `/api/state`. Zero dependencies.                           |
-| `test/unit/`, `test/server/`, `test/e2e/`       | All tests: unit (mirrors `src/`), server and Playwright (`*.e2e.js`).        |
+| Path                                            | Role                                                                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `src/domain/data.js`, `src/domain/videos.js`    | Plain data: exercises, ladders, warmup, videos.                                                        |
+| `src/domain/logic.js`                           | Functional core. Pure functions, every progression rule. Reads `data.js` directly. No DOM, no storage. |
+| `src/storage/storage.js`                        | Storage adapter: `localStorage` and `/api/state`, with a `schemaVersion`.                              |
+| `src/ui/views.js`                               | Builds HTML strings as pure functions.                                                                 |
+| `src/domain/timer.js`                           | Pure pause and resume for the workout timers.                                                          |
+| `src/audio/audio.js`                            | Audio adapter that survives screen locks (`AudioContext` is injected).                                 |
+| `src/app.js`, `src/index.html`, `src/style.css` | Imperative shell: events, timer, guided workout. Wires the layers together.                            |
+| `server.mjs`                                    | Serves `src/` and `/api/state`. Zero dependencies.                                                     |
+| `test/unit/`, `test/server/`, `test/e2e/`       | All tests: unit (mirrors `src/`), server and Playwright (`*.e2e.js`).                                  |
 
 `src/` holds only what ships to the browser. Tests live in `test/`, and `test/unit/` mirrors the `src/` folders (`*.test.js`).
 

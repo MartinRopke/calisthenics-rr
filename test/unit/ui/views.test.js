@@ -7,16 +7,16 @@ import * as V from '../../../src/ui/views.js';
 const NOW = new Date('2026-03-04T10:00:00'); // a Wednesday
 const TODAY = '2026-03-04';
 
-const fresh = () => L.defaultState(D);
+const fresh = () => L.defaultState();
 
 // Adds a finished workout: sets is {slot: [reps...]}, using the current prescription for targets.
 const addSession = (state, date, sets) => {
   const logged = {};
   Object.keys(sets).forEach((slot) => {
-    const p = L.prescribe(D, state, slot);
+    const p = L.prescribe(state, slot);
     logged[slot] = { levelId: p.level.id, sets: sets[slot], targets: p.targets };
   });
-  L.finishWorkout(D, state, { startedAt: 1, logged, warmDone: 4 }, date, 1800);
+  L.finishWorkout(state, { startedAt: 1, logged, warmDone: 4 }, date, 1800);
 };
 
 const today = (state, o) =>
@@ -66,7 +66,7 @@ describe('small helpers', () => {
 
   it('levelText and rungsHtml follow the level index', () => {
     const s = fresh();
-    const n = L.ladderOf(D, s, 'pushup').length;
+    const n = L.ladderOf(s, 'pushup').length;
     assert.equal(V.levelText(s, 'pushup'), 'Level ' + (s.levels.pushup.idx + 1) + ' of ' + n);
     const rungs = V.rungsHtml(s, 'pushup');
     assert.equal(count(rungs, 'class="rung '), n);
@@ -77,7 +77,7 @@ describe('small helpers', () => {
   it('metaLine adds the slot label only when it differs from the level name', () => {
     const s = fresh();
     const S = D.SLOTS.pushup,
-      lvl = L.currentLevel(D, s, 'pushup');
+      lvl = L.currentLevel(s, 'pushup');
     const meta = V.metaLine(s, S, lvl, 'pushup');
     assert.ok(meta.endsWith(V.levelText(s, 'pushup')));
     assert.equal(meta.includes(' · '), S.label.toLowerCase() !== lvl.name.toLowerCase());
@@ -155,15 +155,15 @@ describe('viewToday', () => {
     s.settings.hasBar = true;
     s.settings.hasDip = true;
     const html = today(s);
-    const withEquip = D.SLOT_ORDER.filter((slot) => L.currentLevel(D, s, slot).equip).length;
-    const warmEquip = L.warmupItems(D, s).filter((it) => it.equip).length;
+    const withEquip = D.SLOT_ORDER.filter((slot) => L.currentLevel(s, slot).equip).length;
+    const warmEquip = L.warmupItems(s).filter((it) => it.equip).length;
     assert.equal(count(html, 'class="ex-equip"'), withEquip + warmEquip);
     D.SLOT_ORDER.forEach((slot) => {
-      const lvl = L.currentLevel(D, s, slot);
+      const lvl = L.currentLevel(s, slot);
       if (lvl.equip) assert.ok(html.includes('Needs: ' + V.esc(lvl.equip)), slot);
     });
     // a level without equip renders no Needs line at all
-    const none = D.SLOT_ORDER.map((slot) => L.currentLevel(D, s, slot)).find((l) => !l.equip);
+    const none = D.SLOT_ORDER.map((slot) => L.currentLevel(s, slot)).find((l) => !l.equip);
     if (none) assert.equal(V.equipHtml(none), '');
   });
 
@@ -211,9 +211,9 @@ describe('viewToday', () => {
     const s = fresh();
     const html = today(s);
     D.SLOT_ORDER.forEach((slot) => {
-      if (!L.isActive(D, s, slot)) return;
+      if (!L.isActive(s, slot)) return;
       assert.ok(html.includes('data-act="open-ex" data-slot="' + slot + '"'), slot);
-      assert.ok(html.includes(V.esc(L.currentLevel(D, s, slot).name)), slot);
+      assert.ok(html.includes(V.esc(L.currentLevel(s, slot).name)), slot);
     });
   });
 });
