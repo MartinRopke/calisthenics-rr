@@ -45,8 +45,6 @@ let dayIdx = 0,
   previewWarm = null; /* day shown on the Today screen: 0 = today, 1..3 = upcoming */
 let sheetCtx = null; /* {slot, ctx} of the open sheet */
 let sync = { mode: 'local', note: 'Loading…' };
-let dbRefs = null;
-let queue = Promise.resolve();
 const audio = createAudio(window.AudioContext || window.webkitAudioContext);
 let wakeLock = null,
   tickTimer = null,
@@ -124,60 +122,8 @@ function mergeLoaded(obj, only) {
     });
   }
 }
-function enqueue(fn) {
-  queue = queue
-    .then(fn)
-    .then(function () {
-      if (sync.mode === 'db') {
-        sync.note = 'Saved to your account.';
-        sync.err = false;
-      }
-    })
-    .catch(function (e) {
-      sync.err = true;
-      sync.note =
-        'Could not save to your account (' +
-        ((e && e.code) || 'error') +
-        '). Your data stays on this device.';
-      if (tab === 'settings') render();
-    });
-  return queue;
-}
 function persistProfile() {
   localSave();
-  if (dbRefs)
-    enqueue(function () {
-      return dbRefs.profile.set({
-        v: 1,
-        settings: state.settings,
-        levels: state.levels,
-        updatedAt: Date.now(),
-      });
-    });
-}
-function persistSession(sess) {
-  localSave();
-  if (dbRefs)
-    enqueue(function () {
-      return dbRefs.sessions.doc(sess.id).set(sess);
-    });
-}
-function withTimeout(p, ms) {
-  return new Promise(function (res, rej) {
-    const t = setTimeout(function () {
-      rej({ code: 'timeout' });
-    }, ms);
-    p.then(
-      function (v) {
-        clearTimeout(t);
-        res(v);
-      },
-      function (e) {
-        clearTimeout(t);
-        rej(e);
-      }
-    );
-  });
 }
 async function initStorage() {
   localLoad();
@@ -185,43 +131,7 @@ async function initStorage() {
     localSave();
     return;
   }
-  if (typeof claude === 'undefined' || !claude.use) {
-    sync = { mode: 'local', note: 'No account here: your data stays only in this browser.' };
-    return;
-  }
-  try {
-    const user = await claude.use('user'),
-      db = await claude.use('db');
-    const uid = user ? await user.id() : null;
-    if (!db || !uid) {
-      sync = { mode: 'local', note: 'No account here: your data stays only in this browser.' };
-      return;
-    }
-    const prof = db.doc('data/users/' + uid + '/profile');
-    const sess = prof.collection('sessions');
-    const snap = await withTimeout(prof.get(), 10000);
-    const ssnap = await withTimeout(sess.orderBy('date', 'asc').limit(1000).get(), 10000);
-    if (snap.exists) mergeLoaded(snap.data(), 'profile');
-    const remoteIds = {};
-    ssnap.docs.forEach(function (d) {
-      const v = d.data();
-      if (v) remoteIds[d.id] = 1;
-      mergeLoaded({ sessions: [v] }, null);
-    });
-    dbRefs = { profile: prof, sessions: sess };
-    sync = { mode: 'db', note: 'Saved to your account.' };
-    if (!snap.exists) persistProfile();
-    state.sessions.forEach(function (s) {
-      if (!remoteIds[s.id]) persistSession(s);
-    });
-    localSave();
-  } catch {
-    sync = {
-      mode: 'local',
-      note: 'Could not reach your account. Your data stays in this browser for now.',
-      err: true,
-    };
-  }
+  sync = { mode: 'local', note: 'No server file here: your data stays only in this browser.' };
 }
 
 /* ---------- Workout draft ---------- */
@@ -1207,7 +1117,6 @@ function finishNow() {
   });
   const res = finishWorkout(state, W, isoDate(), dur);
   if (anySets) {
-    persistSession(res.session);
     persistProfile();
   } else {
     state.sessions = state.sessions.filter(function (s) {
@@ -1363,9 +1272,6 @@ const H = {
       const before = state.sessions.length;
       mergeLoaded(o, null);
       persistProfile();
-      state.sessions.forEach(function (s) {
-        persistSession(s);
-      });
       render();
       toast(state.sessions.length - before + ' workouts imported');
     } catch {
@@ -1397,10 +1303,6 @@ const H = {
       return x.id !== el.dataset.id;
     });
     persistProfile();
-    if (dbRefs)
-      enqueue(function () {
-        return dbRefs.sessions.doc(el.dataset.id).delete();
-      });
     closeSheet();
     render();
     toast('Workout deleted');
@@ -1422,20 +1324,6 @@ const H = {
     state.settings.hasBar = keepBar;
     state.settings.hasDip = keepDip;
     persistProfile();
-    if (dbRefs) {
-      /* old sessions stay in the account but no longer show after clearing: delete them one by one */ dbRefs.sessions
-        .get()
-        .then(
-          function (sn) {
-            sn.docs.forEach(function (d) {
-              enqueue(function () {
-                return dbRefs.sessions.doc(d.id).delete();
-              });
-            });
-          },
-          function () {}
-        );
-    }
     closeSheet();
     render();
     toast('Everything deleted');

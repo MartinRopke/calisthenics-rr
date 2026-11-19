@@ -22,7 +22,8 @@ const addSession = (state, date, sets) => {
 const today = (state, o) =>
   V.viewToday(state, { today: TODAY, now: NOW, draft: null, dayIdx: 0, ...o });
 const progress = (state, o) => V.viewProgress(state, { today: TODAY, progTab: 'overview', ...o });
-const settings = (state, o) => V.viewSettings(state, { syncNote: 'Saved to your account.', ...o });
+const settings = (state, o) =>
+  V.viewSettings(state, { syncNote: 'Saved to the file data/treino.json on this computer.', ...o });
 
 const assertClean = (html) => {
   assert.ok(!html.includes('undefined'), 'output contains "undefined"');
@@ -268,7 +269,9 @@ describe('viewSettings', () => {
     const s = fresh();
     const html = settings(s);
     assertClean(html);
-    assert.ok(html.includes('<h1>Settings</h1><p>Saved to your account.</p>'));
+    assert.ok(
+      html.includes('<h1>Settings</h1><p>Saved to the file data/treino.json on this computer.</p>')
+    );
     assert.ok(
       html.includes('aria-checked="false" aria-label="I have a pull-up bar" data-act="toggle-bar"')
     );

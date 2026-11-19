@@ -14,9 +14,9 @@ export default [
   js.configs.recommended,
   { rules, languageOptions: { sourceType: 'module' } },
   {
-    // Browser modules. `claude` is the optional Claude artifacts runtime.
+    // Browser modules.
     files: ['src/**/*.js'],
-    languageOptions: { globals: { ...globals.browser, claude: 'readonly' } },
+    languageOptions: { globals: globals.browser },
   },
   {
     files: ['test/unit/**/*.js', 'test/server/*.js', 'server.mjs', 'eslint.config.mjs'],

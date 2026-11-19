@@ -27,7 +27,7 @@ Read README.md "Architecture and conventions" and `docs/decisions/` before struc
 - `server.mjs`: serves `src/` and `/api/state`.
 - `test/`: all tests, none inside `src/`. `test/unit/` mirrors `src/` (`domain/`, `storage/`, `ui/`), `test/server/` tests `server.mjs`, `test/e2e/` holds the Playwright scripts. ADR 0008 explains the layout and ADR 0010 the test folder.
 - Dependencies point inward. `domain/` never touches the DOM or storage.
-- With `npm start`, the app uses `/api/state` (history in `data/treino.json`, with a copy in `treino.bak.json`) plus `localStorage` (key `treinoRR.v1`, draft in `treinoRR.draft`). The code still has a path for the Claude artifacts `db`, which can be removed.
+- With `npm start`, the app uses `/api/state` (history in `data/treino.json`, with a copy in `treino.bak.json`) plus `localStorage` (key `treinoRR.v1`, draft in `treinoRR.draft`).
 
 ## Product rules (do not change without asking)
 
